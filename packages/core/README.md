@@ -13,7 +13,7 @@ bun add @richie-rpc/core zod@^4
 ### Defining a Contract
 
 ```typescript
-import { defineContract } from '@richie-rpc/core';
+import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
 
 const contract = defineContract({
@@ -22,8 +22,8 @@ const contract = defineContract({
     path: '/users/:id',
     params: z.object({ id: z.string() }),
     responses: {
-      200: z.object({ id: z.string(), name: z.string() }),
-      404: z.object({ error: z.string() })
+      [Status.OK]: z.object({ id: z.string(), name: z.string() }),
+      [Status.NotFound]: z.object({ error: z.string() })
     }
   },
   createUser: {
@@ -31,7 +31,7 @@ const contract = defineContract({
     path: '/users',
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
-      201: z.object({ id: z.string(), name: z.string(), email: z.string() })
+      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() })
     }
   }
 });
@@ -52,11 +52,12 @@ Each endpoint can have:
 ## Features
 
 - ✅ Type-safe contract definitions
-- ✅ Zod v3+ schema validation
+- ✅ Zod v4+ schema validation
 - ✅ Path parameter parsing and interpolation
 - ✅ Query parameter handling
 - ✅ Multiple response types per endpoint
 - ✅ Full TypeScript inference
+- ✅ Status code constants for cleaner code
 
 ## Utilities
 
@@ -85,6 +86,62 @@ import { buildUrl } from '@richie-rpc/core';
 
 buildUrl('http://api.example.com', '/users', { limit: '10', offset: '0' });
 // => 'http://api.example.com/users?limit=10&offset=0'
+```
+
+## Status Codes
+
+Use the `Status` const object for type-safe status codes:
+
+```typescript
+import { Status } from '@richie-rpc/core';
+
+const contract = defineContract({
+  getUser: {
+    method: 'GET',
+    path: '/users/:id',
+    params: z.object({ id: z.string() }),
+    responses: {
+      [Status.OK]: UserSchema,
+      [Status.NotFound]: ErrorSchema
+    }
+  }
+});
+```
+
+Or in handlers (when imported from `@richie-rpc/server`):
+
+```typescript
+return { status: Status.OK, body: user };
+return { status: Status.NotFound, body: { error: 'Not found' } };
+```
+
+**Available constants:**
+- Success: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
+- Client Errors: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
+- Server Errors: `InternalServerError` (500), `BadGateway` (502), `ServiceUnavailable` (503)
+
+**Using custom status codes:**
+
+For status codes not in the `Status` object, use numeric literals in the contract:
+
+```typescript
+const contract = defineContract({
+  customEndpoint: {
+    method: 'GET',
+    path: '/teapot',
+    responses: {
+      [Status.OK]: z.object({ message: z.string() }),
+      418: z.object({ message: z.string() }), // I'm a teapot
+      451: z.object({ reason: z.string() }), // Unavailable for legal reasons
+    }
+  }
+});
+```
+
+Then use `as const` in the handler response:
+
+```typescript
+return { status: 418 as const, body: { message: "I'm a teapot" } };
 ```
 
 ## Type Inference

@@ -1,4 +1,4 @@
-import { defineContract } from '@richie-rpc/core';
+import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
 
 // Define schemas
@@ -42,7 +42,7 @@ export const usersContract = defineContract({
       offset: z.string().optional(),
     }),
     responses: {
-      200: UserListSchema,
+      [Status.OK]: UserListSchema,
     },
   },
 
@@ -54,8 +54,8 @@ export const usersContract = defineContract({
       id: z.string(),
     }),
     responses: {
-      200: UserSchema,
-      404: ErrorSchema,
+      [Status.OK]: UserSchema,
+      [Status.NotFound]: ErrorSchema,
     },
   },
 
@@ -65,8 +65,8 @@ export const usersContract = defineContract({
     path: '/users',
     body: CreateUserSchema,
     responses: {
-      201: UserSchema,
-      400: ErrorSchema,
+      [Status.Created]: UserSchema,
+      [Status.BadRequest]: ErrorSchema,
     },
   },
 
@@ -79,9 +79,9 @@ export const usersContract = defineContract({
     }),
     body: UpdateUserSchema,
     responses: {
-      200: UserSchema,
-      404: ErrorSchema,
-      400: ErrorSchema,
+      [Status.OK]: UserSchema,
+      [Status.NotFound]: ErrorSchema,
+      [Status.BadRequest]: ErrorSchema,
     },
   },
 
@@ -93,8 +93,20 @@ export const usersContract = defineContract({
       id: z.string(),
     }),
     responses: {
-      204: z.object({}).strict(),
-      404: ErrorSchema,
+      [Status.NoContent]: z.object({}).strict(),
+      [Status.NotFound]: ErrorSchema,
+    },
+  },
+
+  // Custom status code example
+  teapot: {
+    method: 'GET',
+    path: '/teapot',
+    responses: {
+      418: z.object({
+        message: z.string(),
+        isTeapot: z.boolean(),
+      }),
     },
   },
 });

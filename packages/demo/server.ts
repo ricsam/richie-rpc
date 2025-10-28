@@ -1,5 +1,5 @@
 import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 
 // In-memory database
@@ -31,7 +31,7 @@ const router = createRouter(usersContract, {
     const paginatedUsers = allUsers.slice(offset, offset + limit);
 
     return {
-      status: 200 as const,
+      status: Status.OK,
       body: {
         users: paginatedUsers,
         total: allUsers.length,
@@ -44,7 +44,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404 as const,
+        status: Status.NotFound,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -53,7 +53,7 @@ const router = createRouter(usersContract, {
     }
 
     return {
-      status: 200 as const,
+      status: Status.OK,
       body: user,
     };
   },
@@ -68,7 +68,7 @@ const router = createRouter(usersContract, {
     users.set(id, user);
 
     return {
-      status: 201 as const,
+      status: Status.Created,
       body: user,
     };
   },
@@ -78,7 +78,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404 as const,
+        status: Status.NotFound,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -94,7 +94,7 @@ const router = createRouter(usersContract, {
     users.set(params.id, updatedUser);
 
     return {
-      status: 200 as const,
+      status: Status.OK,
       body: updatedUser,
     };
   },
@@ -104,7 +104,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404 as const,
+        status: Status.NotFound,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -115,8 +115,19 @@ const router = createRouter(usersContract, {
     users.delete(params.id);
 
     return {
-      status: 204 as const,
+      status: Status.NoContent,
       body: {} as Record<string, never>,
+    };
+  },
+
+  // Custom status code example: I'm a teapot (RFC 2324)
+  teapot: async () => {
+    return {
+      status: 418 as const,
+      body: {
+        message: "I'm a teapot! I cannot brew coffee.",
+        isTeapot: true,
+      },
     };
   },
 });

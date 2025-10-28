@@ -33,7 +33,7 @@ Richie RPC is a monorepo containing 4 packages that work together to provide end
 
 ```typescript
 // contract.ts
-import { defineContract } from '@richie-rpc/core';
+import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
 
 export const contract = defineContract({
@@ -42,8 +42,8 @@ export const contract = defineContract({
     path: '/users/:id',
     params: z.object({ id: z.string() }),
     responses: {
-      200: z.object({ id: z.string(), name: z.string(), email: z.string() }),
-      404: z.object({ error: z.string() })
+      [Status.OK]: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+      [Status.NotFound]: z.object({ error: z.string() })
     }
   },
   createUser: {
@@ -51,7 +51,7 @@ export const contract = defineContract({
     path: '/users',
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
-      201: z.object({ id: z.string(), name: z.string(), email: z.string() })
+      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() })
     }
   }
 });
@@ -61,7 +61,7 @@ export const contract = defineContract({
 
 ```typescript
 // server.ts
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { generateOpenAPISpec, createDocsResponse } from '@richie-rpc/openapi';
 import { contract } from './contract';
 
@@ -69,13 +69,13 @@ const router = createRouter(contract, {
   getUser: async ({ params }) => {
     const user = await db.getUser(params.id);
     if (!user) {
-      return { status: 404, body: { error: 'User not found' } };
+      return { status: Status.NotFound, body: { error: 'User not found' } };
     }
-    return { status: 200, body: user };
+    return { status: Status.OK, body: user };
   },
   createUser: async ({ body }) => {
     const user = await db.createUser(body);
-    return { status: 201, body: user };
+    return { status: Status.Created, body: user };
   }
 });
 

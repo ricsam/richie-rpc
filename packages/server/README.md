@@ -13,7 +13,7 @@ bun add @richie-rpc/server @richie-rpc/core zod@^4
 ### Creating a Router
 
 ```typescript
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { contract } from './contract';
 
 const router = createRouter(contract, {
@@ -22,16 +22,16 @@ const router = createRouter(contract, {
     const user = await db.getUser(params.id);
     
     if (!user) {
-      return { status: 404, body: { error: 'User not found' } };
+      return { status: Status.NotFound, body: { error: 'User not found' } };
     }
     
-    return { status: 200, body: user };
+    return { status: Status.OK, body: user };
   },
   
   createUser: async ({ body }) => {
     // body is fully typed and already validated
     const user = await db.createUser(body);
-    return { status: 201, body: user };
+    return { status: Status.Created, body: user };
   }
 });
 ```
@@ -67,6 +67,7 @@ Bun.serve({
 - ✅ Automatic request validation (params, query, headers, body)
 - ✅ Automatic response validation
 - ✅ Type-safe handler inputs
+- ✅ Type-safe status codes with `Status` const object
 - ✅ Path parameter matching
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
@@ -99,6 +100,63 @@ Each handler must return a response object with:
   body: any,                   // Response body (must match schema)
   headers?: Record<string, string>  // Optional custom headers
 }
+```
+
+### Using Status Codes
+
+Use the `Status` const object for type-safe status codes:
+
+```typescript
+import { Status } from '@richie-rpc/server';
+
+return { status: Status.OK, body: user };           // 200
+return { status: Status.Created, body: newUser };   // 201
+return { status: Status.NoContent, body: {} };      // 204
+return { status: Status.BadRequest, body: error };  // 400
+return { status: Status.NotFound, body: error };    // 404
+```
+
+Available status codes in `Status` object:
+- **Success**: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
+- **Redirection**: `MovedPermanently` (301), `Found` (302), `NotModified` (304)
+- **Client Errors**: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `MethodNotAllowed` (405), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
+- **Server Errors**: `InternalServerError` (500), `NotImplemented` (501), `BadGateway` (502), `ServiceUnavailable` (503), `GatewayTimeout` (504)
+
+**Using custom status codes:**
+
+For status codes not in the `Status` object:
+
+```typescript
+// 1. Define in contract (no 'as const' needed)
+responses: {
+  418: z.object({ message: z.string() })
+}
+
+// 2. Return in handler (with 'as const')
+return { status: 418 as const, body: { message: "I'm a teapot" } };
+```
+
+Full example:
+
+```typescript
+const contract = defineContract({
+  teapot: {
+    method: 'GET',
+    path: '/teapot',
+    responses: {
+      418: z.object({ message: z.string(), isTeapot: z.boolean() })
+    }
+  }
+});
+
+const router = createRouter(contract, {
+  teapot: async () => {
+    return {
+      status: 418 as const,
+      body: { message: "I'm a teapot", isTeapot: true }
+    };
+  }
+});
 ```
 
 ## Error Handling
