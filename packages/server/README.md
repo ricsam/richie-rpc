@@ -124,22 +124,39 @@ Available status codes in `Status` object:
 
 **Using custom status codes:**
 
-For status codes not in the `Status` object, return them with `as const`:
-```typescript
-// In handler
-return { status: 418 as const, body: { message: "I'm a teapot" } };
-return { status: 451 as const, body: { reason: 'Legal reasons' } };
-```
+For status codes not in the `Status` object:
 
-Or use the numeric value directly if defined in contract with `as const`:
 ```typescript
-// Contract
+// 1. Define in contract (no 'as const' needed)
 responses: {
-  [418 as const]: z.object({ message: z.string() })
+  418: z.object({ message: z.string() })
 }
 
-// Handler
+// 2. Return in handler (with 'as const')
 return { status: 418 as const, body: { message: "I'm a teapot" } };
+```
+
+Full example:
+
+```typescript
+const contract = defineContract({
+  teapot: {
+    method: 'GET',
+    path: '/teapot',
+    responses: {
+      418: z.object({ message: z.string(), isTeapot: z.boolean() })
+    }
+  }
+});
+
+const router = createRouter(contract, {
+  teapot: async () => {
+    return {
+      status: 418 as const,
+      body: { message: "I'm a teapot", isTeapot: true }
+    };
+  }
+});
 ```
 
 ## Error Handling

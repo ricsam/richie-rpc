@@ -122,7 +122,7 @@ return { status: Status.NotFound, body: { error: 'Not found' } };
 
 **Using custom status codes:**
 
-For status codes not in the `Status` object, use numeric literals with `as const` on the key:
+For status codes not in the `Status` object, use numeric literals in the contract:
 
 ```typescript
 const contract = defineContract({
@@ -131,11 +131,17 @@ const contract = defineContract({
     path: '/teapot',
     responses: {
       [Status.OK]: z.object({ message: z.string() }),
-      [418 as const]: z.object({ message: z.string() }), // I'm a teapot
-      [451 as const]: z.object({ reason: z.string() }), // Unavailable for legal reasons
+      418: z.object({ message: z.string() }), // I'm a teapot
+      451: z.object({ reason: z.string() }), // Unavailable for legal reasons
     }
   }
 });
+```
+
+Then use `as const` in the handler response:
+
+```typescript
+return { status: 418 as const, body: { message: "I'm a teapot" } };
 ```
 
 ## Type Inference

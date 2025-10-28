@@ -103,7 +103,7 @@ export const usersContract = defineContract({
     method: 'GET',
     path: '/teapot',
     responses: {
-      [418 as const]: z.object({
+      418: z.object({
         message: z.string(),
         isTeapot: z.boolean(),
       }),
