@@ -154,7 +154,16 @@ export function buildUrl(
   path: string,
   query?: Record<string, string | number | boolean | string[]>,
 ): string {
-  const url = new URL(path, baseUrl);
+  // Normalize baseUrl - remove trailing slash
+  const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+
+  // Ensure path starts with /
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+
+  // Concatenate base and path
+  const fullPath = normalizedBase + normalizedPath;
+
+  const url = new URL(fullPath);
 
   if (query) {
     for (const [key, value] of Object.entries(query)) {

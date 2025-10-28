@@ -308,6 +308,10 @@ The project uses GitHub Actions for continuous integration and deployment:
 
 To trigger a publish, update version numbers in the packages you want to release and push to main. See [VERSIONING.md](./VERSIONING.md) for details.
 
+### Branch Protection
+
+To enforce CI checks before merging PRs, configure branch protection rules. See [.github/BRANCH_PROTECTION.md](.github/BRANCH_PROTECTION.md) for step-by-step setup instructions.
+
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.

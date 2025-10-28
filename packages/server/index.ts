@@ -199,13 +199,32 @@ function createErrorResponse(error: unknown): Response {
 }
 
 /**
+ * Router configuration options
+ */
+export interface RouterOptions {
+  basePath?: string;
+}
+
+/**
  * Router class that manages contract endpoints
  */
 export class Router<T extends Contract> {
+  private basePath: string;
+
   constructor(
     private contract: T,
     private handlers: ContractHandlers<T>,
-  ) {}
+    options?: RouterOptions,
+  ) {
+    // Normalize basePath: ensure it starts with / and doesn't end with /
+    const bp = options?.basePath || '';
+    if (bp) {
+      this.basePath = bp.startsWith('/') ? bp : `/${bp}`;
+      this.basePath = this.basePath.endsWith('/') ? this.basePath.slice(0, -1) : this.basePath;
+    } else {
+      this.basePath = '';
+    }
+  }
 
   /**
    * Find matching endpoint for a request
@@ -232,7 +251,12 @@ export class Router<T extends Contract> {
     try {
       const url = new URL(request.url);
       const method = request.method;
-      const path = url.pathname;
+      let path = url.pathname;
+
+      // Strip basePath if configured
+      if (this.basePath && path.startsWith(this.basePath)) {
+        path = path.slice(this.basePath.length) || '/';
+      }
 
       const match = this.findEndpoint(method, path);
       if (!match) {
@@ -269,6 +293,7 @@ export class Router<T extends Contract> {
 export function createRouter<T extends Contract>(
   contract: T,
   handlers: ContractHandlers<T>,
+  options?: RouterOptions,
 ): Router<T> {
-  return new Router(contract, handlers);
+  return new Router(contract, handlers, options);
 }

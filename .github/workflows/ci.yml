@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: ['**']
-  pull_request:
-    branches: ['**']
   workflow_call:  # Allow this workflow to be called by other workflows
 
 jobs:
@@ -32,6 +30,18 @@ jobs:
       - name: Build packages
         run: bun run build
 
+      - name: Restore development state
+        run: bun run restore
+
+      - name: Verify clean git state
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Git working directory is not clean after restore"
+            git status
+            exit 1
+          fi
+          echo "✅ Git working directory is clean"
+
       - name: Run verification tests
         run: bun run verify
 
@@ -50,8 +60,4 @@ jobs:
           name: playwright-report
           path: packages/demo/playwright-report/
           retention-days: 7
-
-      - name: Restore development state
-        if: always()
-        run: bun run restore
 
