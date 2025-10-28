@@ -2,6 +2,24 @@
   "name": "richie-rpc",
   "version": "0.1.0",
   "private": true,
+  "description": "A TypeScript-first, type-safe API contract library for Bun with Zod validation",
+  "author": "Richie <oss@ricsam.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ricsam/richie-rpc.git"
+  },
+  "keywords": [
+    "typescript",
+    "bun",
+    "zod",
+    "api",
+    "contract",
+    "rpc",
+    "rest",
+    "openapi",
+    "type-safe"
+  ],
   "type": "module",
   "workspaces": [
     "packages/*"

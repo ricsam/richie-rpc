@@ -4,7 +4,7 @@ import { $ } from 'bun';
 // Packages to build (excluding demo which is not published)
 const PACKAGES = ['core', 'server', 'openapi', 'client'];
 
-const buildPackage = async (packageName: string) => {
+const buildPackage = async (packageName: string, rootMetadata: any) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
   console.log(`\n📦 Building @richie-rpc/${packageName}...`);
 
@@ -175,6 +175,23 @@ const buildPackage = async (packageName: string) => {
   // Update main package.json for publishing
   const publishPackageJson = { ...packageJson };
 
+  // Inject metadata from root package.json
+  publishPackageJson.author = rootMetadata.author;
+  publishPackageJson.license = rootMetadata.license;
+  publishPackageJson.repository = rootMetadata.repository;
+  publishPackageJson.keywords = rootMetadata.keywords;
+
+  // Add package-specific description if not present
+  if (!publishPackageJson.description) {
+    const descriptions: Record<string, string> = {
+      core: 'Core contract definitions and type utilities for Richie RPC',
+      server: 'Server implementation for Bun.serve with automatic validation',
+      openapi: 'OpenAPI 3.1 specification generator for Richie RPC contracts',
+      client: 'Type-safe fetch client for Richie RPC contracts',
+    };
+    publishPackageJson.description = descriptions[packageName] || rootMetadata.description;
+  }
+
   // Remove dev-only fields
   delete publishPackageJson.devDependencies;
 
@@ -228,9 +245,19 @@ const main = async () => {
   console.log('🚀 Building Richie RPC packages for npm publishing...');
   console.log('======================================================\n');
 
+  // Load root package.json for metadata
+  const rootPackageJson = await Bun.file(path.join(__dirname, '..', 'package.json')).json();
+  const rootMetadata = {
+    author: rootPackageJson.author,
+    license: rootPackageJson.license,
+    repository: rootPackageJson.repository,
+    keywords: rootPackageJson.keywords,
+    description: rootPackageJson.description,
+  };
+
   for (const pkg of PACKAGES) {
     try {
-      await buildPackage(pkg);
+      await buildPackage(pkg, rootMetadata);
     } catch (error) {
       console.error(`❌ Failed to build @richie-rpc/${pkg}:`, error);
       process.exit(1);
