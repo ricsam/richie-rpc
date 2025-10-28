@@ -39,6 +39,22 @@ const spec = generateOpenAPISpec(contract, {
 });
 ```
 
+### Generate OpenAPI Spec with basePath
+
+If your API is served under a path prefix, use the `basePath` option to prefix all paths in the spec:
+
+```typescript
+const spec = generateOpenAPISpec(contract, {
+  info: {
+    title: 'My API',
+    version: '1.0.0'
+  },
+  basePath: '/api'  // All paths will be prefixed with /api
+});
+
+// If contract defines /users, the OpenAPI spec will show /api/users
+```
+
 ### Serve OpenAPI Spec
 
 ```typescript
@@ -89,6 +105,7 @@ Bun.serve({
 - ✅ No external JSON Schema conversion dependencies
 - ✅ Path parameters, query parameters, request bodies
 - ✅ Multiple response types per endpoint
+- ✅ BasePath support for prefixing all paths
 - ✅ Server and info metadata support
 - ✅ Scalar API documentation UI integration
 - ✅ Modern, interactive documentation
@@ -108,6 +125,7 @@ Generates an OpenAPI 3.1 specification from a contract.
   - `contact`: Contact information (optional)
   - `license`: License information (optional)
 - `options.servers`: Array of server objects (optional)
+- `options.basePath`: Path prefix for all endpoints (optional, e.g., `/api`)
 
 **Returns:** OpenAPI specification object
 

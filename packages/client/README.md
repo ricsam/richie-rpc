@@ -24,6 +24,21 @@ const client = createClient(contract, {
 });
 ```
 
+### Client with basePath
+
+The `baseUrl` supports path prefixes for APIs served under a specific path:
+
+```typescript
+const client = createClient(contract, {
+  baseUrl: 'https://api.example.com/api',  // API served under /api
+});
+
+// If contract defines /users, actual URL will be:
+// https://api.example.com/api/users
+```
+
+The client automatically concatenates the `baseUrl` with the endpoint paths from your contract.
+
 ### Making Requests
 
 The client provides fully typed methods for each endpoint in your contract:
@@ -64,6 +79,7 @@ const data = await client.getData({
 - ✅ Full type safety based on contract
 - ✅ Automatic path parameter interpolation
 - ✅ Query parameter encoding
+- ✅ BasePath support in baseUrl
 - ✅ Request validation before sending
 - ✅ Response validation after receiving
 - ✅ Detailed error information

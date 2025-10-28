@@ -86,7 +86,13 @@ import { buildUrl } from '@richie-rpc/core';
 
 buildUrl('http://api.example.com', '/users', { limit: '10', offset: '0' });
 // => 'http://api.example.com/users?limit=10&offset=0'
+
+// With basePath in baseUrl
+buildUrl('http://api.example.com/api', '/users');
+// => 'http://api.example.com/api/users'
 ```
+
+The `buildUrl` function properly concatenates the baseUrl with the path, supporting basePath prefixes in the baseUrl.
 
 ## Status Codes
 
