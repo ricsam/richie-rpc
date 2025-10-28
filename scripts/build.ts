@@ -224,6 +224,9 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
     }
   }
 
+  // Save peerDependencies before modifying package.json
+  const finalPeerDependencies = publishPackageJson.peerDependencies;
+
   // Set module type and exports
   delete publishPackageJson.type;
   Object.assign(publishPackageJson, {
@@ -237,6 +240,7 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
         import: './dist/mjs/index.mjs',
       },
     },
+    peerDependencies: finalPeerDependencies, // Restore peerDependencies
     publishConfig: {
       access: 'public',
     },
