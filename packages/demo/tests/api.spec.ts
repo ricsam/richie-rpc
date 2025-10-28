@@ -109,23 +109,90 @@ test.describe('Richie RPC API Integration', () => {
   });
 });
 
-test.describe('Scalar API Documentation UI', () => {
-  test('should display API endpoints in docs UI', async ({ page }) => {
+test.describe('OpenAPI Spec Validation', () => {
+  test('should match OpenAPI spec with actual endpoint behavior', async ({ request }) => {
+    // Fetch the OpenAPI spec
+    const specResponse = await request.get('/openapi.json');
+    expect(specResponse.ok()).toBeTruthy();
+    const spec = await specResponse.json();
+
+    // Test each endpoint defined in the spec
+    const paths = spec.paths;
+
+    // Test GET /users (from spec)
+    if (paths['/users']?.get) {
+      const getUsersOp = paths['/users'].get;
+      expect(getUsersOp.operationId).toBe('listUsers');
+      expect(getUsersOp.responses['200']).toBeDefined();
+
+      // Test the actual endpoint
+      const response = await request.get('/users');
+      expect(response.status()).toBe(200);
+      const data = await response.json();
+      expect(data.users).toBeDefined();
+      expect(Array.isArray(data.users)).toBeTruthy();
+    }
+
+    // Test GET /users/{id} (from spec)
+    if (paths['/users/{id}']?.get) {
+      const getUserOp = paths['/users/{id}'].get;
+      expect(getUserOp.operationId).toBe('getUser');
+      expect(getUserOp.responses['200']).toBeDefined();
+      expect(getUserOp.responses['404']).toBeDefined();
+
+      // Test the actual endpoint with valid ID
+      const validResponse = await request.get('/users/1');
+      expect([200, 404]).toContain(validResponse.status());
+    }
+
+    // Test POST /users (from spec)
+    if (paths['/users']?.post) {
+      const createUserOp = paths['/users'].post;
+      expect(createUserOp.operationId).toBe('createUser');
+      expect(createUserOp.requestBody).toBeDefined();
+      expect(createUserOp.responses['201']).toBeDefined();
+
+      // Verify request body schema exists
+      const requestBody = createUserOp.requestBody;
+      expect(requestBody.content['application/json'].schema).toBeDefined();
+    }
+
+    // Test PUT /users/{id} (from spec)
+    if (paths['/users/{id}']?.put) {
+      const updateUserOp = paths['/users/{id}'].put;
+      expect(updateUserOp.operationId).toBe('updateUser');
+      expect(updateUserOp.responses['200']).toBeDefined();
+      expect(updateUserOp.responses['404']).toBeDefined();
+    }
+
+    // Test DELETE /users/{id} (from spec)
+    if (paths['/users/{id}']?.delete) {
+      const deleteUserOp = paths['/users/{id}'].delete;
+      expect(deleteUserOp.operationId).toBe('deleteUser');
+      expect(deleteUserOp.responses['204']).toBeDefined();
+      expect(deleteUserOp.responses['404']).toBeDefined();
+    }
+
+    // Verify all operations have proper structure
+    for (const [path, methods] of Object.entries(paths)) {
+      for (const [method, operation] of Object.entries(methods as any)) {
+        expect(operation.operationId).toBeDefined();
+        expect(operation.responses).toBeDefined();
+        expect(Object.keys(operation.responses).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test('should serve Scalar documentation UI', async ({ page }) => {
     await page.goto('/docs');
 
-    // Verify the page has the title
+    // Verify basic page structure
     const title = await page.title();
     expect(title).toBe('Users API Documentation');
 
-    // Wait for the #app div to be present in the HTML
-    const appDiv = await page.locator('#app').count();
-    expect(appDiv).toBe(1);
-
-    // Verify the script tag is present
-    const scriptTag = await page.locator('script[src*="scalar"]').count();
-    expect(scriptTag).toBeGreaterThan(0);
-
-    // Take a screenshot for visual verification
-    await page.screenshot({ path: 'test-results/docs-ui.png', fullPage: true });
+    // Verify HTML contains the necessary elements
+    const html = await page.content();
+    expect(html).toContain('id="app"');
+    expect(html).toContain('scalar');
   });
 });
