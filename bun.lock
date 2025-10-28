@@ -13,22 +13,18 @@
     "packages/client": {
       "name": "@richie-rpc/client",
       "version": "0.1.0",
-      "dependencies": {
-        "@richie-rpc/core": "workspace:*",
-        "zod": "^4.1.12",
-      },
       "peerDependencies": {
+        "@richie-rpc/core": "workspace:*",
         "typescript": "^5",
+        "zod": "^4.1.12",
       },
     },
     "packages/core": {
       "name": "@richie-rpc/core",
       "version": "0.1.0",
-      "dependencies": {
-        "zod": "^4.1.12",
-      },
       "peerDependencies": {
         "typescript": "^5",
+        "zod": "^4.1.12",
       },
     },
     "packages/demo": {
@@ -50,23 +46,19 @@
     "packages/openapi": {
       "name": "@richie-rpc/openapi",
       "version": "0.1.0",
-      "dependencies": {
-        "@richie-rpc/core": "workspace:*",
-        "zod": "^4.1.12",
-      },
       "peerDependencies": {
+        "@richie-rpc/core": "workspace:*",
         "typescript": "^5",
+        "zod": "^4.1.12",
       },
     },
     "packages/server": {
       "name": "@richie-rpc/server",
       "version": "0.1.0",
-      "dependencies": {
-        "@richie-rpc/core": "workspace:*",
-        "zod": "^4.1.12",
-      },
       "peerDependencies": {
+        "@richie-rpc/core": "workspace:*",
         "typescript": "^5",
+        "zod": "^4.1.12",
       },
     },
   },
