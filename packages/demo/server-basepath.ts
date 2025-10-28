@@ -22,115 +22,119 @@ users.set('2', {
 });
 
 // Create router with basePath
-const router = createRouter(usersContract, {
-  listUsers: async ({ query }) => {
-    const limit = query?.limit ? parseInt(query.limit, 10) : 100;
-    const offset = query?.offset ? parseInt(query.offset, 10) : 0;
+const router = createRouter(
+  usersContract,
+  {
+    listUsers: async ({ query }) => {
+      const limit = query?.limit ? parseInt(query.limit, 10) : 100;
+      const offset = query?.offset ? parseInt(query.offset, 10) : 0;
 
-    const allUsers = Array.from(users.values());
-    const paginatedUsers = allUsers.slice(offset, offset + limit);
+      const allUsers = Array.from(users.values());
+      const paginatedUsers = allUsers.slice(offset, offset + limit);
 
-    return {
-      status: Status.OK,
-      body: {
-        users: paginatedUsers,
-        total: allUsers.length,
-      },
-    };
-  },
-
-  getUser: async ({ params }) => {
-    const user = users.get(params.id);
-
-    if (!user) {
       return {
-        status: Status.NotFound,
+        status: Status.OK,
         body: {
-          error: 'Not Found',
-          message: `User with id ${params.id} not found`,
+          users: paginatedUsers,
+          total: allUsers.length,
         },
       };
-    }
+    },
 
-    return {
-      status: Status.OK,
-      body: user,
-    };
-  },
+    getUser: async ({ params }) => {
+      const user = users.get(params.id);
 
-  createUser: async ({ body }) => {
-    const id = String(nextId++);
-    const user: User = {
-      id,
-      ...body,
-    };
+      if (!user) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: 'Not Found',
+            message: `User with id ${params.id} not found`,
+          },
+        };
+      }
 
-    users.set(id, user);
-
-    return {
-      status: Status.Created,
-      body: user,
-    };
-  },
-
-  updateUser: async ({ params, body }) => {
-    const user = users.get(params.id);
-
-    if (!user) {
       return {
-        status: Status.NotFound,
+        status: Status.OK,
+        body: user,
+      };
+    },
+
+    createUser: async ({ body }) => {
+      const id = String(nextId++);
+      const user: User = {
+        id,
+        ...body,
+      };
+
+      users.set(id, user);
+
+      return {
+        status: Status.Created,
+        body: user,
+      };
+    },
+
+    updateUser: async ({ params, body }) => {
+      const user = users.get(params.id);
+
+      if (!user) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: 'Not Found',
+            message: `User with id ${params.id} not found`,
+          },
+        };
+      }
+
+      const updatedUser: User = {
+        ...user,
+        ...body,
+      };
+
+      users.set(params.id, updatedUser);
+
+      return {
+        status: Status.OK,
+        body: updatedUser,
+      };
+    },
+
+    deleteUser: async ({ params }) => {
+      const user = users.get(params.id);
+
+      if (!user) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: 'Not Found',
+            message: `User with id ${params.id} not found`,
+          },
+        };
+      }
+
+      users.delete(params.id);
+
+      return {
+        status: Status.NoContent,
+        body: {} as Record<string, never>,
+      };
+    },
+
+    // Custom status code example: I'm a teapot (RFC 2324)
+    teapot: async () => {
+      return {
+        status: 418 as const,
         body: {
-          error: 'Not Found',
-          message: `User with id ${params.id} not found`,
+          message: "I'm a teapot! I cannot brew coffee.",
+          isTeapot: true,
         },
       };
-    }
-
-    const updatedUser: User = {
-      ...user,
-      ...body,
-    };
-
-    users.set(params.id, updatedUser);
-
-    return {
-      status: Status.OK,
-      body: updatedUser,
-    };
+    },
   },
-
-  deleteUser: async ({ params }) => {
-    const user = users.get(params.id);
-
-    if (!user) {
-      return {
-        status: Status.NotFound,
-        body: {
-          error: 'Not Found',
-          message: `User with id ${params.id} not found`,
-        },
-      };
-    }
-
-    users.delete(params.id);
-
-    return {
-      status: Status.NoContent,
-      body: {} as Record<string, never>,
-    };
-  },
-
-  // Custom status code example: I'm a teapot (RFC 2324)
-  teapot: async () => {
-    return {
-      status: 418 as const,
-      body: {
-        message: "I'm a teapot! I cannot brew coffee.",
-        isTeapot: true,
-      },
-    };
-  },
-}, { basePath: '/api' });
+  { basePath: '/api' },
+);
 
 // Generate OpenAPI spec with basePath
 const openAPISpec = generateOpenAPISpec(usersContract, {
@@ -178,7 +182,7 @@ const server = Bun.serve({
     // 404 for everything else
     return Response.json(
       { error: 'Not Found', message: 'API is served under /api prefix' },
-      { status: 404 }
+      { status: 404 },
     );
   },
 });
@@ -187,4 +191,3 @@ console.log(`🚀 Server running at http://localhost:${server.port}`);
 console.log(`📚 API Docs available at http://localhost:${server.port}/api/docs`);
 console.log(`📄 OpenAPI Spec at http://localhost:${server.port}/api/openapi.json`);
 console.log(`🔧 API endpoints are under /api (e.g., http://localhost:${server.port}/api/users)`);
-

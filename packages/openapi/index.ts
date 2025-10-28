@@ -206,12 +206,12 @@ export function generateOpenAPISpec<T extends Contract>(
   // Process each endpoint in the contract
   for (const [name, endpoint] of Object.entries(contract)) {
     let openAPIPath = convertPathToOpenAPI(endpoint.path);
-    
+
     // Prefix with basePath if provided
     if (basePath) {
       openAPIPath = basePath + openAPIPath;
     }
-    
+
     const method = endpoint.method.toLowerCase();
 
     if (!paths[openAPIPath]) {

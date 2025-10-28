@@ -156,13 +156,13 @@ export function buildUrl(
 ): string {
   // Normalize baseUrl - remove trailing slash
   const normalizedBase = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-  
+
   // Ensure path starts with /
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  
+
   // Concatenate base and path
   const fullPath = normalizedBase + normalizedPath;
-  
+
   const url = new URL(fullPath);
 
   if (query) {

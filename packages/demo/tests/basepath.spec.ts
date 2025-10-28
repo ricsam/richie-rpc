@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { type ChildProcess, spawn } from 'node:child_process';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { expect, test } from '@playwright/test';
 import { createClient } from '@richie-rpc/client';
 import { usersContract } from '../contract';
-import { spawn, type ChildProcess } from 'child_process';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -105,7 +105,7 @@ test.describe('BasePath Support', () => {
     // Verify user is deleted - count should be reduced by 1
     const listResponse = await client.listUsers({});
     expect(listResponse.data.total).toBe(initialCount - 1);
-    
+
     // Verify the specific user is gone
     const getResponse = await client.getUser({ params: { id: '1' } });
     expect(getResponse.status).toBe(404);
@@ -120,7 +120,7 @@ test.describe('BasePath Support', () => {
     const response = await fetch(`http://localhost:${TEST_PORT}/api/openapi.json`);
     expect(response.status).toBe(200);
 
-    const spec = await response.json() as any;
+    const spec = (await response.json()) as any;
     const paths = Object.keys(spec.paths);
 
     // All paths should start with /api
@@ -139,7 +139,7 @@ test.describe('BasePath Support', () => {
     const response = await fetch(`http://localhost:${TEST_PORT}/api/users`);
     expect(response.status).toBe(200);
 
-    const data = await response.json() as any;
+    const data = (await response.json()) as any;
     expect(data.users).toBeDefined();
     expect(Array.isArray(data.users)).toBe(true);
   });
@@ -162,11 +162,11 @@ test.describe('BasePath Support', () => {
   test('router handles basePath normalization', async () => {
     // This test verifies that the router normalizes basePath correctly
     // by testing through HTTP requests to our test server
-    
+
     // Test that accessing without basePath returns 404
     const withoutBasePath = await fetch(`http://localhost:${TEST_PORT}/users`);
     expect(withoutBasePath.status).toBe(404);
-    
+
     // Test that accessing with correct basePath works
     const withBasePath = await fetch(`http://localhost:${TEST_PORT}/api/users`);
     expect(withBasePath.status).toBe(200);
@@ -220,4 +220,3 @@ test.describe('BasePath Support', () => {
     expect(getAfterDeleteResponse.status).toBe(404);
   });
 });
-

@@ -41,7 +41,7 @@ async function testBasePath() {
     console.log(`   Status: ${createResponse.status}`);
     if (createResponse.status === 201) {
       console.log(`   Created user:`, createResponse.data);
-      
+
       // Test 4: Update the user
       const userId = createResponse.data.id;
       console.log();
@@ -54,7 +54,7 @@ async function testBasePath() {
       if (updateResponse.status === 200) {
         console.log(`   Updated user:`, updateResponse.data);
       }
-      
+
       // Test 5: Delete the user
       console.log();
       console.log(`🗑️  Deleting user ${userId}...`);
@@ -71,4 +71,3 @@ async function testBasePath() {
 }
 
 testBasePath();
-
