@@ -4,7 +4,15 @@ import { $ } from 'bun';
 // Packages to build (excluding demo which is not published)
 const PACKAGES = ['core', 'server', 'openapi', 'client'];
 
-const buildPackage = async (packageName: string, rootMetadata: any) => {
+interface RootMetadata {
+  author: string;
+  license: string;
+  repository: { type: string; url: string };
+  keywords: string[];
+  description: string;
+}
+
+const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
   console.log(`\n📦 Building @richie-rpc/${packageName}...`);
 
