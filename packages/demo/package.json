@@ -1,5 +1,5 @@
 {
-  "name": "@rfetch/demo",
+  "name": "@richie-rpc/demo",
   "version": "0.1.0",
   "type": "module",
   "private": true,
@@ -9,10 +9,10 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@rfetch/core": "workspace:*",
-    "@rfetch/server": "workspace:*",
-    "@rfetch/openapi": "workspace:*",
-    "@rfetch/client": "workspace:*",
+    "@richie-rpc/core": "workspace:*",
+    "@richie-rpc/server": "workspace:*",
+    "@richie-rpc/openapi": "workspace:*",
+    "@richie-rpc/client": "workspace:*",
     "zod": "^3.23.8"
   },
   "devDependencies": {

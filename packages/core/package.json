@@ -1,15 +1,27 @@
 {
-  "name": "@rfetch/core",
+  "name": "@richie-rpc/core",
   "version": "0.1.0",
-  "type": "module",
-  "main": "index.ts",
+  "main": "./dist/cjs/index.cjs",
   "exports": {
-    ".": "./index.ts"
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "require": "./dist/cjs/index.cjs",
+      "import": "./dist/mjs/index.mjs"
+    }
   },
   "dependencies": {
     "zod": "^3.23.8"
   },
   "peerDependencies": {
     "typescript": "^5"
-  }
+  },
+  "module": "./dist/mjs/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }

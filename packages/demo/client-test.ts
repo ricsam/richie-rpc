@@ -1,4 +1,4 @@
-import { createClient } from '@rfetch/client';
+import { createClient } from '@richie-rpc/client';
 import { usersContract } from './contract';
 
 // Create typesafe client

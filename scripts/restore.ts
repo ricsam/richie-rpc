@@ -6,7 +6,7 @@ const PACKAGES = ['core', 'server', 'openapi', 'client'];
 
 const restorePackage = async (packageName: string) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
-  console.log(`\n🔄 Restoring @rfetch/${packageName}...`);
+  console.log(`\n🔄 Restoring @richie-rpc/${packageName}...`);
 
   // Remove build artifacts
   await $`rm -rf dist`.cwd(packageDir).nothrow();
@@ -16,8 +16,8 @@ const restorePackage = async (packageName: string) => {
 };
 
 const main = async () => {
-  console.log('🔄 Restoring RFetch packages to development state...');
-  console.log('===================================================\n');
+  console.log('🔄 Restoring Richie RPC packages to development state...');
+  console.log('=========================================================\n');
 
   // Restore all packages
   for (const pkg of PACKAGES) {

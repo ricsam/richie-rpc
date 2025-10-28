@@ -1,16 +1,16 @@
-# RFetch Project Rules
+# Richie RPC Project Rules
 
 ## Project Structure
 
-This is a TypeScript/Bun monorepo for the RFetch API contract library.
+This is a TypeScript/Bun monorepo for the Richie RPC API contract library.
 
 ## Packages
 
-- `@rfetch/core` - Contract definitions and type utilities
-- `@rfetch/server` - Server implementation for Bun.serve
-- `@rfetch/openapi` - OpenAPI 3.1 spec generation
-- `@rfetch/client` - Type-safe fetch client
-- `@rfetch/demo` - Integration tests and examples
+- `@richie-rpc/core` - Contract definitions and type utilities
+- `@richie-rpc/server` - Server implementation for Bun.serve
+- `@richie-rpc/openapi` - OpenAPI 3.1 spec generation
+- `@richie-rpc/client` - Type-safe fetch client
+- `@richie-rpc/demo` - Integration tests and examples
 
 ## Development Guidelines
 

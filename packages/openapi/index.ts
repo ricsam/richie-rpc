@@ -1,5 +1,5 @@
-import type { Contract, EndpointDefinition } from '@rfetch/core';
-import { parsePathParams } from '@rfetch/core';
+import type { Contract, EndpointDefinition } from '@richie-rpc/core';
+import { parsePathParams } from '@richie-rpc/core';
 import type { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 

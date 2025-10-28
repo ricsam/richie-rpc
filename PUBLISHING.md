@@ -1,12 +1,12 @@
-# Publishing RFetch to npm
+# Publishing Richie RPC to npm
 
-Quick reference guide for publishing RFetch packages to npm.
+Quick reference guide for publishing Richie RPC packages to npm.
 
 ## Pre-requisites
 
 1. **npm account**: Create an account at https://www.npmjs.com
 2. **npm login**: Run `npm login` and authenticate
-3. **Scope access**: Request access to `@rfetch` scope (or use your own scope)
+3. **Scope access**: Request access to `@richie-rpc` scope (or use your own scope)
 
 ## Quick Publish
 
@@ -71,7 +71,7 @@ Each package can have its own version, but ensure dependency versions match:
 {
   "version": "0.2.0",
   "dependencies": {
-    "@rfetch/core": "^0.1.5"  // Must match published core version
+    "@richie-rpc/core": "^0.1.5"  // Must match published core version
   }
 }
 ```
@@ -88,7 +88,7 @@ npm pack
 
 # Test in another project
 cd /path/to/test-project
-npm install /path/to/rfetch/packages/core/rfetch-core-0.1.0.tgz
+npm install /path/to/richie-rpc/packages/core/richie-rpc-core-0.1.0.tgz
 ```
 
 ### 2. Dry Run
@@ -167,16 +167,16 @@ npm whoami
 npm login
 
 # Check package scope
-# Ensure you have access to @rfetch scope
+# Ensure you have access to @richie-rpc scope
 ```
 
 ### "Package name already exists"
 
-If `@rfetch` is taken, use your own scope:
+If `@richie-rpc` is taken, use your own scope:
 
 ```bash
 # Update all package names
-# Change @rfetch to @yourname in all package.json files
+# Change @richie-rpc to @yourname in all package.json files
 ```
 
 ### "Version already published"
@@ -215,7 +215,7 @@ bun run build
 }
 ```
 
-All RFetch packages are configured as public.
+All Richie RPC packages are configured as public.
 
 ### Private Packages (npm Pro)
 
@@ -247,8 +247,8 @@ The project includes automation scripts:
 
 After publishing:
 
-1. **Verify on npm**: Check https://www.npmjs.com/package/@rfetch/core
-2. **Test installation**: `npm install @rfetch/core` in a new project
+1. **Verify on npm**: Check https://www.npmjs.com/package/@richie-rpc/core
+2. **Test installation**: `npm install @richie-rpc/core` in a new project
 3. **Update docs**: Ensure documentation reflects new version
 4. **Monitor**: Watch for issues in the first 24 hours
 

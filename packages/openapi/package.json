@@ -1,5 +1,5 @@
 {
-  "name": "@rfetch/openapi",
+  "name": "@richie-rpc/openapi",
   "version": "0.1.0",
   "type": "module",
   "main": "index.ts",
@@ -7,7 +7,7 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@rfetch/core": "workspace:*",
+    "@richie-rpc/core": "workspace:*",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.23.2"
   },

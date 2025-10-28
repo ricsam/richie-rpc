@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Verification script for RFetch demo
+# Verification script for Richie RPC demo
 set -e
 
-echo "🧪 RFetch Integration Verification"
+echo "🧪 Richie RPC Integration Verification"
 echo "=================================="
 echo ""
 

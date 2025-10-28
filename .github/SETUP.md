@@ -60,10 +60,10 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 2. Build packages
 3. Check if version already published (skip if exists)
 4. Publish to npm in order:
-   - @rfetch/core (first, as others depend on it)
-   - @rfetch/server
-   - @rfetch/openapi
-   - @rfetch/client
+   - @richie-rpc/core (first, as others depend on it)
+   - @richie-rpc/server
+   - @richie-rpc/openapi
+   - @richie-rpc/client
 5. Create git tag (e.g., `v0.1.0`)
 6. Restore development state
 

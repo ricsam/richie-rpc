@@ -1,11 +1,11 @@
-# @rfetch/openapi
+# @richie-rpc/openapi
 
-OpenAPI 3.1 specification generator for RFetch contracts.
+OpenAPI 3.1 specification generator for Richie RPC contracts.
 
 ## Installation
 
 ```bash
-bun add @rfetch/openapi @rfetch/core zod
+bun add @richie-rpc/openapi @richie-rpc/core zod
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ bun add @rfetch/openapi @rfetch/core zod
 ### Generate OpenAPI Spec
 
 ```typescript
-import { generateOpenAPISpec } from '@rfetch/openapi';
+import { generateOpenAPISpec } from '@richie-rpc/openapi';
 import { contract } from './contract';
 
 const spec = generateOpenAPISpec(contract, {
@@ -42,7 +42,7 @@ const spec = generateOpenAPISpec(contract, {
 ### Serve OpenAPI Spec
 
 ```typescript
-import { createOpenAPIResponse } from '@rfetch/openapi';
+import { createOpenAPIResponse } from '@richie-rpc/openapi';
 
 Bun.serve({
   fetch(request) {
@@ -64,7 +64,7 @@ Bun.serve({
 The package includes support for Scalar API documentation UI:
 
 ```typescript
-import { createDocsResponse } from '@rfetch/openapi';
+import { createDocsResponse } from '@richie-rpc/openapi';
 
 Bun.serve({
   fetch(request) {
@@ -99,7 +99,7 @@ Bun.serve({
 Generates an OpenAPI 3.1 specification from a contract.
 
 **Parameters:**
-- `contract`: The RFetch contract
+- `contract`: The Richie RPC contract
 - `options.info`: OpenAPI info object (required)
   - `title`: API title
   - `version`: API version

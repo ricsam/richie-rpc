@@ -5,8 +5,8 @@ import type {
   ExtractHeaders,
   ExtractParams,
   ExtractQuery,
-} from '@rfetch/core';
-import { matchPath, parseQuery } from '@rfetch/core';
+} from '@richie-rpc/core';
+import { matchPath, parseQuery } from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Handler input types

@@ -1,10 +1,10 @@
-# @rfetch/demo
+# @richie-rpc/demo
 
-Demo and integration testing package for the RFetch library.
+Demo and integration testing package for the Richie RPC library.
 
 ## Overview
 
-This package demonstrates a complete working example of the RFetch library with:
+This package demonstrates a complete working example of the Richie RPC library with:
 
 - ✅ Contract definition with Zod schemas
 - ✅ Server implementation with Bun.serve
@@ -112,7 +112,7 @@ Delete a user.
 
 All success criteria from the plan are met:
 
-- ✅ Contract defined in @rfetch/core with typed endpoints
+- ✅ Contract defined in @richie-rpc/core with typed endpoints
 - ✅ Server handlers implemented and running on Bun.serve
 - ✅ OpenAPI spec accessible at `/openapi.json`
 - ✅ Scalar API documentation UI served at `/docs`

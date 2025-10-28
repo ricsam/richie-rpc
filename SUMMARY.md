@@ -1,12 +1,12 @@
-# RFetch - Implementation Summary
+# Richie RPC - Implementation Summary
 
 ## ✅ Project Complete
 
-The RFetch library has been successfully implemented as a TypeScript/Bun/Zod monorepo with full end-to-end type safety.
+The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod monorepo with full end-to-end type safety.
 
 ## What Was Built
 
-### 1. **@rfetch/core** - Contract Definition Package
+### 1. **@richie-rpc/core** - Contract Definition Package
 - Object-based contract definition API (ts-rest style)
 - Type inference utilities for extracting types from Zod schemas
 - Path parameter parsing and interpolation
@@ -19,7 +19,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 - Path utilities: `parsePathParams()`, `matchPath()`, `interpolatePath()`, `buildUrl()`
 - Type helpers: `ExtractParams`, `ExtractQuery`, `ExtractBody`, `ExtractResponses`
 
-### 2. **@rfetch/server** - Server Implementation Package
+### 2. **@richie-rpc/server** - Server Implementation Package
 - Type-safe request handlers with automatic validation
 - Zod validation for request params, query, headers, and body
 - Zod validation for response bodies
@@ -32,7 +32,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 - `Router` class with `.fetch` property for Bun.serve
 - Error classes: `ValidationError`, `RouteNotFoundError`
 
-### 3. **@rfetch/openapi** - OpenAPI Generator Package
+### 3. **@richie-rpc/openapi** - OpenAPI Generator Package
 - Generates OpenAPI 3.1 specifications from contracts
 - Zod to JSON Schema conversion (using `zod-to-json-schema`)
 - Support for path parameters, query parameters, request bodies, responses
@@ -44,7 +44,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 - `createOpenAPIResponse()` - Creates Response with spec JSON
 - `createDocsResponse()` - Creates HTML Response with Scalar UI
 
-### 4. **@rfetch/client** - Type-safe Client Package
+### 4. **@richie-rpc/client** - Type-safe Client Package
 - Fully typed methods generated from contract
 - Automatic request validation before sending
 - Automatic response validation after receiving
@@ -57,7 +57,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 - `createClient()` - Creates type-safe client from contract
 - Error classes: `ClientValidationError`, `HTTPError`
 
-### 5. **@rfetch/demo** - Integration Testing Package
+### 5. **@richie-rpc/demo** - Integration Testing Package
 - Complete CRUD API example (Users API)
 - Server implementation with all handlers
 - Client integration tests (8 comprehensive tests)
@@ -68,7 +68,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 
 ## Success Criteria - All Met ✅
 
-- ✅ **Contract defined** in @rfetch/core with typed endpoints
+- ✅ **Contract defined** in @richie-rpc/core with typed endpoints
 - ✅ **Server handlers** implemented and running on Bun.serve
 - ✅ **OpenAPI spec** accessible at `/openapi.json`
 - ✅ **Scalar API documentation UI** served at `/docs`
@@ -107,7 +107,7 @@ The RFetch library has been successfully implemented as a TypeScript/Bun/Zod mon
 ## Project Structure
 
 ```
-rfetch/
+richie-rpc/
 ├── package.json                    # Workspace configuration
 ├── tsconfig.json                   # Base TypeScript config
 ├── README.md                       # Main documentation

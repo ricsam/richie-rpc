@@ -1,5 +1,5 @@
-import { createDocsResponse, generateOpenAPISpec } from '@rfetch/openapi';
-import { createRouter } from '@rfetch/server';
+import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
+import { createRouter } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 
 // In-memory database

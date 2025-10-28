@@ -1,13 +1,13 @@
-# Contributing to RFetch
+# Contributing to Richie RPC
 
-Thank you for your interest in contributing to RFetch!
+Thank you for your interest in contributing to Richie RPC!
 
 ## Development Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/rfetch.git
-cd rfetch
+git clone https://github.com/YOUR_USERNAME/richie-rpc.git
+cd richie-rpc
 
 # Install dependencies
 bun install
@@ -153,7 +153,7 @@ open http://localhost:3000/docs
 ## Project Structure
 
 ```
-rfetch/
+richie-rpc/
 ├── packages/
 │   ├── core/         # Contract definitions
 │   ├── server/       # Server implementation

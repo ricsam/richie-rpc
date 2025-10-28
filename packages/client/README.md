@@ -1,11 +1,11 @@
-# @rfetch/client
+# @richie-rpc/client
 
-Type-safe fetch client for RFetch contracts.
+Type-safe fetch client for Richie RPC contracts.
 
 ## Installation
 
 ```bash
-bun add @rfetch/client @rfetch/core zod
+bun add @richie-rpc/client @richie-rpc/core zod
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ bun add @rfetch/client @rfetch/core zod
 ### Creating a Client
 
 ```typescript
-import { createClient } from '@rfetch/client';
+import { createClient } from '@richie-rpc/client';
 import { contract } from './contract';
 
 const client = createClient(contract, {

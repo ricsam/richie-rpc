@@ -1,5 +1,5 @@
 {
-  "name": "@rfetch/server",
+  "name": "@richie-rpc/server",
   "version": "0.1.0",
   "type": "module",
   "main": "index.ts",
@@ -7,7 +7,7 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@rfetch/core": "workspace:*",
+    "@richie-rpc/core": "workspace:*",
     "zod": "^3.23.8"
   },
   "peerDependencies": {

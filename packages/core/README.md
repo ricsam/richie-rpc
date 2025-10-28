@@ -1,11 +1,11 @@
-# @rfetch/core
+# @richie-rpc/core
 
 Core package for defining type-safe API contracts with Zod schemas.
 
 ## Installation
 
 ```bash
-bun add @rfetch/core zod
+bun add @richie-rpc/core zod
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ bun add @rfetch/core zod
 ### Defining a Contract
 
 ```typescript
-import { defineContract } from '@rfetch/core';
+import { defineContract } from '@richie-rpc/core';
 import { z } from 'zod';
 
 const contract = defineContract({
@@ -63,7 +63,7 @@ Each endpoint can have:
 ### Path Parameter Utilities
 
 ```typescript
-import { parsePathParams, matchPath, interpolatePath } from '@rfetch/core';
+import { parsePathParams, matchPath, interpolatePath } from '@richie-rpc/core';
 
 // Parse parameter names from path
 parsePathParams('/users/:id/posts/:postId');
@@ -81,7 +81,7 @@ interpolatePath('/users/:id', { id: '123' });
 ### URL Building
 
 ```typescript
-import { buildUrl } from '@rfetch/core';
+import { buildUrl } from '@richie-rpc/core';
 
 buildUrl('http://api.example.com', '/users', { limit: '10', offset: '0' });
 // => 'http://api.example.com/users?limit=10&offset=0'

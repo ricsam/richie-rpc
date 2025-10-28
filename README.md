@@ -1,15 +1,15 @@
-# RFetch
+# Richie RPC
 
 A TypeScript-first, type-safe API contract library for Bun with Zod validation.
 
 ## Overview
 
-RFetch is a monorepo containing 4 packages that work together to provide end-to-end type safety for your API:
+Richie RPC is a monorepo containing 4 packages that work together to provide end-to-end type safety for your API:
 
-1. **@rfetch/core** - Define API contracts with Zod schemas
-2. **@rfetch/server** - Implement servers with automatic validation
-3. **@rfetch/openapi** - Generate OpenAPI specs from contracts
-4. **@rfetch/client** - Make type-safe API calls with fetch
+1. **@richie-rpc/core** - Define API contracts with Zod schemas
+2. **@richie-rpc/server** - Implement servers with automatic validation
+3. **@richie-rpc/openapi** - Generate OpenAPI specs from contracts
+4. **@richie-rpc/client** - Make type-safe API calls with fetch
 
 ## Features
 
@@ -26,7 +26,7 @@ RFetch is a monorepo containing 4 packages that work together to provide end-to-
 
 ```typescript
 // contract.ts
-import { defineContract } from '@rfetch/core';
+import { defineContract } from '@richie-rpc/core';
 import { z } from 'zod';
 
 export const contract = defineContract({
@@ -54,8 +54,8 @@ export const contract = defineContract({
 
 ```typescript
 // server.ts
-import { createRouter } from '@rfetch/server';
-import { generateOpenAPISpec, createDocsResponse } from '@rfetch/openapi';
+import { createRouter } from '@richie-rpc/server';
+import { generateOpenAPISpec, createDocsResponse } from '@richie-rpc/openapi';
 import { contract } from './contract';
 
 const router = createRouter(contract, {
@@ -98,7 +98,7 @@ Bun.serve({
 
 ```typescript
 // client.ts
-import { createClient } from '@rfetch/client';
+import { createClient } from '@richie-rpc/client';
 import { contract } from './contract';
 
 const client = createClient(contract, {
@@ -119,18 +119,18 @@ console.log(newUser.data.id); // ✅ Type-safe
 
 ```bash
 # Install all packages
-bun add @rfetch/core @rfetch/server @rfetch/client @rfetch/openapi zod
+bun add @richie-rpc/core @richie-rpc/server @richie-rpc/client @richie-rpc/openapi zod
 
 # Or install individually
-bun add @rfetch/core zod          # For contracts
-bun add @rfetch/server            # For servers
-bun add @rfetch/client            # For clients
-bun add @rfetch/openapi           # For OpenAPI generation
+bun add @richie-rpc/core zod          # For contracts
+bun add @richie-rpc/server            # For servers
+bun add @richie-rpc/client            # For clients
+bun add @richie-rpc/openapi           # For OpenAPI generation
 ```
 
 ## Packages
 
-### [@rfetch/core](./packages/core)
+### [@richie-rpc/core](./packages/core)
 
 Core package for defining type-safe API contracts.
 
@@ -141,7 +141,7 @@ Core package for defining type-safe API contracts.
 
 [Read more →](./packages/core/README.md)
 
-### [@rfetch/server](./packages/server)
+### [@richie-rpc/server](./packages/server)
 
 Server implementation with automatic validation for Bun.serve.
 
@@ -152,7 +152,7 @@ Server implementation with automatic validation for Bun.serve.
 
 [Read more →](./packages/server/README.md)
 
-### [@rfetch/openapi](./packages/openapi)
+### [@richie-rpc/openapi](./packages/openapi)
 
 OpenAPI 3.1 specification generator.
 
@@ -163,7 +163,7 @@ OpenAPI 3.1 specification generator.
 
 [Read more →](./packages/openapi/README.md)
 
-### [@rfetch/client](./packages/client)
+### [@richie-rpc/client](./packages/client)
 
 Type-safe fetch client for consuming APIs.
 
@@ -209,7 +209,7 @@ Visit:
 
 See [TESTING.md](./TESTING.md) for detailed testing instructions.
 
-## Why RFetch?
+## Why Richie RPC?
 
 ### vs ts-rest
 
@@ -257,7 +257,7 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 ## Project Structure
 
 ```
-rfetch/
+richie-rpc/
 ├── packages/
 │   ├── core/         - Contract definitions and utilities
 │   ├── server/       - Server implementation

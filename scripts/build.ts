@@ -6,7 +6,7 @@ const PACKAGES = ['core', 'server', 'openapi', 'client'];
 
 const buildPackage = async (packageName: string) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
-  console.log(`\n📦 Building @rfetch/${packageName}...`);
+  console.log(`\n📦 Building @richie-rpc/${packageName}...`);
 
   const packageJson = await Bun.file(path.join(packageDir, 'package.json')).json();
 
@@ -145,7 +145,7 @@ const buildPackage = async (packageName: string) => {
   ).every((s) => s);
 
   if (!success) {
-    throw new Error(`Failed to build @rfetch/${packageName}`);
+    throw new Error(`Failed to build @richie-rpc/${packageName}`);
   }
 
   console.log(`  ✅ CJS bundle created`);
@@ -220,19 +220,19 @@ const buildPackage = async (packageName: string) => {
   );
 
   console.log(`  ✅ package.json updated for publishing`);
-  console.log(`✨ Finished building @rfetch/${packageName} v${version}`);
+  console.log(`✨ Finished building @richie-rpc/${packageName} v${version}`);
 };
 
 // Main build process
 const main = async () => {
-  console.log('🚀 Building RFetch packages for npm publishing...');
-  console.log('================================================\n');
+  console.log('🚀 Building Richie RPC packages for npm publishing...');
+  console.log('======================================================\n');
 
   for (const pkg of PACKAGES) {
     try {
       await buildPackage(pkg);
     } catch (error) {
-      console.error(`❌ Failed to build @rfetch/${pkg}:`, error);
+      console.error(`❌ Failed to build @richie-rpc/${pkg}:`, error);
       process.exit(1);
     }
   }

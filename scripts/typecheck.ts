@@ -6,12 +6,12 @@ const PACKAGES = ['core', 'server', 'openapi', 'client', 'demo'];
 
 const typecheckPackage = async (packageName: string) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
-  console.log(`\n📝 Type checking @rfetch/${packageName}...`);
+  console.log(`\n📝 Type checking @richie-rpc/${packageName}...`);
 
   const { stdout, stderr, exitCode } = await $`bunx --bun tsc --noEmit`.cwd(packageDir).nothrow();
 
   if (exitCode !== 0) {
-    console.error(`❌ Type errors in @rfetch/${packageName}:`);
+    console.error(`❌ Type errors in @richie-rpc/${packageName}:`);
     console.error(stderr.toString());
     console.log(stdout.toString());
     return false;
@@ -27,8 +27,8 @@ const typecheckPackage = async (packageName: string) => {
 };
 
 const main = async () => {
-  console.log('🔍 Type checking all RFetch packages...');
-  console.log('======================================\n');
+  console.log('🔍 Type checking all Richie RPC packages...');
+  console.log('============================================\n');
 
   let allPassed = true;
 

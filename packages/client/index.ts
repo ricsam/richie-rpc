@@ -5,8 +5,8 @@ import type {
   ExtractHeaders,
   ExtractParams,
   ExtractQuery,
-} from '@rfetch/core';
-import { buildUrl, interpolatePath } from '@rfetch/core';
+} from '@richie-rpc/core';
+import { buildUrl, interpolatePath } from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Client configuration

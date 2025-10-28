@@ -1,10 +1,10 @@
-# Building RFetch for npm Publishing
+# Building Richie RPC for npm Publishing
 
-This document explains how to build and publish the RFetch packages to npm.
+This document explains how to build and publish the Richie RPC packages to npm.
 
 ## Build System Overview
 
-The RFetch build system creates production-ready npm packages with:
+The Richie RPC build system creates production-ready npm packages with:
 
 - **Dual module formats**: CommonJS (`.cjs`) and ES Modules (`.mjs`)
 - **TypeScript declarations**: Full `.d.ts` files for type safety
@@ -19,7 +19,7 @@ The RFetch build system creates production-ready npm packages with:
 bun run build
 ```
 
-This builds all 4 publishable packages (`@rfetch/core`, `@rfetch/server`, `@rfetch/openapi`, `@rfetch/client`) in order.
+This builds all 4 publishable packages (`@richie-rpc/core`, `@richie-rpc/server`, `@richie-rpc/openapi`, `@richie-rpc/client`) in order.
 
 **What happens:**
 1. Creates `tsconfig.build.json` and `tsconfig.types.json` for each package
@@ -75,11 +75,11 @@ Publishes all packages to npm in dependency order (core → server/openapi/clien
 **Prerequisites:**
 1. Packages must be built (`bun run build`)
 2. You must be logged in to npm (`npm login`)
-3. You must have publish rights to @rfetch scope
+3. You must have publish rights to @richie-rpc scope
 
 **What happens:**
 1. Verifies all packages are built
-2. Publishes `@rfetch/core` first
+2. Publishes `@richie-rpc/core` first
 3. Waits 3 seconds
 4. Publishes dependent packages
 5. Shows summary of published packages
@@ -175,7 +175,7 @@ This ensures proper resolution in all environments:
 ```json
 {
   "dependencies": {
-    "@rfetch/core": "workspace:*"
+    "@richie-rpc/core": "workspace:*"
   }
 }
 ```
@@ -184,7 +184,7 @@ This ensures proper resolution in all environments:
 ```json
 {
   "dependencies": {
-    "@rfetch/core": "^0.1.0"
+    "@richie-rpc/core": "^0.1.0"
   }
 }
 ```
@@ -212,7 +212,7 @@ The build uses a custom tsconfig optimized for distribution. If you see errors, 
 Common issues:
 1. **Missing files**: Check `package.json` files array includes `dist`
 2. **Wrong imports**: Test the built package locally with `npm pack`
-3. **Version mismatch**: Ensure all @rfetch dependencies use the same version
+3. **Version mismatch**: Ensure all @richie-rpc dependencies use the same version
 
 ### Can't restore after build
 
@@ -288,10 +288,10 @@ bun run restore
 ## Performance
 
 Build times (on M1 Mac):
-- @rfetch/core: ~100ms
-- @rfetch/server: ~150ms
-- @rfetch/openapi: ~150ms
-- @rfetch/client: ~150ms
+- @richie-rpc/core: ~100ms
+- @richie-rpc/server: ~150ms
+- @richie-rpc/openapi: ~150ms
+- @richie-rpc/client: ~150ms
 - **Total**: ~550ms
 
 The build is fast because:

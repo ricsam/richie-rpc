@@ -1,6 +1,6 @@
-# Testing RFetch
+# Testing Richie RPC
 
-This document describes how to test the RFetch library.
+This document describes how to test the Richie RPC library.
 
 ## Quick Verification
 
@@ -70,28 +70,28 @@ The E2E tests verify:
 
 ## Testing Individual Packages
 
-### @rfetch/core
+### @richie-rpc/core
 
 ```bash
 cd packages/core
 # The core package is tested via integration tests
 ```
 
-### @rfetch/server
+### @richie-rpc/server
 
 ```bash
 cd packages/demo
 # Server functionality is tested via client-test.ts and Playwright
 ```
 
-### @rfetch/client
+### @richie-rpc/client
 
 ```bash
 cd packages/demo
 bun run client-test.ts
 ```
 
-### @rfetch/openapi
+### @richie-rpc/openapi
 
 ```bash
 cd packages/demo
@@ -104,7 +104,7 @@ bun run start
 
 All success criteria from the plan are met:
 
-- ✅ Contract defined in @rfetch/core with typed endpoints
+- ✅ Contract defined in @richie-rpc/core with typed endpoints
 - ✅ Server handlers implemented and running on Bun.serve
 - ✅ OpenAPI spec accessible at `/openapi.json`
 - ✅ Scalar API documentation UI served at `/docs`

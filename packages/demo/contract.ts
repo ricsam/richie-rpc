@@ -1,4 +1,4 @@
-import { defineContract } from '@rfetch/core';
+import { defineContract } from '@richie-rpc/core';
 import { z } from 'zod';
 
 // Define schemas

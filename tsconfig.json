@@ -28,10 +28,10 @@
 
     // Path mapping for workspace packages
     "paths": {
-      "@rfetch/core": ["./packages/core/index.ts"],
-      "@rfetch/server": ["./packages/server/index.ts"],
-      "@rfetch/openapi": ["./packages/openapi/index.ts"],
-      "@rfetch/client": ["./packages/client/index.ts"]
+      "@richie-rpc/core": ["./packages/core/index.ts"],
+      "@richie-rpc/server": ["./packages/server/index.ts"],
+      "@richie-rpc/openapi": ["./packages/openapi/index.ts"],
+      "@richie-rpc/client": ["./packages/client/index.ts"]
     }
   }
 }

@@ -1,11 +1,11 @@
-# @rfetch/server
+# @richie-rpc/server
 
-Server implementation package for RFetch with Bun.serve compatibility.
+Server implementation package for Richie RPC with Bun.serve compatibility.
 
 ## Installation
 
 ```bash
-bun add @rfetch/server @rfetch/core zod
+bun add @richie-rpc/server @richie-rpc/core zod
 ```
 
 ## Usage
@@ -13,7 +13,7 @@ bun add @rfetch/server @rfetch/core zod
 ### Creating a Router
 
 ```typescript
-import { createRouter } from '@rfetch/server';
+import { createRouter } from '@richie-rpc/server';
 import { contract } from './contract';
 
 const router = createRouter(contract, {

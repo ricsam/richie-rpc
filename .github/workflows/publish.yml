@@ -128,10 +128,10 @@ jobs:
           echo "## 📦 Published v$VERSION" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Packages published to npm:" >> $GITHUB_STEP_SUMMARY
-          echo "- @rfetch/core" >> $GITHUB_STEP_SUMMARY
-          echo "- @rfetch/server" >> $GITHUB_STEP_SUMMARY
-          echo "- @rfetch/openapi" >> $GITHUB_STEP_SUMMARY
-          echo "- @rfetch/client" >> $GITHUB_STEP_SUMMARY
+          echo "- @richie-rpc/core" >> $GITHUB_STEP_SUMMARY
+          echo "- @richie-rpc/server" >> $GITHUB_STEP_SUMMARY
+          echo "- @richie-rpc/openapi" >> $GITHUB_STEP_SUMMARY
+          echo "- @richie-rpc/client" >> $GITHUB_STEP_SUMMARY
 
       - name: Skip summary
         if: steps.check-versions.outputs.should_publish != 'true'
