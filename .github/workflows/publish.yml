@@ -53,55 +53,119 @@ jobs:
       - name: Build packages
         run: bun run build
 
-      - name: Check if packages exist on npm
+      - name: Check which packages need publishing
         id: check-versions
         run: |
-          CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
-          CORE_NAME=$(node -p "require('./packages/core/package.json').name")
+          # Function to check if package@version exists on npm
+          check_package() {
+            local pkg=$1
+            local name=$(node -p "require('./packages/$pkg/package.json').name")
+            local version=$(node -p "require('./packages/$pkg/package.json').version")
+            
+            if npm view $name@$version version 2>/dev/null; then
+              echo "$pkg@$version already published - skipping"
+              return 1
+            else
+              echo "$pkg@$version needs publishing"
+              return 0
+            fi
+          }
           
-          if npm view $CORE_NAME@$CORE_VERSION version 2>/dev/null; then
-            echo "Version $CORE_VERSION already published"
-            echo "should_publish=false" >> $GITHUB_OUTPUT
-          else
-            echo "Version $CORE_VERSION not published yet"
-            echo "should_publish=true" >> $GITHUB_OUTPUT
+          # Check each package
+          PUBLISH_CORE="false"
+          PUBLISH_SERVER="false"
+          PUBLISH_OPENAPI="false"
+          PUBLISH_CLIENT="false"
+          ANY_TO_PUBLISH="false"
+          
+          if check_package "core"; then
+            PUBLISH_CORE="true"
+            ANY_TO_PUBLISH="true"
           fi
+          
+          if check_package "server"; then
+            PUBLISH_SERVER="true"
+            ANY_TO_PUBLISH="true"
+          fi
+          
+          if check_package "openapi"; then
+            PUBLISH_OPENAPI="true"
+            ANY_TO_PUBLISH="true"
+          fi
+          
+          if check_package "client"; then
+            PUBLISH_CLIENT="true"
+            ANY_TO_PUBLISH="true"
+          fi
+          
+          echo "publish_core=$PUBLISH_CORE" >> $GITHUB_OUTPUT
+          echo "publish_server=$PUBLISH_SERVER" >> $GITHUB_OUTPUT
+          echo "publish_openapi=$PUBLISH_OPENAPI" >> $GITHUB_OUTPUT
+          echo "publish_client=$PUBLISH_CLIENT" >> $GITHUB_OUTPUT
+          echo "any_to_publish=$ANY_TO_PUBLISH" >> $GITHUB_OUTPUT
 
       - name: Publish to npm (dry-run)
-        if: inputs.dry_run == 'true' && steps.check-versions.outputs.should_publish == 'true'
+        if: inputs.dry_run == 'true' && steps.check-versions.outputs.any_to_publish == 'true'
         run: |
           echo "🧪 DRY RUN MODE - Would publish:"
-          cd packages/core && npm publish --dry-run
-          cd ../server && npm publish --dry-run
-          cd ../openapi && npm publish --dry-run
-          cd ../client && npm publish --dry-run
+          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
+            echo "  - @richie-rpc/core"
+            cd packages/core && npm publish --dry-run && cd ../..
+          fi
+          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
+            echo "  - @richie-rpc/server"
+            cd packages/server && npm publish --dry-run && cd ../..
+          fi
+          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
+            echo "  - @richie-rpc/openapi"
+            cd packages/openapi && npm publish --dry-run && cd ../..
+          fi
+          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
+            echo "  - @richie-rpc/client"
+            cd packages/client && npm publish --dry-run && cd ../..
+          fi
 
       - name: Publish to npm
-        if: inputs.dry_run != 'true' && steps.check-versions.outputs.should_publish == 'true'
+        if: inputs.dry_run != 'true' && steps.check-versions.outputs.any_to_publish == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           # Configure npm
           npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
           
-          # Publish packages in order
-          cd packages/core
-          npm publish --access public
+          # Publish core first (others may depend on it)
+          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
+            echo "📦 Publishing @richie-rpc/core..."
+            cd packages/core
+            npm publish --access public
+            cd ../..
+            sleep 3  # Wait for npm registry
+          fi
           
-          # Wait for npm registry to update
-          sleep 5
+          # Publish other packages (can be parallel since they only depend on core)
+          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
+            echo "📦 Publishing @richie-rpc/server..."
+            cd packages/server
+            npm publish --access public
+            cd ../..
+          fi
           
-          cd ../server
-          npm publish --access public
+          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
+            echo "📦 Publishing @richie-rpc/openapi..."
+            cd packages/openapi
+            npm publish --access public
+            cd ../..
+          fi
           
-          cd ../openapi  
-          npm publish --access public
-          
-          cd ../client
-          npm publish --access public
+          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
+            echo "📦 Publishing @richie-rpc/client..."
+            cd packages/client
+            npm publish --access public
+            cd ../..
+          fi
 
       - name: Create Git tag
-        if: inputs.dry_run != 'true' && steps.check-versions.outputs.should_publish == 'true'
+        if: inputs.dry_run != 'true' && steps.check-versions.outputs.any_to_publish == 'true'
         run: |
           VERSION=$(node -p "require('./packages/core/package.json').version")
           git config user.name "GitHub Actions"
@@ -123,19 +187,33 @@ jobs:
         run: bun run restore
 
       - name: Publish summary
-        if: steps.check-versions.outputs.should_publish == 'true'
+        if: steps.check-versions.outputs.any_to_publish == 'true'
         run: |
-          VERSION=$(node -p "require('./packages/core/package.json').version")
-          echo "## 📦 Published v$VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "## 📦 Published Packages" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Packages published to npm:" >> $GITHUB_STEP_SUMMARY
-          echo "- @richie-rpc/core" >> $GITHUB_STEP_SUMMARY
-          echo "- @richie-rpc/server" >> $GITHUB_STEP_SUMMARY
-          echo "- @richie-rpc/openapi" >> $GITHUB_STEP_SUMMARY
-          echo "- @richie-rpc/client" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
+            CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
+            echo "- @richie-rpc/core@$CORE_VERSION" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
+            SERVER_VERSION=$(node -p "require('./packages/server/package.json').version")
+            echo "- @richie-rpc/server@$SERVER_VERSION" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
+            OPENAPI_VERSION=$(node -p "require('./packages/openapi/package.json').version")
+            echo "- @richie-rpc/openapi@$OPENAPI_VERSION" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
+            CLIENT_VERSION=$(node -p "require('./packages/client/package.json').version")
+            echo "- @richie-rpc/client@$CLIENT_VERSION" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Skip summary
-        if: steps.check-versions.outputs.should_publish != 'true'
+        if: steps.check-versions.outputs.any_to_publish != 'true'
         run: |
           echo "## ⏭️ Skipped Publishing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
