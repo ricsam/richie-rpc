@@ -116,15 +116,18 @@ return { status: Status.BadRequest, body: error };  // 400
 return { status: Status.NotFound, body: error };    // 404
 ```
 
-Available status codes:
-- `Status.OK` (200), `Status.Created` (201), `Status.Accepted` (202), `Status.NoContent` (204)
-- `Status.BadRequest` (400), `Status.Unauthorized` (401), `Status.Forbidden` (403), `Status.NotFound` (404)
-- `Status.Conflict` (409), `Status.UnprocessableEntity` (422), `Status.TooManyRequests` (429)
-- `Status.InternalServerError` (500), `Status.ServiceUnavailable` (503)
+Available status codes in `Status` object:
+- **Success**: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
+- **Redirection**: `MovedPermanently` (301), `Found` (302), `NotModified` (304)
+- **Client Errors**: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `MethodNotAllowed` (405), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
+- **Server Errors**: `InternalServerError` (500), `NotImplemented` (501), `BadGateway` (502), `ServiceUnavailable` (503), `GatewayTimeout` (504)
 
-You can also use literal numbers with `as const`:
+**Using custom status codes:**
+
+For status codes not in the `Status` object, use `as const`:
 ```typescript
-return { status: 200 as const, body: user };
+return { status: 418 as const, body: { message: "I'm a teapot" } };
+return { status: 451 as const, body: { reason: 'Legal reasons' } };
 ```
 
 ## Error Handling

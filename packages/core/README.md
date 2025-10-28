@@ -117,8 +117,35 @@ return { status: Status.NotFound, body: { error: 'Not found' } };
 
 **Available constants:**
 - Success: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
-- Client Errors: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409)
-- Server Errors: `InternalServerError` (500), `ServiceUnavailable` (503)
+- Client Errors: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
+- Server Errors: `InternalServerError` (500), `BadGateway` (502), `ServiceUnavailable` (503)
+
+**Using custom status codes:**
+
+For status codes not in the `Status` object, use `as const`:
+
+```typescript
+const contract = defineContract({
+  customEndpoint: {
+    method: 'GET',
+    path: '/custom',
+    responses: {
+      [Status.OK]: SuccessSchema,
+      418: z.object({ message: z.string() }) as const, // I'm a teapot
+      451: z.object({ reason: z.string() }) as const, // Unavailable for legal reasons
+    }
+  }
+});
+```
+
+Or define the entire responses object as const:
+
+```typescript
+responses: {
+  200: SuccessSchema,
+  418: TeapotSchema,
+} as const
+```
 
 ## Type Inference
 
