@@ -29,6 +29,12 @@ To publish packages to npm, you need to configure an npm token:
 
 The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 
+**Permissions Required:**
+- `contents: write` - To create and push git tags
+- `id-token: write` - For npm provenance (optional)
+
+These permissions are configured in the workflow file and don't require manual setup.
+
 ## Workflow Overview
 
 ### 1. CI Workflow (`.github/workflows/ci.yml`)
@@ -132,6 +138,20 @@ git tag -a "v$VERSION" -m "Release v$VERSION"
 git push origin "v$VERSION"
 ```
 
+## Workflow Permissions
+
+The publish workflow requires write access to create git tags. This is configured via:
+
+```yaml
+permissions:
+  contents: write  # Required to create and push tags
+  id-token: write  # Required for provenance (optional)
+```
+
+**Note:** If you have strict branch protection rules, you may need to:
+1. Allow GitHub Actions to bypass branch protection for tag creation
+2. Or create tags manually before pushing to main
+
 ## Branch Protection Rules (Recommended)
 
 Configure branch protection for `main`:
@@ -142,7 +162,8 @@ Configure branch protection for `main`:
    - ✅ Require status checks to pass before merging
      - Select: `ci`
    - ✅ Require branches to be up to date before merging
-   - ✅ Do not allow bypassing the above settings
+   - ✅ Allow force pushes: **Specify who can force push** → Add: `github-actions[bot]` (for tags)
+   - ✅ Do not allow bypassing the above settings (except for github-actions)
 
 ## Monitoring
 
