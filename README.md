@@ -301,11 +301,12 @@ The project uses GitHub Actions for continuous integration and deployment:
 - ✅ Run E2E tests with Playwright
 
 ### CD Pipeline (Main Branch)
-- ✅ All CI checks
-- ✅ Publish to npm (when versions are bumped)
-- ✅ Create git tags
+- ✅ All CI checks must pass first
+- ✅ Check each package individually against npm registry
+- ✅ Publish only packages with new versions
+- ✅ Create individual git tags per package (e.g., `core@v1.1.0`)
 
-To trigger a publish, simply update version numbers in `packages/*/package.json` and push to main.
+To trigger a publish, update version numbers in the packages you want to release and push to main. See [VERSIONING.md](./VERSIONING.md) for details.
 
 ## Contributing
 
@@ -332,7 +333,7 @@ bun run publish:all    # Publish to npm (requires npm login)
 bun run restore        # Restore development state
 ```
 
-See [BUILD.md](./BUILD.md) for detailed build and publishing instructions.
+See [BUILD.md](./BUILD.md) for detailed build and publishing instructions, and [VERSIONING.md](./VERSIONING.md) for versioning strategy.
 
 ## Links
 
