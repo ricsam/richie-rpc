@@ -93,7 +93,7 @@ export const usersContract = defineContract({
       id: z.string(),
     }),
     responses: {
-      204: z.object({}),
+      204: z.object({}).strict(),
       404: ErrorSchema,
     },
   },

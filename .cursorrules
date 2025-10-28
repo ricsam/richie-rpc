@@ -17,7 +17,7 @@ This is a TypeScript/Bun monorepo for the Richie RPC API contract library.
 1. **Type Safety First**: Always maintain full type safety from contract to client
 2. **Validation Everywhere**: Use Zod for all request/response validation
 3. **Bun Native**: Built specifically for Bun runtime, use Bun APIs
-4. **Latest Zod**: Support Zod v3+ features
+4. **Latest Zod**: Support Zod v4+ features with built-in JSON Schema
 5. **Zero Config**: Packages should work with minimal configuration
 
 ## Testing

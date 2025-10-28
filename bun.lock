@@ -15,7 +15,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@richie-rpc/core": "workspace:*",
-        "zod": "^3.23.8",
+        "zod": "^4.1.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -25,7 +25,7 @@
       "name": "@richie-rpc/core",
       "version": "0.1.0",
       "dependencies": {
-        "zod": "^3.23.8",
+        "zod": "^4.1.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -39,7 +39,7 @@
         "@richie-rpc/core": "workspace:*",
         "@richie-rpc/openapi": "workspace:*",
         "@richie-rpc/server": "workspace:*",
-        "zod": "^3.23.8",
+        "zod": "^4.1.12",
       },
       "devDependencies": {
         "@playwright/test": "^1.47.0",
@@ -52,8 +52,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@richie-rpc/core": "workspace:*",
-        "zod": "^3.23.8",
-        "zod-to-json-schema": "^3.23.2",
+        "zod": "^4.1.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -64,7 +63,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@richie-rpc/core": "workspace:*",
-        "zod": "^3.23.8",
+        "zod": "^4.1.12",
       },
       "peerDependencies": {
         "typescript": "^5",
@@ -122,8 +121,6 @@
 
     "undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
-    "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
-
-    "zod-to-json-schema": ["zod-to-json-schema@3.24.6", "", { "peerDependencies": { "zod": "^3.24.1" } }, "sha512-h/z3PKvcTcTetyjl1fkj79MHNEjm+HpD6NXheWjzOekY7kV+lwDYnHw+ivHkijnCSMz1yJaWBD9vu/Fcmk+vEg=="],
+    "zod": ["zod@4.1.12", "", {}, "sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ=="],
   }
 }

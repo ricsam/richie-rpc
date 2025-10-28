@@ -21,10 +21,10 @@ Richie RPC is a monorepo containing 4 packages that work together to provide end
 ## Features
 
 - ✅ **End-to-end type safety** - From contract definition to client usage
-- ✅ **Zod v3+ validation** - Request and response validation on both client and server
+- ✅ **Zod v4 validation** - Request and response validation on both client and server with built-in JSON Schema support
 - ✅ **OpenAPI 3.1 generation** - Automatic spec generation with Scalar docs UI
 - ✅ **Bun-native** - Built specifically for Bun.serve (WHATWG fetch compatible)
-- ✅ **Zero dependencies** - Minimal core with optional extensions
+- ✅ **Minimal dependencies** - Just Zod, no external schema converters
 - ✅ **TypeScript-first** - Full type inference everywhere
 
 ## Quick Start
@@ -226,7 +226,7 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 
 ### vs ts-rest
 
-- ✅ Supports latest Zod v3+
+- ✅ Supports latest Zod v4 with built-in JSON Schema
 - ✅ Built specifically for Bun (not Node.js/Express)
 - ✅ Simpler API with fewer concepts
 - ✅ Native WHATWG fetch compatibility
@@ -285,7 +285,7 @@ richie-rpc/
 
 - Bun 1.0+
 - TypeScript 5.0+
-- Zod 3.23+
+- Zod 4.1+
 
 ## CI/CD
 

@@ -5,7 +5,7 @@ OpenAPI 3.1 specification generator for Richie RPC contracts.
 ## Installation
 
 ```bash
-bun add @richie-rpc/openapi @richie-rpc/core zod
+bun add @richie-rpc/openapi @richie-rpc/core zod@^4
 ```
 
 ## Usage
@@ -85,7 +85,8 @@ Bun.serve({
 ## Features
 
 - ✅ OpenAPI 3.1 specification generation
-- ✅ Automatic Zod to JSON Schema conversion
+- ✅ Automatic Zod to JSON Schema conversion using Zod v4's built-in `z.toJSONSchema()`
+- ✅ No external JSON Schema conversion dependencies
 - ✅ Path parameters, query parameters, request bodies
 - ✅ Multiple response types per endpoint
 - ✅ Server and info metadata support

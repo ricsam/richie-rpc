@@ -1,7 +1,6 @@
 import type { Contract, EndpointDefinition } from '@richie-rpc/core';
 import { parsePathParams } from '@richie-rpc/core';
-import type { z } from 'zod';
-import { zodToJsonSchema } from 'zod-to-json-schema';
+import { z } from 'zod';
 
 // OpenAPI 3.1 types
 export interface OpenAPIInfo {
@@ -44,8 +43,9 @@ export interface OpenAPIOptions {
 /**
  * Convert Zod schema to JSON Schema for OpenAPI
  */
-function zodSchemaToJsonSchema(schema: z.ZodTypeAny, name?: string): any {
-  const jsonSchema = zodToJsonSchema(schema, name);
+function zodSchemaToJsonSchema(schema: z.ZodTypeAny): any {
+  // Zod v4 has built-in JSON Schema support
+  const jsonSchema = z.toJSONSchema(schema);
   // Remove $schema field as it's not needed in OpenAPI
   if (jsonSchema && typeof jsonSchema === 'object' && '$schema' in jsonSchema) {
     delete jsonSchema.$schema;

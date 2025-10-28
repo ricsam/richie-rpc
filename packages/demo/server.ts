@@ -116,7 +116,7 @@ const router = createRouter(usersContract, {
 
     return {
       status: 204 as const,
-      body: {},
+      body: {} as Record<string, never>,
     };
   },
 });

@@ -5,7 +5,7 @@ Core package for defining type-safe API contracts with Zod schemas.
 ## Installation
 
 ```bash
-bun add @richie-rpc/core zod
+bun add @richie-rpc/core zod@^4
 ```
 
 ## Usage

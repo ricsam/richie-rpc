@@ -5,7 +5,7 @@ Type-safe fetch client for Richie RPC contracts.
 ## Installation
 
 ```bash
-bun add @richie-rpc/client @richie-rpc/core zod
+bun add @richie-rpc/client @richie-rpc/core zod@^4
 ```
 
 ## Usage

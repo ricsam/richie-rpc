@@ -5,7 +5,7 @@ Server implementation package for Richie RPC with Bun.serve compatibility.
 ## Installation
 
 ```bash
-bun add @richie-rpc/server @richie-rpc/core zod
+bun add @richie-rpc/server @richie-rpc/core zod@^4
 ```
 
 ## Usage

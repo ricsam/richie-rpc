@@ -13,7 +13,7 @@
     "@richie-rpc/server": "workspace:*",
     "@richie-rpc/openapi": "workspace:*",
     "@richie-rpc/client": "workspace:*",
-    "zod": "^3.23.8"
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@playwright/test": "^1.47.0",
