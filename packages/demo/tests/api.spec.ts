@@ -175,9 +175,7 @@ test.describe('OpenAPI Spec Validation', () => {
 
     // Verify all operations have proper structure
     for (const [_path, methods] of Object.entries(paths)) {
-      for (const [_method, operation] of Object.entries(
-        methods as Record<string, any>,
-      )) {
+      for (const [_method, operation] of Object.entries(methods as Record<string, any>)) {
         expect(operation.operationId).toBeDefined();
         expect(operation.responses).toBeDefined();
         expect(Object.keys(operation.responses).length).toBeGreaterThan(0);
