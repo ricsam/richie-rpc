@@ -150,8 +150,18 @@ function createResponse<T extends EndpointDefinition>(
     }
   }
 
-  // Create response
+  // Create response headers
   const responseHeaders = new Headers(customHeaders);
+
+  // Handle 204 No Content - must have no body
+  if (status === 204) {
+    return new Response(null, {
+      status: 204,
+      headers: responseHeaders,
+    });
+  }
+
+  // For all other responses, return JSON
   if (!responseHeaders.has('content-type')) {
     responseHeaders.set('content-type', 'application/json');
   }

@@ -113,20 +113,19 @@ test.describe('Scalar API Documentation UI', () => {
   test('should display API endpoints in docs UI', async ({ page }) => {
     await page.goto('/docs');
 
-    // Wait for the #app div to be present
-    await page.waitForSelector('#app', { timeout: 5000 });
-
-    // Wait for Scalar to inject content (check for script tag)
-    await page.waitForSelector('script[src*="scalar"]', { timeout: 5000 });
-
-    // Wait a bit more for Scalar to render
-    await page.waitForTimeout(2000);
-
-    // Take a screenshot for visual verification
-    await page.screenshot({ path: 'test-results/docs-ui.png', fullPage: true });
-
     // Verify the page has the title
     const title = await page.title();
     expect(title).toBe('Users API Documentation');
+
+    // Wait for the #app div to be present in the HTML
+    const appDiv = await page.locator('#app').count();
+    expect(appDiv).toBe(1);
+
+    // Verify the script tag is present
+    const scriptTag = await page.locator('script[src*="scalar"]').count();
+    expect(scriptTag).toBeGreaterThan(0);
+
+    // Take a screenshot for visual verification
+    await page.screenshot({ path: 'test-results/docs-ui.png', fullPage: true });
   });
 });
