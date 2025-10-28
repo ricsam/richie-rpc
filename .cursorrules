@@ -1,0 +1,42 @@
+# RFetch Project Rules
+
+## Project Structure
+
+This is a TypeScript/Bun monorepo for the RFetch API contract library.
+
+## Packages
+
+- `@rfetch/core` - Contract definitions and type utilities
+- `@rfetch/server` - Server implementation for Bun.serve
+- `@rfetch/openapi` - OpenAPI 3.1 spec generation
+- `@rfetch/client` - Type-safe fetch client
+- `@rfetch/demo` - Integration tests and examples
+
+## Development Guidelines
+
+1. **Type Safety First**: Always maintain full type safety from contract to client
+2. **Validation Everywhere**: Use Zod for all request/response validation
+3. **Bun Native**: Built specifically for Bun runtime, use Bun APIs
+4. **Latest Zod**: Support Zod v3+ features
+5. **Zero Config**: Packages should work with minimal configuration
+
+## Testing
+
+- Run `./packages/demo/verify.sh` for quick verification
+- Use `bun run client-test.ts` for client integration tests
+- Use `bun run test:e2e` for Playwright E2E tests (starts its own server)
+
+## Code Style
+
+- Use strict TypeScript settings
+- Prefer explicit types over inference where it improves clarity
+- Use `z.infer<>` for extracting types from Zod schemas
+- Follow the existing error handling patterns
+- Document exported functions and types
+
+## Dependencies
+
+- Minimize external dependencies
+- Use workspace protocol for internal packages (`workspace:*`)
+- Keep peer dependencies in sync across packages
+
