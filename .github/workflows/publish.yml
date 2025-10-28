@@ -164,20 +164,42 @@ jobs:
             cd ../..
           fi
 
-      - name: Create Git tag
+      - name: Create Git tags for published packages
         if: inputs.dry_run != 'true' && steps.check-versions.outputs.any_to_publish == 'true'
         run: |
-          VERSION=$(node -p "require('./packages/core/package.json').version")
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           
-          # Check if tag already exists
-          if git rev-parse "v$VERSION" >/dev/null 2>&1; then
-            echo "Tag v$VERSION already exists, skipping tag creation"
-          else
-            git tag -a "v$VERSION" -m "Release v$VERSION"
-            git push origin "v$VERSION"
-            echo "Created and pushed tag v$VERSION"
+          # Create tag for each published package
+          create_tag() {
+            local pkg=$1
+            local name=$(node -p "require('./packages/$pkg/package.json').name" | sed 's/@richie-rpc\///')
+            local version=$(node -p "require('./packages/$pkg/package.json').version")
+            local tag="$name@v$version"
+            
+            if git rev-parse "$tag" >/dev/null 2>&1; then
+              echo "Tag $tag already exists, skipping"
+            else
+              git tag -a "$tag" -m "Release $name@$version"
+              git push origin "$tag"
+              echo "✅ Created and pushed tag: $tag"
+            fi
+          }
+          
+          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
+            create_tag "core"
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
+            create_tag "server"
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
+            create_tag "openapi"
+          fi
+          
+          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
+            create_tag "client"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -194,22 +216,22 @@ jobs:
           
           if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
             CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
-            echo "- @richie-rpc/core@$CORE_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- [@richie-rpc/core@$CORE_VERSION](https://www.npmjs.com/package/@richie-rpc/core/v/$CORE_VERSION) (tag: \`core@v$CORE_VERSION\`)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
             SERVER_VERSION=$(node -p "require('./packages/server/package.json').version")
-            echo "- @richie-rpc/server@$SERVER_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- [@richie-rpc/server@$SERVER_VERSION](https://www.npmjs.com/package/@richie-rpc/server/v/$SERVER_VERSION) (tag: \`server@v$SERVER_VERSION\`)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
             OPENAPI_VERSION=$(node -p "require('./packages/openapi/package.json').version")
-            echo "- @richie-rpc/openapi@$OPENAPI_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- [@richie-rpc/openapi@$OPENAPI_VERSION](https://www.npmjs.com/package/@richie-rpc/openapi/v/$OPENAPI_VERSION) (tag: \`openapi@v$OPENAPI_VERSION\`)" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
             CLIENT_VERSION=$(node -p "require('./packages/client/package.json').version")
-            echo "- @richie-rpc/client@$CLIENT_VERSION" >> $GITHUB_STEP_SUMMARY
+            echo "- [@richie-rpc/client@$CLIENT_VERSION](https://www.npmjs.com/package/@richie-rpc/client/v/$CLIENT_VERSION) (tag: \`client@v$CLIENT_VERSION\`)" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Skip summary
