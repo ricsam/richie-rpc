@@ -13,7 +13,7 @@ bun add @richie-rpc/core zod@^4
 ### Defining a Contract
 
 ```typescript
-import { defineContract } from '@richie-rpc/core';
+import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
 
 const contract = defineContract({
@@ -22,8 +22,8 @@ const contract = defineContract({
     path: '/users/:id',
     params: z.object({ id: z.string() }),
     responses: {
-      200: z.object({ id: z.string(), name: z.string() }),
-      404: z.object({ error: z.string() })
+      [Status.OK]: z.object({ id: z.string(), name: z.string() }),
+      [Status.NotFound]: z.object({ error: z.string() })
     }
   },
   createUser: {
@@ -31,7 +31,7 @@ const contract = defineContract({
     path: '/users',
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
-      201: z.object({ id: z.string(), name: z.string(), email: z.string() })
+      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() })
     }
   }
 });
