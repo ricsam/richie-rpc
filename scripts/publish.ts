@@ -31,7 +31,7 @@ const main = async () => {
     const distExists = await Bun.file(path.join(packageDir, 'dist', 'cjs', 'index.cjs')).exists();
 
     if (!distExists) {
-      console.error(`❌ Package @rfetch/${pkg} is not built. Run 'bun run build' first.`);
+      console.error(`❌ Package @richie-rpc/${pkg} is not built. Run 'bun run build' first.`);
       process.exit(1);
     }
   }

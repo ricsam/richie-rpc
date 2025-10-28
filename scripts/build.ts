@@ -183,7 +183,7 @@ const buildPackage = async (packageName: string) => {
     for (const [dep, ver] of Object.entries(publishPackageJson.dependencies)) {
       if (typeof ver === 'string' && ver.startsWith('workspace:')) {
         // Get the actual version from the dependency's package.json
-        const depPackageName = dep.replace('@rfetch/', '');
+        const depPackageName = dep.replace('@richie-rpc/', '');
         if (PACKAGES.includes(depPackageName)) {
           const depPackageJson = await Bun.file(
             path.join(__dirname, '..', 'packages', depPackageName, 'package.json'),

@@ -14,14 +14,14 @@ sleep 1
 
 # Start the server in background
 echo "🚀 Starting server..."
-bun run server.ts > /tmp/rfetch-server.log 2>&1 &
+bun run server.ts > /tmp/richie-rpc-server.log 2>&1 &
 SERVER_PID=$!
 sleep 3
 
 # Check if server is running
 if ! curl -s http://localhost:3000/openapi.json > /dev/null; then
     echo "❌ Server failed to start"
-    cat /tmp/rfetch-server.log
+    cat /tmp/richie-rpc-server.log
     exit 1
 fi
 

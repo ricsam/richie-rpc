@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "rfetch",
+      "name": "richie-rpc",
       "devDependencies": {
         "@biomejs/biome": "^2.3.1",
         "@playwright/test": "^1.56.1",

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test.describe('RFetch API Integration', () => {
+test.describe('Richie RPC API Integration', () => {
   test('should serve OpenAPI spec at /openapi.json', async ({ request }) => {
     const response = await request.get('/openapi.json');
     expect(response.ok()).toBeTruthy();
