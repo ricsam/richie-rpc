@@ -278,6 +278,18 @@ rfetch/
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
+## Building for npm
+
+To build the packages for npm publishing:
+
+```bash
+bun run build          # Build all packages
+bun run publish:all    # Publish to npm (requires npm login)
+bun run restore        # Restore development state
+```
+
+See [BUILD.md](./BUILD.md) for detailed build and publishing instructions.
+
 ## License
 
 MIT
