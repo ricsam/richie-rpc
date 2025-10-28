@@ -3,8 +3,6 @@ name: CI
 on:
   push:
     branches: ['**']
-  pull_request:
-    branches: ['**']
   workflow_call:  # Allow this workflow to be called by other workflows
 
 jobs:
@@ -62,8 +60,4 @@ jobs:
           name: playwright-report
           path: packages/demo/playwright-report/
           retention-days: 7
-
-      - name: Restore development state
-        if: always()
-        run: bun run restore
 
