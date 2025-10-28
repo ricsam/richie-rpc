@@ -1,14 +1,14 @@
 import type {
   Contract,
   EndpointDefinition,
+  ExtractBody,
+  ExtractHeaders,
   ExtractParams,
   ExtractQuery,
-  ExtractHeaders,
-  ExtractBody,
-  ExtractResponses
+  ExtractResponses,
 } from '@rfetch/core';
-import { interpolatePath, buildUrl } from '@rfetch/core';
-import { z } from 'zod';
+import { buildUrl, interpolatePath } from '@rfetch/core';
+import type { z } from 'zod';
 
 // Client configuration
 export interface ClientConfig {
@@ -30,15 +30,13 @@ export type EndpointRequestOptions<T extends EndpointDefinition> = {
 export type EndpointResponse<T extends EndpointDefinition> = {
   [Status in keyof T['responses']]: {
     status: Status;
-    data: T['responses'][Status] extends z.ZodTypeAny
-      ? z.infer<T['responses'][Status]>
-      : never;
+    data: T['responses'][Status] extends z.ZodTypeAny ? z.infer<T['responses'][Status]> : never;
   };
 }[keyof T['responses']];
 
 // Client method type for an endpoint
 export type ClientMethod<T extends EndpointDefinition> = (
-  options: EndpointRequestOptions<T>
+  options: EndpointRequestOptions<T>,
 ) => Promise<EndpointResponse<T>>;
 
 // Client type for a contract
@@ -50,7 +48,7 @@ export type Client<T extends Contract> = {
 export class ClientValidationError extends Error {
   constructor(
     public field: string,
-    public issues: z.ZodIssue[]
+    public issues: z.ZodIssue[],
   ) {
     super(`Validation failed for ${field}`);
     this.name = 'ClientValidationError';
@@ -62,7 +60,7 @@ export class HTTPError extends Error {
   constructor(
     public status: number,
     public statusText: string,
-    public body: any
+    public body: any,
   ) {
     super(`HTTP Error ${status}: ${statusText}`);
     this.name = 'HTTPError';
@@ -74,7 +72,7 @@ export class HTTPError extends Error {
  */
 function validateRequest<T extends EndpointDefinition>(
   endpoint: T,
-  options: EndpointRequestOptions<T>
+  options: EndpointRequestOptions<T>,
 ): void {
   // Validate params
   if (endpoint.params && options.params) {
@@ -83,7 +81,7 @@ function validateRequest<T extends EndpointDefinition>(
       throw new ClientValidationError('params', result.error.issues);
     }
   }
-  
+
   // Validate query
   if (endpoint.query && options.query) {
     const result = endpoint.query.safeParse(options.query);
@@ -91,7 +89,7 @@ function validateRequest<T extends EndpointDefinition>(
       throw new ClientValidationError('query', result.error.issues);
     }
   }
-  
+
   // Validate headers
   if (endpoint.headers && options.headers) {
     const result = endpoint.headers.safeParse(options.headers);
@@ -99,7 +97,7 @@ function validateRequest<T extends EndpointDefinition>(
       throw new ClientValidationError('headers', result.error.issues);
     }
   }
-  
+
   // Validate body
   if (endpoint.body && options.body) {
     const result = endpoint.body.safeParse(options.body);
@@ -115,7 +113,7 @@ function validateRequest<T extends EndpointDefinition>(
 function validateResponse<T extends EndpointDefinition>(
   endpoint: T,
   status: number,
-  data: any
+  data: any,
 ): void {
   const responseSchema = endpoint.responses[status];
   if (responseSchema) {
@@ -132,25 +130,21 @@ function validateResponse<T extends EndpointDefinition>(
 async function makeRequest<T extends EndpointDefinition>(
   config: ClientConfig,
   endpoint: T,
-  options: EndpointRequestOptions<T>
+  options: EndpointRequestOptions<T>,
 ): Promise<EndpointResponse<T>> {
   // Validate request if enabled
   if (config.validateRequest !== false) {
     validateRequest(endpoint, options);
   }
-  
+
   // Build URL
   let path = endpoint.path;
   if (options.params) {
     path = interpolatePath(path, options.params as Record<string, string | number>);
   }
-  
-  const url = buildUrl(
-    config.baseUrl,
-    path,
-    options.query as Record<string, any> | undefined
-  );
-  
+
+  const url = buildUrl(config.baseUrl, path, options.query as Record<string, any> | undefined);
+
   // Build headers
   const headers = new Headers(config.headers);
   if (options.headers) {
@@ -158,31 +152,31 @@ async function makeRequest<T extends EndpointDefinition>(
       headers.set(key, String(value));
     }
   }
-  
+
   // Build request init
   const init: RequestInit = {
     method: endpoint.method,
-    headers
+    headers,
   };
-  
+
   // Add body if present
   if (options.body !== undefined) {
     headers.set('content-type', 'application/json');
     init.body = JSON.stringify(options.body);
   }
-  
+
   // Make request
   const response = await fetch(url, init);
-  
+
   // Parse response
   let data: any;
-  
+
   // Handle 204 No Content
   if (response.status === 204) {
     data = {};
   } else {
     const contentType = response.headers.get('content-type') || '';
-    
+
     if (contentType.includes('application/json')) {
       data = await response.json();
     } else if (contentType.includes('text/')) {
@@ -197,38 +191,35 @@ async function makeRequest<T extends EndpointDefinition>(
       }
     }
   }
-  
+
   // Check for HTTP errors
   if (!response.ok && !(response.status in endpoint.responses)) {
     throw new HTTPError(response.status, response.statusText, data);
   }
-  
+
   // Validate response if enabled
   if (config.validateResponse !== false) {
     validateResponse(endpoint, response.status, data);
   }
-  
+
   return {
     status: response.status,
-    data
+    data,
   } as EndpointResponse<T>;
 }
 
 /**
  * Create a typesafe client for a contract
  */
-export function createClient<T extends Contract>(
-  contract: T,
-  config: ClientConfig
-): Client<T> {
+export function createClient<T extends Contract>(contract: T, config: ClientConfig): Client<T> {
   const client: any = {};
-  
+
   for (const [name, endpoint] of Object.entries(contract)) {
     client[name] = (options: EndpointRequestOptions<any> = {}) => {
       return makeRequest(config, endpoint, options);
     };
   }
-  
+
   return client as Client<T>;
 }
 
@@ -236,19 +227,16 @@ export function createClient<T extends Contract>(
  * Create a client without providing the contract at runtime
  * Useful when you only need types and want a lighter bundle
  */
-export function createTypedClient<T extends Contract>(
-  config: ClientConfig
-): Client<T> {
+export function createTypedClient<T extends Contract>(config: ClientConfig): Client<T> {
   return new Proxy({} as Client<T>, {
     get(_target, prop: string) {
       return async (options: any = {}) => {
         // Without the contract, we can't validate or infer the endpoint
         // This is just a basic fetch wrapper with typing
         throw new Error(
-          'createTypedClient requires contract at runtime for validation. Use createClient instead.'
+          'createTypedClient requires contract at runtime for validation. Use createClient instead.',
         );
       };
-    }
+    },
   });
 }
-

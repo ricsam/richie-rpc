@@ -1,7 +1,7 @@
 import type { Contract, EndpointDefinition } from '@rfetch/core';
 import { parsePathParams } from '@rfetch/core';
-import { zodToJsonSchema } from 'zod-to-json-schema';
 import type { z } from 'zod';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 // OpenAPI 3.1 types
 export interface OpenAPIInfo {
@@ -64,26 +64,23 @@ function convertPathToOpenAPI(path: string): string {
 /**
  * Generate OpenAPI parameter objects for path parameters
  */
-function generatePathParameters(
-  path: string,
-  paramsSchema?: z.ZodTypeAny
-): any[] {
+function generatePathParameters(path: string, paramsSchema?: z.ZodTypeAny): any[] {
   const paramNames = parsePathParams(path);
-  
+
   if (paramNames.length === 0) return [];
-  
+
   // If we have a schema, use it to get types
   let paramSchemas: Record<string, any> = {};
   if (paramsSchema) {
     const jsonSchema = zodSchemaToJsonSchema(paramsSchema);
     paramSchemas = jsonSchema.properties || {};
   }
-  
-  return paramNames.map(name => ({
+
+  return paramNames.map((name) => ({
     name,
     in: 'path',
     required: true,
-    schema: paramSchemas[name] || { type: 'string' }
+    schema: paramSchemas[name] || { type: 'string' },
   }));
 }
 
@@ -92,16 +89,16 @@ function generatePathParameters(
  */
 function generateQueryParameters(querySchema?: z.ZodTypeAny): any[] {
   if (!querySchema) return [];
-  
+
   const jsonSchema = zodSchemaToJsonSchema(querySchema);
   const properties = jsonSchema.properties || {};
   const required = jsonSchema.required || [];
-  
+
   return Object.entries(properties).map(([name, schema]) => ({
     name,
     in: 'query',
     required: required.includes(name),
-    schema
+    schema,
   }));
 }
 
@@ -110,14 +107,14 @@ function generateQueryParameters(querySchema?: z.ZodTypeAny): any[] {
  */
 function generateRequestBody(bodySchema?: z.ZodTypeAny): any {
   if (!bodySchema) return undefined;
-  
+
   return {
     required: true,
     content: {
       'application/json': {
-        schema: zodSchemaToJsonSchema(bodySchema)
-      }
-    }
+        schema: zodSchemaToJsonSchema(bodySchema),
+      },
+    },
   };
 }
 
@@ -126,18 +123,18 @@ function generateRequestBody(bodySchema?: z.ZodTypeAny): any {
  */
 function generateResponses(responses: Record<number, z.ZodTypeAny>): any {
   const result: any = {};
-  
+
   for (const [status, schema] of Object.entries(responses)) {
     result[status] = {
       description: getStatusDescription(Number(status)),
       content: {
         'application/json': {
-          schema: zodSchemaToJsonSchema(schema)
-        }
-      }
+          schema: zodSchemaToJsonSchema(schema),
+        },
+      },
     };
   }
-  
+
   return result;
 }
 
@@ -158,37 +155,34 @@ function getStatusDescription(status: number): string {
     422: 'Unprocessable Entity',
     500: 'Internal Server Error',
     502: 'Bad Gateway',
-    503: 'Service Unavailable'
+    503: 'Service Unavailable',
   };
-  
+
   return descriptions[status] || 'Response';
 }
 
 /**
  * Generate OpenAPI operation object for an endpoint
  */
-function generateOperation(
-  endpoint: EndpointDefinition,
-  operationId: string
-): any {
+function generateOperation(endpoint: EndpointDefinition, operationId: string): any {
   const pathParams = generatePathParameters(endpoint.path, endpoint.params);
   const queryParams = generateQueryParameters(endpoint.query);
   const parameters = [...pathParams, ...queryParams];
-  
+
   const operation: any = {
     operationId,
     parameters: parameters.length > 0 ? parameters : undefined,
     requestBody: generateRequestBody(endpoint.body),
-    responses: generateResponses(endpoint.responses)
+    responses: generateResponses(endpoint.responses),
   };
-  
+
   // Remove undefined fields
-  Object.keys(operation).forEach(key => {
+  Object.keys(operation).forEach((key) => {
     if (operation[key] === undefined) {
       delete operation[key];
     }
   });
-  
+
   return operation;
 }
 
@@ -197,29 +191,29 @@ function generateOperation(
  */
 export function generateOpenAPISpec<T extends Contract>(
   contract: T,
-  options: OpenAPIOptions
+  options: OpenAPIOptions,
 ): OpenAPISpec {
   const paths: Record<string, any> = {};
-  
+
   // Process each endpoint in the contract
   for (const [name, endpoint] of Object.entries(contract)) {
     const openAPIPath = convertPathToOpenAPI(endpoint.path);
     const method = endpoint.method.toLowerCase();
-    
+
     if (!paths[openAPIPath]) {
       paths[openAPIPath] = {};
     }
-    
+
     paths[openAPIPath][method] = generateOperation(endpoint, String(name));
   }
-  
+
   const spec: OpenAPISpec = {
     openapi: '3.1.0',
     info: options.info,
     servers: options.servers,
-    paths
+    paths,
   };
-  
+
   return spec;
 }
 
@@ -228,7 +222,7 @@ export function generateOpenAPISpec<T extends Contract>(
  */
 export function createOpenAPIResponse<T extends Contract>(
   contract: T,
-  options: OpenAPIOptions
+  options: OpenAPIOptions,
 ): Response {
   const spec = generateOpenAPISpec(contract, options);
   return Response.json(spec);
@@ -244,15 +238,15 @@ export function createDocsResponse(
     layout?: 'modern' | 'classic';
     showToolbar?: 'always' | 'never' | 'auto';
     hideClientButton?: boolean;
-  } = {}
+  } = {},
 ): Response {
   const {
     title = 'API Reference',
     layout = 'modern',
     showToolbar = 'never',
-    hideClientButton = true
+    hideClientButton = true,
   } = options;
-  
+
   const html = `<!doctype html>
 <html>
   <head>
@@ -282,11 +276,10 @@ export function createDocsResponse(
     </script>
   </body>
 </html>`;
-  
+
   return new Response(html, {
     headers: {
-      'content-type': 'text/html; charset=utf-8'
-    }
+      'content-type': 'text/html; charset=utf-8',
+    },
   });
 }
-
