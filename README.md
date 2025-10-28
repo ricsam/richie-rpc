@@ -278,7 +278,18 @@ rfetch/
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
 
-## Building for npm
+## Development
+
+### Type Checking and Linting
+
+```bash
+bun run typecheck      # Type check all packages
+bun run lint           # Lint all files with Biome
+bun run lint:fix       # Auto-fix linting issues
+bun run format         # Format code with Biome
+```
+
+### Building for npm
 
 To build the packages for npm publishing:
 
