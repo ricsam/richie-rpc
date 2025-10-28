@@ -20,8 +20,12 @@ async function runTests() {
     // Test 2: Get a specific user
     console.log('\n2️⃣ Testing getUser...');
     const getUserResponse = await client.getUser({ params: { id: '1' } });
-    console.log(`✅ Got user: ${getUserResponse.data.name}`);
-    console.log(`   Email: ${getUserResponse.data.email}`);
+    if (getUserResponse.status === 200) {
+      console.log(`✅ Got user: ${getUserResponse.data.name}`);
+      console.log(`   Email: ${getUserResponse.data.email}`);
+    } else {
+      throw new Error('Expected 200 status');
+    }
 
     // Test 3: Create a new user
     console.log('\n3️⃣ Testing createUser...');
@@ -32,6 +36,9 @@ async function runTests() {
         age: 42,
       },
     });
+    if (createResponse.status !== 201) {
+      throw new Error('Expected 201 status');
+    }
     console.log(`✅ Created user with ID: ${createResponse.data.id}`);
     console.log(`   Name: ${createResponse.data.name}`);
     const newUserId = createResponse.data.id;
@@ -44,12 +51,19 @@ async function runTests() {
         age: 43,
       },
     });
+    if (updateResponse.status !== 200) {
+      throw new Error('Expected 200 status');
+    }
     console.log(`✅ Updated user age to: ${updateResponse.data.age}`);
 
     // Test 5: Get the updated user
     console.log('\n5️⃣ Testing getUser (updated)...');
     const getUpdatedResponse = await client.getUser({ params: { id: newUserId } });
-    console.log(`✅ Confirmed age: ${getUpdatedResponse.data.age}`);
+    if (getUpdatedResponse.status === 200) {
+      console.log(`✅ Confirmed age: ${getUpdatedResponse.data.age}`);
+    } else {
+      throw new Error('Expected 200 status');
+    }
 
     // Test 6: Delete the user
     console.log('\n6️⃣ Testing deleteUser...');
@@ -73,13 +87,14 @@ async function runTests() {
         body: {
           name: '', // Invalid: empty name
           email: 'invalid-email', // Invalid: not an email
+          // biome-ignore lint/suspicious/noExplicitAny: intentionally testing validation
         } as any,
       });
       console.log('❌ Should have thrown validation error');
-    } catch (error: any) {
-      if (error.name === 'ClientValidationError') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'ClientValidationError' && 'field' in error) {
         console.log('✅ Correctly caught validation error');
-        console.log(`   Field: ${error.field}`);
+        console.log(`   Field: ${(error as { field: string }).field}`);
       } else {
         throw error;
       }

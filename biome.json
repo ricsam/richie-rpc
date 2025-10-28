@@ -58,6 +58,16 @@
           }
         }
       }
+    },
+    {
+      "includes": ["**/openapi/**/*", "**/server/**/*"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noExplicitAny": "off"
+          }
+        }
+      }
     }
   ]
 }

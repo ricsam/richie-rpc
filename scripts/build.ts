@@ -1,6 +1,5 @@
-import { $, Glob } from 'bun';
-import fs from 'fs/promises';
-import path from 'path';
+import path from 'node:path';
+import { $ } from 'bun';
 
 // Packages to build (excluding demo which is not published)
 const PACKAGES = ['core', 'server', 'openapi', 'client'];
@@ -82,7 +81,7 @@ const buildPackage = async (packageName: string) => {
   };
 
   // Build with Bun for both formats
-  const bunBuildFile = async (src: string, outdir: string, type: 'cjs' | 'mjs') => {
+  const bunBuildFile = async (src: string, _outdir: string, type: 'cjs' | 'mjs') => {
     const result = await Bun.build({
       entrypoints: [src],
       outdir: path.join(packageDir, 'dist', type),

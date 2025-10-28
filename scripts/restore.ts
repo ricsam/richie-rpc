@@ -1,6 +1,5 @@
+import path from 'node:path';
 import { $ } from 'bun';
-import fs from 'fs/promises';
-import path from 'path';
 
 // Packages to restore
 const PACKAGES = ['core', 'server', 'openapi', 'client'];

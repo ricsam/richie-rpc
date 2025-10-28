@@ -24,14 +24,14 @@ users.set('2', {
 // Create router with handlers
 const router = createRouter(usersContract, {
   listUsers: async ({ query }) => {
-    const limit = query?.limit ? parseInt(query.limit) : 100;
-    const offset = query?.offset ? parseInt(query.offset) : 0;
+    const limit = query?.limit ? parseInt(query.limit, 10) : 100;
+    const offset = query?.offset ? parseInt(query.offset, 10) : 0;
 
     const allUsers = Array.from(users.values());
     const paginatedUsers = allUsers.slice(offset, offset + limit);
 
     return {
-      status: 200,
+      status: 200 as const,
       body: {
         users: paginatedUsers,
         total: allUsers.length,
@@ -44,7 +44,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404,
+        status: 404 as const,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -53,7 +53,7 @@ const router = createRouter(usersContract, {
     }
 
     return {
-      status: 200,
+      status: 200 as const,
       body: user,
     };
   },
@@ -68,7 +68,7 @@ const router = createRouter(usersContract, {
     users.set(id, user);
 
     return {
-      status: 201,
+      status: 201 as const,
       body: user,
     };
   },
@@ -78,7 +78,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404,
+        status: 404 as const,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -94,7 +94,7 @@ const router = createRouter(usersContract, {
     users.set(params.id, updatedUser);
 
     return {
-      status: 200,
+      status: 200 as const,
       body: updatedUser,
     };
   },
@@ -104,7 +104,7 @@ const router = createRouter(usersContract, {
 
     if (!user) {
       return {
-        status: 404,
+        status: 404 as const,
         body: {
           error: 'Not Found',
           message: `User with id ${params.id} not found`,
@@ -115,7 +115,7 @@ const router = createRouter(usersContract, {
     users.delete(params.id);
 
     return {
-      status: 204,
+      status: 204 as const,
       body: {},
     };
   },

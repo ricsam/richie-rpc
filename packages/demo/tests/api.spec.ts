@@ -25,7 +25,7 @@ test.describe('RFetch API Integration', () => {
     // Check that content loaded (Scalar should inject content)
     const content = await page.textContent('body');
     expect(content).toBeTruthy();
-    expect(content!.length).toBeGreaterThan(100);
+    expect(content?.length).toBeGreaterThan(100);
   });
 
   test('should perform full CRUD operations', async ({ request }) => {

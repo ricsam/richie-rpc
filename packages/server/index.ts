@@ -5,7 +5,6 @@ import type {
   ExtractHeaders,
   ExtractParams,
   ExtractQuery,
-  ExtractResponses,
 } from '@rfetch/core';
 import { matchPath, parseQuery } from '@rfetch/core';
 import type { z } from 'zod';

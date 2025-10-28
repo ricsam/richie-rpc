@@ -1,5 +1,5 @@
+import path from 'node:path';
 import { $ } from 'bun';
-import path from 'path';
 
 // Packages to typecheck
 const PACKAGES = ['core', 'server', 'openapi', 'client', 'demo'];

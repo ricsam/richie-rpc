@@ -5,7 +5,6 @@ import type {
   ExtractHeaders,
   ExtractParams,
   ExtractQuery,
-  ExtractResponses,
 } from '@rfetch/core';
 import { buildUrl, interpolatePath } from '@rfetch/core';
 import type { z } from 'zod';
@@ -60,7 +59,7 @@ export class HTTPError extends Error {
   constructor(
     public status: number,
     public statusText: string,
-    public body: any,
+    public body: unknown,
   ) {
     super(`HTTP Error ${status}: ${statusText}`);
     this.name = 'HTTPError';
@@ -113,7 +112,7 @@ function validateRequest<T extends EndpointDefinition>(
 function validateResponse<T extends EndpointDefinition>(
   endpoint: T,
   status: number,
-  data: any,
+  data: unknown,
 ): void {
   const responseSchema = endpoint.responses[status];
   if (responseSchema) {
@@ -143,7 +142,11 @@ async function makeRequest<T extends EndpointDefinition>(
     path = interpolatePath(path, options.params as Record<string, string | number>);
   }
 
-  const url = buildUrl(config.baseUrl, path, options.query as Record<string, any> | undefined);
+  const url = buildUrl(
+    config.baseUrl,
+    path,
+    options.query as Record<string, string | number | boolean | string[]> | undefined,
+  );
 
   // Build headers
   const headers = new Headers(config.headers);
@@ -169,7 +172,7 @@ async function makeRequest<T extends EndpointDefinition>(
   const response = await fetch(url, init);
 
   // Parse response
-  let data: any;
+  let data: unknown;
 
   // Handle 204 No Content
   if (response.status === 204) {
@@ -212,10 +215,10 @@ async function makeRequest<T extends EndpointDefinition>(
  * Create a typesafe client for a contract
  */
 export function createClient<T extends Contract>(contract: T, config: ClientConfig): Client<T> {
-  const client: any = {};
+  const client: Record<string, unknown> = {};
 
   for (const [name, endpoint] of Object.entries(contract)) {
-    client[name] = (options: EndpointRequestOptions<any> = {}) => {
+    client[name] = (options: EndpointRequestOptions<EndpointDefinition> = {}) => {
       return makeRequest(config, endpoint, options);
     };
   }
@@ -227,10 +230,10 @@ export function createClient<T extends Contract>(contract: T, config: ClientConf
  * Create a client without providing the contract at runtime
  * Useful when you only need types and want a lighter bundle
  */
-export function createTypedClient<T extends Contract>(config: ClientConfig): Client<T> {
+export function createTypedClient<T extends Contract>(_config: ClientConfig): Client<T> {
   return new Proxy({} as Client<T>, {
-    get(_target, prop: string) {
-      return async (options: any = {}) => {
+    get(_target, _prop: string) {
+      return async (_options: EndpointRequestOptions<EndpointDefinition> = {}) => {
         // Without the contract, we can't validate or infer the endpoint
         // This is just a basic fetch wrapper with typing
         throw new Error(
