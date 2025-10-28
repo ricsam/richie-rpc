@@ -97,6 +97,18 @@ export const usersContract = defineContract({
       [Status.NotFound]: ErrorSchema,
     },
   },
+
+  // Custom status code example
+  teapot: {
+    method: 'GET',
+    path: '/teapot',
+    responses: {
+      [418 as const]: z.object({
+        message: z.string(),
+        isTeapot: z.boolean(),
+      }),
+    },
+  },
 });
 
 export type User = z.infer<typeof UserSchema>;

@@ -119,6 +119,17 @@ const router = createRouter(usersContract, {
       body: {} as Record<string, never>,
     };
   },
+
+  // Custom status code example: I'm a teapot (RFC 2324)
+  teapot: async () => {
+    return {
+      status: 418 as const,
+      body: {
+        message: "I'm a teapot! I cannot brew coffee.",
+        isTeapot: true,
+      },
+    };
+  },
 });
 
 // Generate OpenAPI spec

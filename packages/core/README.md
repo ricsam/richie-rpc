@@ -122,29 +122,20 @@ return { status: Status.NotFound, body: { error: 'Not found' } };
 
 **Using custom status codes:**
 
-For status codes not in the `Status` object, use `as const`:
+For status codes not in the `Status` object, use numeric literals with `as const` on the key:
 
 ```typescript
 const contract = defineContract({
   customEndpoint: {
     method: 'GET',
-    path: '/custom',
+    path: '/teapot',
     responses: {
-      [Status.OK]: SuccessSchema,
-      418: z.object({ message: z.string() }) as const, // I'm a teapot
-      451: z.object({ reason: z.string() }) as const, // Unavailable for legal reasons
+      [Status.OK]: z.object({ message: z.string() }),
+      [418 as const]: z.object({ message: z.string() }), // I'm a teapot
+      [451 as const]: z.object({ reason: z.string() }), // Unavailable for legal reasons
     }
   }
 });
-```
-
-Or define the entire responses object as const:
-
-```typescript
-responses: {
-  200: SuccessSchema,
-  418: TeapotSchema,
-} as const
 ```
 
 ## Type Inference
