@@ -38,6 +38,7 @@ export interface OpenAPIOptions {
   info: OpenAPIInfo;
   servers?: OpenAPIServer[];
   schemaPrefix?: string;
+  basePath?: string;
 }
 
 /**
@@ -195,9 +196,22 @@ export function generateOpenAPISpec<T extends Contract>(
 ): OpenAPISpec {
   const paths: Record<string, any> = {};
 
+  // Normalize basePath if provided
+  let basePath = '';
+  if (options.basePath) {
+    basePath = options.basePath.startsWith('/') ? options.basePath : `/${options.basePath}`;
+    basePath = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
+  }
+
   // Process each endpoint in the contract
   for (const [name, endpoint] of Object.entries(contract)) {
-    const openAPIPath = convertPathToOpenAPI(endpoint.path);
+    let openAPIPath = convertPathToOpenAPI(endpoint.path);
+    
+    // Prefix with basePath if provided
+    if (basePath) {
+      openAPIPath = basePath + openAPIPath;
+    }
+    
     const method = endpoint.method.toLowerCase();
 
     if (!paths[openAPIPath]) {
