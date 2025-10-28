@@ -1,27 +1,13 @@
 {
   "name": "@richie-rpc/core",
   "version": "0.1.0",
-  "main": "./dist/cjs/index.cjs",
+  "type": "module",
+  "main": "index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "require": "./dist/cjs/index.cjs",
-      "import": "./dist/mjs/index.mjs"
-    }
-  },
-  "dependencies": {
-    "zod": "^4.1.12"
+    ".": "./index.ts"
   },
   "peerDependencies": {
-    "typescript": "^5"
-  },
-  "module": "./dist/mjs/index.mjs",
-  "types": "./dist/types/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+    "typescript": "^5",
+    "zod": "^4.1.12"
+  }
 }

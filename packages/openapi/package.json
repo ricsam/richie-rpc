@@ -6,11 +6,9 @@
   "exports": {
     ".": "./index.ts"
   },
-  "dependencies": {
-    "@richie-rpc/core": "workspace:*",
-    "zod": "^4.1.12"
-  },
   "peerDependencies": {
-    "typescript": "^5"
+    "@richie-rpc/core": "workspace:*",
+    "typescript": "^5",
+    "zod": "^4.1.12"
   }
 }
