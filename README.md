@@ -124,15 +124,17 @@ console.log(newUser.data.id); // ✅ Type-safe
 
 ## Installation
 
+All packages require `zod@^4` as a peer dependency. Install it alongside the Richie RPC packages:
+
 ```bash
-# Install all packages
-bun add @richie-rpc/core @richie-rpc/server @richie-rpc/client @richie-rpc/openapi zod
+# Install all packages with Zod
+bun add @richie-rpc/core @richie-rpc/server @richie-rpc/client @richie-rpc/openapi zod@^4
 
 # Or install individually
-bun add @richie-rpc/core zod          # For contracts
-bun add @richie-rpc/server            # For servers
-bun add @richie-rpc/client            # For clients
-bun add @richie-rpc/openapi           # For OpenAPI generation
+bun add @richie-rpc/core zod@^4                    # For contracts
+bun add @richie-rpc/server @richie-rpc/core zod@^4 # For servers
+bun add @richie-rpc/client @richie-rpc/core zod@^4 # For clients
+bun add @richie-rpc/openapi @richie-rpc/core zod@^4 # For OpenAPI
 ```
 
 **npm Packages:**

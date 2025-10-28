@@ -204,12 +204,13 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
     publishPackageJson.description = descriptions[packageName] || rootMetadata.description;
   }
 
-  // Remove dev-only fields
+  // Remove dev-only fields and dependencies (using peerDependencies instead)
   delete publishPackageJson.devDependencies;
+  delete publishPackageJson.dependencies;
 
-  // Update dependencies to remove workspace protocol
-  if (publishPackageJson.dependencies) {
-    for (const [dep, ver] of Object.entries(publishPackageJson.dependencies)) {
+  // Update peerDependencies to remove workspace protocol
+  if (publishPackageJson.peerDependencies) {
+    for (const [dep, ver] of Object.entries(publishPackageJson.peerDependencies)) {
       if (typeof ver === 'string' && ver.startsWith('workspace:')) {
         // Get the actual version from the dependency's package.json
         const depPackageName = dep.replace('@richie-rpc/', '');
@@ -217,7 +218,7 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
           const depPackageJson = await Bun.file(
             path.join(__dirname, '..', 'packages', depPackageName, 'package.json'),
           ).json();
-          publishPackageJson.dependencies[dep] = `^${depPackageJson.version}`;
+          publishPackageJson.peerDependencies[dep] = `^${depPackageJson.version}`;
         }
       }
     }

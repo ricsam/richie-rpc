@@ -169,27 +169,53 @@ This ensures proper resolution in all environments:
 - TypeScript → uses .d.ts files
 - Bundlers (Vite, Webpack, etc.) → use MJS
 
+## Peer Dependencies
+
+All published packages use **peer dependencies only** (no bundled dependencies):
+
+```json
+{
+  "peerDependencies": {
+    "@richie-rpc/core": "^0.1.0",
+    "typescript": "^5",
+    "zod": "^4.1.12"
+  }
+}
+```
+
+**Benefits:**
+- Avoids version conflicts
+- Users control exact versions
+- Smaller package sizes
+- No duplicate dependencies in user's node_modules
+
 ## Dependency Management
 
-### Development (workspace dependencies)
+### Development (workspace peerDependencies)
 ```json
 {
-  "dependencies": {
-    "@richie-rpc/core": "workspace:*"
+  "peerDependencies": {
+    "@richie-rpc/core": "workspace:*",
+    "zod": "^4.1.12"
   }
 }
 ```
 
-### Production (version references)
+### Production (version references in peerDependencies)
 ```json
 {
-  "dependencies": {
-    "@richie-rpc/core": "^0.1.0"
+  "peerDependencies": {
+    "@richie-rpc/core": "^0.1.0",
+    "typescript": "^5",
+    "zod": "^4.1.12"
   }
 }
 ```
 
-The build script automatically converts workspace references to version numbers by reading the dependency's package.json.
+The build script:
+1. Removes the `dependencies` field entirely
+2. Converts workspace references in `peerDependencies` to version numbers
+3. Users must install peer dependencies manually
 
 ## Troubleshooting
 
