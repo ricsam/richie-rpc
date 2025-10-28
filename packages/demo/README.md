@@ -56,10 +56,12 @@ bun run test:e2e
 This will run Playwright tests that:
 
 - Verify OpenAPI spec is served correctly
-- Test the Scalar documentation UI
+- Validate OpenAPI spec matches actual endpoint behavior
+- Test the Scalar documentation UI serves HTML correctly
 - Perform full CRUD operations via HTTP
 - Test validation errors
 - Test error responses
+- Verify all endpoints defined in spec have proper structure
 
 ## API Endpoints
 

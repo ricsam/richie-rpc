@@ -62,11 +62,13 @@ bun run test:e2e
 
 The E2E tests verify:
 - OpenAPI spec is served correctly
-- API documentation UI loads
+- OpenAPI spec matches actual endpoint behavior
+- API documentation UI HTML is served correctly
 - Full CRUD operations work via HTTP
 - Validation errors are handled
 - 404 responses work correctly
 - Pagination works
+- All spec operations have required fields
 
 ## Testing Individual Packages
 

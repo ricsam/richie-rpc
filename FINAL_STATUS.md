@@ -68,12 +68,13 @@ Status: ✅ All features implemented, tested, and documented
 ### Playwright E2E Tests
 ```
 ✅ Serve OpenAPI spec at /openapi.json
-✅ Serve API documentation at /docs
+✅ OpenAPI spec matches actual endpoint behavior
+✅ Serve Scalar documentation UI HTML
 ✅ Perform full CRUD operations
 ✅ Validate request data
 ✅ Return 404 for non-existent resources
 ✅ Support pagination
-✅ Display API endpoints in docs UI
+✅ Verify all spec operations are properly structured
 ```
 
 ### Quality Checks
