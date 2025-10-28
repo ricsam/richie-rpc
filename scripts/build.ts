@@ -224,28 +224,22 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
     }
   }
 
-  // Save peerDependencies before modifying package.json
-  const finalPeerDependencies = publishPackageJson.peerDependencies;
-
   // Set module type and exports
   delete publishPackageJson.type;
-  Object.assign(publishPackageJson, {
-    main: './dist/cjs/index.cjs',
-    module: './dist/mjs/index.mjs',
-    types: './dist/types/index.d.ts',
-    exports: {
-      '.': {
-        types: './dist/types/index.d.ts',
-        require: './dist/cjs/index.cjs',
-        import: './dist/mjs/index.mjs',
-      },
+  publishPackageJson.main = './dist/cjs/index.cjs';
+  publishPackageJson.module = './dist/mjs/index.mjs';
+  publishPackageJson.types = './dist/types/index.d.ts';
+  publishPackageJson.exports = {
+    '.': {
+      types: './dist/types/index.d.ts',
+      require: './dist/cjs/index.cjs',
+      import: './dist/mjs/index.mjs',
     },
-    peerDependencies: finalPeerDependencies, // Restore peerDependencies
-    publishConfig: {
-      access: 'public',
-    },
-    files: ['dist', 'README.md'],
-  });
+  };
+  publishPackageJson.publishConfig = {
+    access: 'public',
+  };
+  publishPackageJson.files = ['dist', 'README.md'];
 
   // Write the publish-ready package.json
   await Bun.write(
