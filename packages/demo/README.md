@@ -57,7 +57,6 @@ This will run Playwright tests that:
 
 - Verify OpenAPI spec is served correctly
 - Validate OpenAPI spec matches actual endpoint behavior
-- Test the Scalar documentation UI serves HTML correctly
 - Perform full CRUD operations via HTTP
 - Test validation errors
 - Test error responses

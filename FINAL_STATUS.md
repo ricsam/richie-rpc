@@ -69,13 +69,14 @@ Status: ✅ All features implemented, tested, and documented
 ```
 ✅ Serve OpenAPI spec at /openapi.json
 ✅ OpenAPI spec matches actual endpoint behavior
-✅ Serve Scalar documentation UI HTML
 ✅ Perform full CRUD operations
 ✅ Validate request data
 ✅ Return 404 for non-existent resources
 ✅ Support pagination
 ✅ Verify all spec operations are properly structured
 ```
+
+**Note:** The Scalar documentation UI is served at `/docs` but not tested in CI as it requires external CDN resources.
 
 ### Quality Checks
 ```

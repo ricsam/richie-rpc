@@ -182,17 +182,4 @@ test.describe('OpenAPI Spec Validation', () => {
       }
     }
   });
-
-  test('should serve Scalar documentation UI', async ({ page }) => {
-    await page.goto('/docs');
-
-    // Verify basic page structure
-    const title = await page.title();
-    expect(title).toBe('Users API Documentation');
-
-    // Verify HTML contains the necessary elements
-    const html = await page.content();
-    expect(html).toContain('id="app"');
-    expect(html).toContain('scalar');
-  });
 });
