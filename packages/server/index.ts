@@ -6,7 +6,7 @@ import type {
   ExtractParams,
   ExtractQuery,
 } from '@richie-rpc/core';
-import { Status, matchPath, parseQuery } from '@richie-rpc/core';
+import { matchPath, parseQuery, Status } from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Re-export Status for convenience

@@ -61,7 +61,7 @@ export const contract = defineContract({
 
 ```typescript
 // server.ts
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { generateOpenAPISpec, createDocsResponse } from '@richie-rpc/openapi';
 import { contract } from './contract';
 
@@ -69,13 +69,13 @@ const router = createRouter(contract, {
   getUser: async ({ params }) => {
     const user = await db.getUser(params.id);
     if (!user) {
-      return { status: 404, body: { error: 'User not found' } };
+      return { status: Status.NotFound, body: { error: 'User not found' } };
     }
-    return { status: 200, body: user };
+    return { status: Status.OK, body: user };
   },
   createUser: async ({ body }) => {
     const user = await db.createUser(body);
-    return { status: 201, body: user };
+    return { status: Status.Created, body: user };
   }
 });
 

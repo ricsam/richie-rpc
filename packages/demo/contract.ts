@@ -1,4 +1,4 @@
-import { defineContract } from '@richie-rpc/core';
+import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
 
 // Define schemas
@@ -54,7 +54,7 @@ export const usersContract = defineContract({
       id: z.string(),
     }),
     responses: {
-      200: UserSchema,
+      [Status.OK]: UserSchema,
       404: ErrorSchema,
     },
   },

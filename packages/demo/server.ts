@@ -1,5 +1,5 @@
 import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
-import { Status, createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 
 // In-memory database

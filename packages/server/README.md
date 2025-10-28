@@ -13,7 +13,7 @@ bun add @richie-rpc/server @richie-rpc/core zod@^4
 ### Creating a Router
 
 ```typescript
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, Status } from '@richie-rpc/server';
 import { contract } from './contract';
 
 const router = createRouter(contract, {
@@ -22,16 +22,16 @@ const router = createRouter(contract, {
     const user = await db.getUser(params.id);
     
     if (!user) {
-      return { status: 404, body: { error: 'User not found' } };
+      return { status: Status.NotFound, body: { error: 'User not found' } };
     }
     
-    return { status: 200, body: user };
+    return { status: Status.OK, body: user };
   },
   
   createUser: async ({ body }) => {
     // body is fully typed and already validated
     const user = await db.createUser(body);
-    return { status: 201, body: user };
+    return { status: Status.Created, body: user };
   }
 });
 ```
@@ -67,6 +67,7 @@ Bun.serve({
 - ✅ Automatic request validation (params, query, headers, body)
 - ✅ Automatic response validation
 - ✅ Type-safe handler inputs
+- ✅ Type-safe status codes with `Status` const object
 - ✅ Path parameter matching
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
@@ -99,6 +100,31 @@ Each handler must return a response object with:
   body: any,                   // Response body (must match schema)
   headers?: Record<string, string>  // Optional custom headers
 }
+```
+
+### Using Status Codes
+
+Use the `Status` const object for type-safe status codes:
+
+```typescript
+import { Status } from '@richie-rpc/server';
+
+return { status: Status.OK, body: user };           // 200
+return { status: Status.Created, body: newUser };   // 201
+return { status: Status.NoContent, body: {} };      // 204
+return { status: Status.BadRequest, body: error };  // 400
+return { status: Status.NotFound, body: error };    // 404
+```
+
+Available status codes:
+- `Status.OK` (200), `Status.Created` (201), `Status.Accepted` (202), `Status.NoContent` (204)
+- `Status.BadRequest` (400), `Status.Unauthorized` (401), `Status.Forbidden` (403), `Status.NotFound` (404)
+- `Status.Conflict` (409), `Status.UnprocessableEntity` (422), `Status.TooManyRequests` (429)
+- `Status.InternalServerError` (500), `Status.ServiceUnavailable` (503)
+
+You can also use literal numbers with `as const`:
+```typescript
+return { status: 200 as const, body: user };
 ```
 
 ## Error Handling
