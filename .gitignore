@@ -1,34 +1,32 @@
-# dependencies (bun install)
-node_modules
+# Dependencies
+node_modules/
 
-# output
-out
-dist
-*.tgz
-
-# code coverage
-coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.eslintcache
-.cache
+# Build outputs
+dist/
 *.tsbuildinfo
+tsconfig.build.json
+tsconfig.types.json
 
-# IntelliJ based IDEs
-.idea
+# Test artifacts
+packages/demo/test-results/
+packages/demo/playwright-report/
+test-results/
+playwright-report/
 
-# Finder (MacOS) folder config
+# Logs
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# Editor directories
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/

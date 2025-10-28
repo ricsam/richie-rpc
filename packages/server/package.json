@@ -1,28 +1,16 @@
 {
   "name": "@rfetch/server",
   "version": "0.1.0",
-  "main": "./dist/cjs/index.cjs",
+  "type": "module",
+  "main": "index.ts",
   "exports": {
-    ".": {
-      "types": "./dist/types/index.d.ts",
-      "require": "./dist/cjs/index.cjs",
-      "import": "./dist/mjs/index.mjs"
-    }
+    ".": "./index.ts"
   },
   "dependencies": {
-    "@rfetch/core": "^0.1.0",
+    "@rfetch/core": "workspace:*",
     "zod": "^3.23.8"
   },
   "peerDependencies": {
     "typescript": "^5"
-  },
-  "module": "./dist/mjs/index.mjs",
-  "types": "./dist/types/index.d.ts",
-  "publishConfig": {
-    "access": "public"
-  },
-  "files": [
-    "dist",
-    "README.md"
-  ]
+  }
 }
