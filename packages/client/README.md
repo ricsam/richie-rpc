@@ -182,6 +182,11 @@ const client = createClient(contract, {
 });
 ```
 
+## Links
+
+- **npm:** https://www.npmjs.com/package/@richie-rpc/client
+- **Repository:** https://github.com/ricsam/richie-rpc
+
 ## License
 
 MIT

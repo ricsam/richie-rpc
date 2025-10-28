@@ -126,6 +126,11 @@ Both request and response data are validated against the contract schemas:
 - Response validation happens before sending to the client
 - Validation errors return detailed Zod error information
 
+## Links
+
+- **npm:** https://www.npmjs.com/package/@richie-rpc/server
+- **Repository:** https://github.com/ricsam/richie-rpc
+
 ## License
 
 MIT

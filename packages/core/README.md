@@ -98,6 +98,11 @@ The package exports several utility types for extracting types from endpoint def
 - `ExtractResponses<T>`: Extract all response types
 - `ExtractResponse<T, Status>`: Extract specific response type by status code
 
+## Links
+
+- **npm:** https://www.npmjs.com/package/@richie-rpc/core
+- **Repository:** https://github.com/ricsam/richie-rpc
+
 ## License
 
 MIT

@@ -7,8 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ricsam/richie-rpc.git"
+    "url": "git+https://github.com/ricsam/richie-rpc.git"
   },
+  "bugs": {
+    "url": "https://github.com/ricsam/richie-rpc/issues"
+  },
+  "homepage": "https://github.com/ricsam/richie-rpc#readme",
   "keywords": [
     "typescript",
     "bun",

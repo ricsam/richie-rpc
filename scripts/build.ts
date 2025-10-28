@@ -8,6 +8,8 @@ interface RootMetadata {
   author: string;
   license: string;
   repository: { type: string; url: string };
+  bugs?: { url: string };
+  homepage?: string;
   keywords: string[];
   description: string;
 }
@@ -187,6 +189,8 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
   publishPackageJson.author = rootMetadata.author;
   publishPackageJson.license = rootMetadata.license;
   publishPackageJson.repository = rootMetadata.repository;
+  publishPackageJson.bugs = rootMetadata.bugs;
+  publishPackageJson.homepage = rootMetadata.homepage;
   publishPackageJson.keywords = rootMetadata.keywords;
 
   // Add package-specific description if not present
@@ -259,6 +263,8 @@ const main = async () => {
     author: rootPackageJson.author,
     license: rootPackageJson.license,
     repository: rootPackageJson.repository,
+    bugs: rootPackageJson.bugs,
+    homepage: rootPackageJson.homepage,
     keywords: rootPackageJson.keywords,
     description: rootPackageJson.description,
   };

@@ -1,6 +1,13 @@
 # Richie RPC
 
+[![npm](https://img.shields.io/npm/v/@richie-rpc/core)](https://www.npmjs.com/package/@richie-rpc/core)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+
 A TypeScript-first, type-safe API contract library for Bun with Zod validation.
+
+**Repository:** https://github.com/ricsam/richie-rpc  
+**npm Organization:** https://www.npmjs.com/org/richie-rpc
 
 ## Overview
 
@@ -127,6 +134,12 @@ bun add @richie-rpc/server            # For servers
 bun add @richie-rpc/client            # For clients
 bun add @richie-rpc/openapi           # For OpenAPI generation
 ```
+
+**npm Packages:**
+- [@richie-rpc/core](https://www.npmjs.com/package/@richie-rpc/core)
+- [@richie-rpc/server](https://www.npmjs.com/package/@richie-rpc/server)
+- [@richie-rpc/openapi](https://www.npmjs.com/package/@richie-rpc/openapi)
+- [@richie-rpc/client](https://www.npmjs.com/package/@richie-rpc/client)
 
 ## Packages
 
@@ -318,6 +331,13 @@ bun run restore        # Restore development state
 ```
 
 See [BUILD.md](./BUILD.md) for detailed build and publishing instructions.
+
+## Links
+
+- **Repository:** https://github.com/ricsam/richie-rpc
+- **npm Organization:** https://www.npmjs.com/org/richie-rpc
+- **Issues:** https://github.com/ricsam/richie-rpc/issues
+- **Author:** Richie <oss@ricsam.dev>
 
 ## License
 

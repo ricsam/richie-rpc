@@ -172,6 +172,11 @@ The generated spec includes:
 }
 ```
 
+## Links
+
+- **npm:** https://www.npmjs.com/package/@richie-rpc/openapi
+- **Repository:** https://github.com/ricsam/richie-rpc
+
 ## License
 
 MIT
