@@ -208,14 +208,3 @@ export function parseQuery(searchParams: URLSearchParams): Record<string, string
 export function defineContract<T extends Contract>(contract: T): T {
   return contract;
 }
-
-// Default export for CommonJS compatibility
-export default {
-  Status,
-  defineContract,
-  parsePathParams,
-  matchPath,
-  interpolatePath,
-  buildUrl,
-  parseQuery,
-};
