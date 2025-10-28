@@ -55,7 +55,7 @@ export const usersContract = defineContract({
     }),
     responses: {
       [Status.OK]: UserSchema,
-      404: ErrorSchema,
+      [Status.NotFound]: ErrorSchema,
     },
   },
 
