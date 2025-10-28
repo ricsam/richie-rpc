@@ -274,9 +274,27 @@ rfetch/
 - TypeScript 5.0+
 - Zod 3.23+
 
+## CI/CD
+
+The project uses GitHub Actions for continuous integration and deployment:
+
+### CI Pipeline (All Branches)
+- ✅ Type checking with TypeScript
+- ✅ Linting with Biome
+- ✅ Build all packages
+- ✅ Run integration tests
+- ✅ Run E2E tests with Playwright
+
+### CD Pipeline (Main Branch)
+- ✅ All CI checks
+- ✅ Publish to npm (when versions are bumped)
+- ✅ Create git tags
+
+To trigger a publish, simply update version numbers in `packages/*/package.json` and push to main.
+
 ## Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions are welcome! Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md) for guidelines.
 
 ## Development
 
