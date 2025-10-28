@@ -6,10 +6,6 @@ on:
     paths:
       - 'packages/*/package.json'
       - '.github/workflows/publish.yml'
-  
-  pull_request:
-    types: [closed]
-    branches: [main]
 
   workflow_dispatch:
     inputs:
@@ -25,15 +21,11 @@ on:
 jobs:
   # Run CI first
   ci:
-    # Skip if PR wasn't merged
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     uses: ./.github/workflows/ci.yml
   
   # Only publish after CI passes
   publish:
     runs-on: ubuntu-latest
-    # Skip if PR wasn't merged
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     needs: ci  # Wait for CI to complete successfully
     
     permissions:
