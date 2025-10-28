@@ -26,8 +26,8 @@ jobs:
     needs: []
     
     permissions:
-      contents: read
-      id-token: write
+      contents: write  # Required to create and push tags
+      id-token: write  # Required for provenance (optional)
 
     steps:
       - name: Checkout code
