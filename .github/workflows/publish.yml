@@ -19,15 +19,18 @@ on:
           - 'false'
 
 jobs:
+  # Run CI first
+  ci:
+    uses: ./.github/workflows/ci.yml
+  
+  # Only publish after CI passes
   publish:
     runs-on: ubuntu-latest
-    
-    # Require CI to pass first
-    needs: []
+    needs: ci  # Wait for CI to complete successfully
     
     permissions:
       contents: write  # Required to create and push tags
-      id-token: write  # Required for provenance (optional)
+      id-token: write  # Required for npm provenance (optional)
 
     steps:
       - name: Checkout code
@@ -47,17 +50,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Type check
-        run: bun run typecheck
-
-      - name: Lint
-        run: bun run lint
-
       - name: Build packages
         run: bun run build
-
-      - name: Run tests
-        run: bun run verify
 
       - name: Check if packages exist on npm
         id: check-versions
@@ -146,4 +140,3 @@ jobs:
           echo "## ⏭️ Skipped Publishing" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Version already exists on npm. No publish needed." >> $GITHUB_STEP_SUMMARY
-
