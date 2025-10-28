@@ -3,6 +3,37 @@ import type { z } from 'zod';
 // HTTP methods supported
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
+// HTTP status codes as const object for type-safe responses without 'as const'
+export const Status = {
+  // Success responses
+  OK: 200 as const,
+  Created: 201 as const,
+  Accepted: 202 as const,
+  NoContent: 204 as const,
+
+  // Redirection
+  MovedPermanently: 301 as const,
+  Found: 302 as const,
+  NotModified: 304 as const,
+
+  // Client errors
+  BadRequest: 400 as const,
+  Unauthorized: 401 as const,
+  Forbidden: 403 as const,
+  NotFound: 404 as const,
+  MethodNotAllowed: 405 as const,
+  Conflict: 409 as const,
+  UnprocessableEntity: 422 as const,
+  TooManyRequests: 429 as const,
+
+  // Server errors
+  InternalServerError: 500 as const,
+  NotImplemented: 501 as const,
+  BadGateway: 502 as const,
+  ServiceUnavailable: 503 as const,
+  GatewayTimeout: 504 as const,
+} as const;
+
 // Endpoint definition structure
 export interface EndpointDefinition {
   method: HttpMethod;
