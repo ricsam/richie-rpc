@@ -1,6 +1,6 @@
 {
   "name": "richie-rpc",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "description": "A TypeScript-first, type-safe API contract library for Bun with Zod validation",
   "author": "Richie <oss@ricsam.dev>",
