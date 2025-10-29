@@ -36,6 +36,32 @@ const router = createRouter(contract, {
 });
 ```
 
+### Router with basePath
+
+You can serve your API under a path prefix (e.g., `/api`) using the `basePath` option:
+
+```typescript
+const router = createRouter(contract, handlers, { 
+  basePath: '/api' 
+});
+
+Bun.serve({
+  port: 3000,
+  fetch(request) {
+    const url = new URL(request.url);
+    
+    // Route all /api/* requests to the router
+    if (url.pathname.startsWith('/api/')) {
+      return router.fetch(request);
+    }
+    
+    return new Response('Not Found', { status: 404 });
+  }
+});
+```
+
+The router will automatically strip the basePath prefix before matching routes. For example, if your contract defines a route at `/users`, and you set `basePath: '/api'`, the actual URL will be `/api/users`.
+
 ### Using with Bun.serve
 
 ```typescript
@@ -72,6 +98,7 @@ Bun.serve({
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
 - ✅ Form data support
+- ✅ BasePath support for serving APIs under path prefixes
 - ✅ Detailed validation errors
 - ✅ 404 handling for unknown routes
 - ✅ Error handling and reporting
