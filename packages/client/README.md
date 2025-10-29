@@ -26,18 +26,32 @@ const client = createClient(contract, {
 
 ### Client with basePath
 
-The `baseUrl` supports path prefixes for APIs served under a specific path:
+The `baseUrl` supports both absolute and relative URLs:
 
 ```typescript
+// Absolute URL with path prefix
 const client = createClient(contract, {
-  baseUrl: 'https://api.example.com/api',  // API served under /api
+  baseUrl: 'https://api.example.com/api',
 });
 
-// If contract defines /users, actual URL will be:
-// https://api.example.com/api/users
+// Relative URL with path prefix (browser-friendly)
+const client = createClient(contract, {
+  baseUrl: '/api',  // Resolves to current origin + /api
+});
+
+// Just the path (same origin)
+const client = createClient(contract, {
+  baseUrl: '/',  // Resolves to current origin
+});
 ```
 
-The client automatically concatenates the `baseUrl` with the endpoint paths from your contract.
+**How it works:**
+- **Absolute URLs** (`http://...` or `https://...`): Used as-is
+- **Relative URLs** (starting with `/`): Automatically resolved using `window.location.origin` in browsers, or `http://localhost` in non-browser environments
+
+**Example:** In a browser at `https://example.com`, if your contract defines `/users`:
+- With `baseUrl: '/api'` → actual URL is `https://example.com/api/users`
+- With `baseUrl: '/'` → actual URL is `https://example.com/users`
 
 ### Making Requests
 
