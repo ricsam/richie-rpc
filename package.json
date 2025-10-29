@@ -37,7 +37,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "test": "bun test",
+    "test": "echo 'No unit tests. Use test:e2e for Playwright tests.' && exit 0",
+    "test:e2e": "cd packages/demo && bun run test:e2e",
     "demo": "bun run --cwd packages/demo start",
     "verify": "cd packages/demo && ./verify.sh"
   },
