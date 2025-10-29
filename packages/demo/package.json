@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "bun run server.ts",
-    "test": "bun test",
+    "test": "echo 'No unit tests in demo package. Use test:e2e for Playwright tests.' && exit 0",
     "test:e2e": "playwright test"
   },
   "dependencies": {
