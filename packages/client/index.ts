@@ -212,14 +212,40 @@ async function makeRequest<T extends EndpointDefinition>(
 }
 
 /**
+ * Resolve relative baseUrl to absolute URL in browser contexts
+ */
+function resolveBaseUrl(baseUrl: string): string {
+  // If baseUrl is already absolute, return as-is
+  if (baseUrl.startsWith('http://') || baseUrl.startsWith('https://')) {
+    return baseUrl;
+  }
+
+  // If baseUrl is relative (starts with /), resolve it using window.location in browser
+  if (baseUrl.startsWith('/')) {
+    const g = globalThis as unknown as { location?: { origin?: string } };
+    const origin = g?.location?.origin || 'http://localhost';
+    return origin + baseUrl;
+  }
+
+  // Otherwise, assume it's a full URL
+  return baseUrl;
+}
+
+/**
  * Create a typesafe client for a contract
  */
 export function createClient<T extends Contract>(contract: T, config: ClientConfig): Client<T> {
+  // Resolve relative baseUrl to absolute URL
+  const resolvedConfig = {
+    ...config,
+    baseUrl: resolveBaseUrl(config.baseUrl),
+  };
+
   const client: Record<string, unknown> = {};
 
   for (const [name, endpoint] of Object.entries(contract)) {
     client[name] = (options: EndpointRequestOptions<EndpointDefinition> = {}) => {
-      return makeRequest(config, endpoint, options);
+      return makeRequest(resolvedConfig, endpoint, options);
     };
   }
 
