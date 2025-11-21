@@ -2,7 +2,7 @@ import path from 'node:path';
 import { $ } from 'bun';
 
 // Packages to build (excluding demo which is not published)
-const PACKAGES = ['core', 'server', 'openapi', 'client'];
+const PACKAGES = ['core', 'server', 'openapi', 'client', 'react-query'];
 
 interface RootMetadata {
   author: string;
@@ -200,6 +200,7 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
       server: 'Server implementation for Bun.serve with automatic validation',
       openapi: 'OpenAPI 3.1 specification generator for Richie RPC contracts',
       client: 'Type-safe fetch client for Richie RPC contracts',
+      reactQuery: 'React Query hooks for Richie RPC contracts',
     };
     publishPackageJson.description = descriptions[packageName] || rootMetadata.description;
   }
@@ -285,6 +286,7 @@ const main = async () => {
   console.log('                   npm publish packages/server');
   console.log('                   npm publish packages/openapi');
   console.log('                   npm publish packages/client');
+  console.log('                   npm publish packages/react-query');
   console.log('\n   Or use: bun run publish:all\n');
 };
 
