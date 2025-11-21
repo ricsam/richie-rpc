@@ -2,7 +2,7 @@ import path from 'node:path';
 import { $ } from 'bun';
 
 // Packages to publish in order (respecting dependencies)
-const PACKAGES = ['core', 'server', 'openapi', 'client'];
+const PACKAGES = ['core', 'server', 'openapi', 'client', 'react-query'];
 
 const checkIfPublished = async (packageName: string): Promise<boolean> => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
