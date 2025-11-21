@@ -9,8 +9,10 @@ test.describe('Richie RPC API Integration', () => {
     expect(spec.openapi).toBe('3.1.0');
     expect(spec.info.title).toBe('Users API');
     expect(spec.paths).toBeDefined();
-    expect(spec.paths['/users']).toBeDefined();
-    expect(spec.paths['/users/{id}']).toBeDefined();
+    // Check for paths - they should have /api prefix from the basePath
+    const pathKeys = Object.keys(spec.paths);
+    expect(pathKeys.some((p) => p.includes('/users'))).toBeTruthy();
+    expect(pathKeys.some((p) => p.includes('/users/{id}'))).toBeTruthy();
   });
 
   test('should serve API documentation at /docs', async ({ page }) => {
@@ -30,14 +32,14 @@ test.describe('Richie RPC API Integration', () => {
 
   test('should perform full CRUD operations', async ({ request }) => {
     // List users
-    const listResponse = await request.get('/users');
+    const listResponse = await request.get('/api/users');
     expect(listResponse.ok()).toBeTruthy();
     const listData = await listResponse.json();
     expect(listData.users).toBeDefined();
     expect(Array.isArray(listData.users)).toBeTruthy();
 
     // Get a user
-    const getUserResponse = await request.get('/users/1');
+    const getUserResponse = await request.get('/api/users/1');
     expect(getUserResponse.ok()).toBeTruthy();
     const user = await getUserResponse.json();
     expect(user.id).toBe('1');
@@ -45,7 +47,7 @@ test.describe('Richie RPC API Integration', () => {
     expect(user.email).toBeDefined();
 
     // Create a user
-    const createResponse = await request.post('/users', {
+    const createResponse = await request.post('/api/users', {
       data: {
         name: 'Test User',
         email: 'test@example.com',
@@ -60,7 +62,7 @@ test.describe('Richie RPC API Integration', () => {
     const newUserId = newUser.id;
 
     // Update the user
-    const updateResponse = await request.put(`/users/${newUserId}`, {
+    const updateResponse = await request.put(`/api/users/${newUserId}`, {
       data: {
         age: 26,
       },
@@ -70,17 +72,17 @@ test.describe('Richie RPC API Integration', () => {
     expect(updatedUser.age).toBe(26);
 
     // Delete the user
-    const deleteResponse = await request.delete(`/users/${newUserId}`);
+    const deleteResponse = await request.delete(`/api/users/${newUserId}`);
     expect(deleteResponse.status()).toBe(204);
 
     // Verify deletion (should 404)
-    const getDeletedResponse = await request.get(`/users/${newUserId}`);
+    const getDeletedResponse = await request.get(`/api/users/${newUserId}`);
     expect(getDeletedResponse.status()).toBe(404);
   });
 
   test('should validate request data', async ({ request }) => {
     // Invalid email
-    const response = await request.post('/users', {
+    const response = await request.post('/api/users', {
       data: {
         name: 'Invalid User',
         email: 'not-an-email',
@@ -94,14 +96,14 @@ test.describe('Richie RPC API Integration', () => {
   });
 
   test('should return 404 for non-existent user', async ({ request }) => {
-    const response = await request.get('/users/999999');
+    const response = await request.get('/api/users/999999');
     expect(response.status()).toBe(404);
     const error = await response.json();
     expect(error.error).toBe('Not Found');
   });
 
   test('should support pagination in list endpoint', async ({ request }) => {
-    const response = await request.get('/users?limit=1&offset=0');
+    const response = await request.get('/api/users?limit=1&offset=0');
     expect(response.ok()).toBeTruthy();
     const data = await response.json();
     expect(data.users.length).toBeLessThanOrEqual(1);
@@ -119,35 +121,35 @@ test.describe('OpenAPI Spec Validation', () => {
     // Test each endpoint defined in the spec
     const paths = spec.paths;
 
-    // Test GET /users (from spec)
-    if (paths['/users']?.get) {
-      const getUsersOp = paths['/users'].get;
+    // Test GET /api/users (from spec)
+    if (paths['/api/users']?.get) {
+      const getUsersOp = paths['/api/users'].get;
       expect(getUsersOp.operationId).toBe('listUsers');
       expect(getUsersOp.responses['200']).toBeDefined();
 
       // Test the actual endpoint
-      const response = await request.get('/users');
+      const response = await request.get('/api/users');
       expect(response.status()).toBe(200);
       const data = await response.json();
       expect(data.users).toBeDefined();
       expect(Array.isArray(data.users)).toBeTruthy();
     }
 
-    // Test GET /users/{id} (from spec)
-    if (paths['/users/{id}']?.get) {
-      const getUserOp = paths['/users/{id}'].get;
+    // Test GET /api/users/{id} (from spec)
+    if (paths['/api/users/{id}']?.get) {
+      const getUserOp = paths['/api/users/{id}'].get;
       expect(getUserOp.operationId).toBe('getUser');
       expect(getUserOp.responses['200']).toBeDefined();
       expect(getUserOp.responses['404']).toBeDefined();
 
       // Test the actual endpoint with valid ID
-      const validResponse = await request.get('/users/1');
+      const validResponse = await request.get('/api/users/1');
       expect([200, 404]).toContain(validResponse.status());
     }
 
-    // Test POST /users (from spec)
-    if (paths['/users']?.post) {
-      const createUserOp = paths['/users'].post;
+    // Test POST /api/users (from spec)
+    if (paths['/api/users']?.post) {
+      const createUserOp = paths['/api/users'].post;
       expect(createUserOp.operationId).toBe('createUser');
       expect(createUserOp.requestBody).toBeDefined();
       expect(createUserOp.responses['201']).toBeDefined();
@@ -157,17 +159,17 @@ test.describe('OpenAPI Spec Validation', () => {
       expect(requestBody.content['application/json'].schema).toBeDefined();
     }
 
-    // Test PUT /users/{id} (from spec)
-    if (paths['/users/{id}']?.put) {
-      const updateUserOp = paths['/users/{id}'].put;
+    // Test PUT /api/users/{id} (from spec)
+    if (paths['/api/users/{id}']?.put) {
+      const updateUserOp = paths['/api/users/{id}'].put;
       expect(updateUserOp.operationId).toBe('updateUser');
       expect(updateUserOp.responses['200']).toBeDefined();
       expect(updateUserOp.responses['404']).toBeDefined();
     }
 
-    // Test DELETE /users/{id} (from spec)
-    if (paths['/users/{id}']?.delete) {
-      const deleteUserOp = paths['/users/{id}'].delete;
+    // Test DELETE /api/users/{id} (from spec)
+    if (paths['/api/users/{id}']?.delete) {
+      const deleteUserOp = paths['/api/users/{id}'].delete;
       expect(deleteUserOp.operationId).toBe('deleteUser');
       expect(deleteUserOp.responses['204']).toBeDefined();
       expect(deleteUserOp.responses['404']).toBeDefined();

@@ -10,6 +10,7 @@ This package demonstrates a complete working example of the Richie RPC library w
 - ✅ Server implementation with Bun.serve
 - ✅ OpenAPI spec generation and serving
 - ✅ Scalar API documentation UI
+- ✅ React Query hooks integration with live demo
 - ✅ Typesafe client usage
 - ✅ Full CRUD operations
 - ✅ Request/response validation
@@ -25,6 +26,7 @@ bun run start
 
 The server will start on `http://localhost:3000` with:
 
+- React Query demo app at `/demo` (or `/`)
 - API endpoints at `/users`
 - OpenAPI spec at `/openapi.json`
 - API documentation UI at `/docs`
@@ -105,6 +107,8 @@ Delete a user.
 
 - `contract.ts` - API contract definition with Zod schemas
 - `server.ts` - Server implementation with handlers
+- `react-example.tsx` - React app demonstrating @richie-rpc/react-query hooks
+- `public/index.html` - HTML page for React demo
 - `client-test.ts` - Client integration tests
 - `tests/api.spec.ts` - Playwright E2E tests
 - `playwright.config.ts` - Playwright configuration

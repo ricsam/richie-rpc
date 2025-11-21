@@ -2,7 +2,7 @@ import path from 'node:path';
 import { $ } from 'bun';
 
 // Packages to typecheck
-const PACKAGES = ['core', 'server', 'openapi', 'client', 'demo'];
+const PACKAGES = ['core', 'server', 'openapi', 'client', 'demo', 'react-query'];
 
 const typecheckPackage = async (packageName: string) => {
   const packageDir = path.join(__dirname, '..', 'packages', packageName);
