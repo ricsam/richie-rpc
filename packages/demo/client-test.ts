@@ -3,7 +3,7 @@ import { usersContract } from './contract';
 
 // Create typesafe client
 const client = createClient(usersContract, {
-  baseUrl: 'http://localhost:3000',
+  baseUrl: 'http://localhost:3000/api',
 });
 
 // Test the API

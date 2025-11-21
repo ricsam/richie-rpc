@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -31,7 +31,8 @@
       "@richie-rpc/core": ["./packages/core/index.ts"],
       "@richie-rpc/server": ["./packages/server/index.ts"],
       "@richie-rpc/openapi": ["./packages/openapi/index.ts"],
-      "@richie-rpc/client": ["./packages/client/index.ts"]
+      "@richie-rpc/client": ["./packages/client/index.ts"],
+      "@richie-rpc/react-query": ["./packages/react-query/index.ts"]
     }
   }
 }
