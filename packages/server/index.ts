@@ -178,29 +178,6 @@ function createResponse<T extends EndpointDefinition>(
 }
 
 /**
- * Create error response
- */
-function createErrorResponse(error: unknown): Response {
-  if (error instanceof ValidationError) {
-    return Response.json(
-      {
-        error: 'Validation Error',
-        field: error.field,
-        issues: error.issues,
-      },
-      { status: 400 },
-    );
-  }
-
-  if (error instanceof RouteNotFoundError) {
-    return Response.json({ error: 'Not Found', message: error.message }, { status: 404 });
-  }
-
-  console.error('Internal server error:', error);
-  return Response.json({ error: 'Internal Server Error' }, { status: 500 });
-}
-
-/**
  * Router configuration options
  */
 export interface RouterOptions<C = unknown> {
@@ -215,8 +192,8 @@ export class Router<T extends Contract, C = unknown> {
   private basePath: string;
   private contextFactory?: (
     request: Request,
-    routeName?: string,
-    endpoint?: EndpointDefinition,
+    routeName: string,
+    endpoint: EndpointDefinition,
   ) => C | Promise<C>;
 
   constructor(
@@ -241,7 +218,11 @@ export class Router<T extends Contract, C = unknown> {
   private findEndpoint(
     method: string,
     path: string,
-  ): { name: keyof T; endpoint: EndpointDefinition; params: Record<string, string> } | null {
+  ): {
+    name: keyof T;
+    endpoint: EndpointDefinition;
+    params: Record<string, string>;
+  } | null {
     for (const [name, endpoint] of Object.entries(this.contract)) {
       if (endpoint.method === method) {
         const params = matchPath(endpoint.path, path);
@@ -257,40 +238,36 @@ export class Router<T extends Contract, C = unknown> {
    * Handle a request
    */
   async handle(request: Request): Promise<Response> {
-    try {
-      const url = new URL(request.url);
-      const method = request.method;
-      let path = url.pathname;
+    const url = new URL(request.url);
+    const method = request.method;
+    let path = url.pathname;
 
-      // Strip basePath if configured
-      if (this.basePath && path.startsWith(this.basePath)) {
-        path = path.slice(this.basePath.length) || '/';
-      }
-
-      const match = this.findEndpoint(method, path);
-      if (!match) {
-        throw new RouteNotFoundError(path, method);
-      }
-
-      const { name, endpoint, params } = match;
-      const handler = this.handlers[name];
-
-      // Create context if factory is provided
-      const context = this.contextFactory
-        ? await this.contextFactory(request, String(name), endpoint)
-        : (undefined as C);
-
-      // Parse and validate request
-      const input = await parseRequest(request, endpoint, params, context);
-
-      // Call handler
-      const handlerResponse = await handler(input as any);
-
-      // Create and validate response
-      return createResponse(endpoint as T[keyof T], handlerResponse);
-    } catch (error) {
-      return createErrorResponse(error);
+    // Strip basePath if configured
+    if (this.basePath && path.startsWith(this.basePath)) {
+      path = path.slice(this.basePath.length) || '/';
     }
+
+    const match = this.findEndpoint(method, path);
+    if (!match) {
+      throw new RouteNotFoundError(path, method);
+    }
+
+    const { name, endpoint, params } = match;
+    const handler = this.handlers[name];
+
+    // Create context if factory is provided
+    const context = this.contextFactory
+      ? await this.contextFactory(request, String(name), endpoint)
+      : (undefined as C);
+
+    // Parse and validate request
+    const input = await parseRequest(request, endpoint, params, context);
+
+    // Call handler
+    const handlerResponse = await handler(input as any);
+
+    // Create and validate response
+    return createResponse(endpoint as T[keyof T], handlerResponse);
   }
 
   /**

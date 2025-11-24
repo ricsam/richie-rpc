@@ -188,19 +188,189 @@ const router = createRouter(contract, {
 
 ## Error Handling
 
-The router automatically handles:
+The router throws specific error classes that you can catch and handle. These errors are thrown before handlers are called, so you should wrap your router calls in try-catch blocks.
 
-- **Validation Errors** (400): Invalid request data
-- **Route Not Found** (404): Unknown endpoints
-- **Internal Errors** (500): Uncaught exceptions
+### Error Classes
 
-Custom error responses:
+#### `ValidationError`
+
+Thrown when request or response validation fails. Contains detailed Zod validation issues.
+
+**Properties:**
+- `field: string` - The field that failed validation (`"params"`, `"query"`, `"headers"`, `"body"`, or `"response[status]"`)
+- `issues: z.ZodIssue[]` - Array of Zod validation issues with detailed error information
+- `message: string` - Error message
+
+**When thrown:**
+- Invalid path parameters (params)
+- Invalid query parameters (query)
+- Invalid request headers (headers)
+- Invalid request body (body)
+- Invalid response body returned from handler (response validation)
+
+**Example:**
 
 ```typescript
-return {
-  status: 400,
-  body: { error: 'Bad Request', message: 'Invalid input' }
-};
+import { createRouter, ValidationError, RouteNotFoundError } from '@richie-rpc/server';
+
+const router = createRouter(contract, handlers);
+
+Bun.serve({
+  port: 3000,
+  async fetch(request) {
+    try {
+      return await router.handle(request);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        // Handle validation errors
+        return Response.json(
+          {
+            error: 'Validation Error',
+            field: error.field,
+            issues: error.issues,
+          },
+          { status: 400 }
+        );
+      }
+      
+      if (error instanceof RouteNotFoundError) {
+        // Handle route not found
+        return Response.json(
+          {
+            error: 'Not Found',
+            message: `Route ${error.method} ${error.path} not found`,
+          },
+          { status: 404 }
+        );
+      }
+      
+      // Handle unexpected errors
+      console.error('Unexpected error:', error);
+      return Response.json(
+        { error: 'Internal Server Error' },
+        { status: 500 }
+      );
+    }
+  },
+});
+```
+
+#### `RouteNotFoundError`
+
+Thrown when no matching route is found for the request.
+
+**Properties:**
+- `path: string` - The requested path
+- `method: string` - The HTTP method (GET, POST, etc.)
+
+**When thrown:**
+- No endpoint in the contract matches the request method and path
+
+**Example:**
+
+```typescript
+try {
+  return await router.handle(request);
+} catch (error) {
+  if (error instanceof RouteNotFoundError) {
+    return Response.json(
+      {
+        error: 'Not Found',
+        message: `Cannot ${error.method} ${error.path}`,
+      },
+      { status: 404 }
+    );
+  }
+  throw error; // Re-throw other errors
+}
+```
+
+### Complete Error Handling Example
+
+```typescript
+import {
+  createRouter,
+  ValidationError,
+  RouteNotFoundError,
+  Status,
+} from '@richie-rpc/server';
+
+const router = createRouter(contract, handlers);
+
+Bun.serve({
+  port: 3000,
+  async fetch(request) {
+    const url = new URL(request.url);
+    
+    // Handle API routes
+    if (url.pathname.startsWith('/api/')) {
+      try {
+        return await router.handle(request);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          // Format validation errors for client
+          return Response.json(
+            {
+              error: 'Validation Error',
+              field: error.field,
+              issues: error.issues.map((issue) => ({
+                path: issue.path.join('.'),
+                message: issue.message,
+                code: issue.code,
+              })),
+            },
+            { status: 400 }
+          );
+        }
+        
+        if (error instanceof RouteNotFoundError) {
+          return Response.json(
+            {
+              error: 'Not Found',
+              message: `Route ${error.method} ${error.path} not found`,
+            },
+            { status: 404 }
+          );
+        }
+        
+        // Log unexpected errors
+        console.error('Unexpected error:', error);
+        return Response.json(
+          { error: 'Internal Server Error' },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Handle other routes
+    return new Response('Not Found', { status: 404 });
+  },
+});
+```
+
+### Handler-Level Errors
+
+Errors thrown inside handlers are not automatically caught by the router. You should handle them within your handlers:
+
+```typescript
+const router = createRouter(contract, {
+  getUser: async ({ params }) => {
+    try {
+      const user = await db.getUser(params.id);
+      if (!user) {
+        return { status: Status.NotFound, body: { error: 'User not found' } };
+      }
+      return { status: Status.OK, body: user };
+    } catch (error) {
+      // Handle database errors, etc.
+      console.error('Database error:', error);
+      return {
+        status: Status.InternalServerError,
+        body: { error: 'Failed to fetch user' },
+      };
+    }
+  },
+});
 ```
 
 ## Validation
