@@ -1,266 +1,61 @@
-name: Publish to npm
+name: publish
 
 on:
   push:
-    branches: [main]
-    paths:
-      - "packages/*/package.json"
-      - ".github/workflows/publish.yml"
-
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Run in dry-run mode (no actual publish)"
-        required: false
-        default: "false"
-        type: choice
-        options:
-          - "true"
-          - "false"
+    branches:
+      - main
 
 jobs:
-  # Run CI first
-  ci:
-    uses: ./.github/workflows/ci.yml
-
-  # Only publish after CI passes
-  publish:
+  test:
+    name: Test
     runs-on: ubuntu-latest
-    needs: ci # Wait for CI to complete successfully
-
-    permissions:
-      contents: write # Required to create and push tags
-      id-token: write # Required for npm provenance (optional)
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run typecheck
+      - run: bun run lint
+      - run: bun run build
+      - run: bun run restore
+      - run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ Git working directory is not clean after restore"
+            git status
+            exit 1
+          fi
+          echo "✅ Git working directory is clean"
+      - run: bun run verify
+      - name: Install Playwright browsers
+        run: bunx playwright install chromium --with-deps
+        working-directory: packages/demo
+      - run: bun run test:e2e
+        working-directory: packages/demo
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          bun-version: latest
+          name: playwright-report
+          path: packages/demo/playwright-report/
+          retention-days: 7
 
-      - name: Setup Node.js (for npm publish)
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Build packages
-        run: bun run build
-
-      - name: Check which packages need publishing
-        id: check-versions
-        run: |
-          # Function to check if package@version exists on npm
-          check_package() {
-            local pkg=$1
-            local name=$(node -p "require('./packages/$pkg/package.json').name")
-            local version=$(node -p "require('./packages/$pkg/package.json').version")
-            
-            if npm view $name@$version version 2>/dev/null; then
-              echo "$pkg@$version already published - skipping"
-              return 1
-            else
-              echo "$pkg@$version needs publishing"
-              return 0
-            fi
-          }
-
-          # Check each package
-          PUBLISH_CORE="false"
-          PUBLISH_SERVER="false"
-          PUBLISH_OPENAPI="false"
-          PUBLISH_CLIENT="false"
-          PUBLISH_REACT_QUERY="false"
-          ANY_TO_PUBLISH="false"
-
-          if check_package "core"; then
-            PUBLISH_CORE="true"
-            ANY_TO_PUBLISH="true"
-          fi
-
-          if check_package "server"; then
-            PUBLISH_SERVER="true"
-            ANY_TO_PUBLISH="true"
-          fi
-
-          if check_package "openapi"; then
-            PUBLISH_OPENAPI="true"
-            ANY_TO_PUBLISH="true"
-          fi
-
-          if check_package "client"; then
-            PUBLISH_CLIENT="true"
-            ANY_TO_PUBLISH="true"
-          fi
-
-          if check_package "react-query"; then
-            PUBLISH_REACT_QUERY="true"
-            ANY_TO_PUBLISH="true"
-          fi
-
-          echo "publish_core=$PUBLISH_CORE" >> $GITHUB_OUTPUT
-          echo "publish_server=$PUBLISH_SERVER" >> $GITHUB_OUTPUT
-          echo "publish_openapi=$PUBLISH_OPENAPI" >> $GITHUB_OUTPUT
-          echo "publish_client=$PUBLISH_CLIENT" >> $GITHUB_OUTPUT
-          echo "publish_react_query=$PUBLISH_REACT_QUERY" >> $GITHUB_OUTPUT
-          echo "any_to_publish=$ANY_TO_PUBLISH" >> $GITHUB_OUTPUT
-
-      - name: Publish to npm (dry-run)
-        if: inputs.dry_run == 'true' && steps.check-versions.outputs.any_to_publish == 'true'
-        run: |
-          echo "🧪 DRY RUN MODE - Would publish:"
-          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
-            echo "  - @richie-rpc/core"
-            cd packages/core && npm publish --dry-run && cd ../..
-          fi
-          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
-            echo "  - @richie-rpc/server"
-            cd packages/server && npm publish --dry-run && cd ../..
-          fi
-          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
-            echo "  - @richie-rpc/openapi"
-            cd packages/openapi && npm publish --dry-run && cd ../..
-          fi
-          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
-            echo "  - @richie-rpc/client"
-            cd packages/client && npm publish --dry-run && cd ../..
-          fi
-          if [ "${{ steps.check-versions.outputs.publish_react_query }}" == "true" ]; then
-            echo "  - @richie-rpc/react-query"
-            cd packages/react-query && npm publish --dry-run && cd ../..
-          fi
-      - name: Publish to npm
-        if: inputs.dry_run != 'true' && steps.check-versions.outputs.any_to_publish == 'true'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # Configure npm
-          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
-
-          # Publish core first (others may depend on it)
-          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
-            echo "📦 Publishing @richie-rpc/core..."
-            cd packages/core
-            npm publish --access public
-            cd ../..
-            sleep 3  # Wait for npm registry
-          fi
-
-          # Publish other packages (can be parallel since they only depend on core)
-          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
-            echo "📦 Publishing @richie-rpc/server..."
-            cd packages/server
-            npm publish --access public
-            cd ../..
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
-            echo "📦 Publishing @richie-rpc/openapi..."
-            cd packages/openapi
-            npm publish --access public
-            cd ../..
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
-            echo "📦 Publishing @richie-rpc/client..."
-            cd packages/client
-            npm publish --access public
-            cd ../..
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_react_query }}" == "true" ]; then
-            echo "📦 Publishing @richie-rpc/react-query..."
-            cd packages/react-query
-            npm publish --access public
-            cd ../..
-          fi
-      - name: Create Git tags for published packages
-        if: inputs.dry_run != 'true' && steps.check-versions.outputs.any_to_publish == 'true'
-        run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-
-          # Create tag for each published package
-          create_tag() {
-            local pkg=$1
-            local name=$(node -p "require('./packages/$pkg/package.json').name" | sed 's/@richie-rpc\///')
-            local version=$(node -p "require('./packages/$pkg/package.json').version")
-            local tag="$name@v$version"
-            
-            if git rev-parse "$tag" >/dev/null 2>&1; then
-              echo "Tag $tag already exists, skipping"
-            else
-              git tag -a "$tag" -m "Release $name@$version"
-              git push origin "$tag"
-              echo "✅ Created and pushed tag: $tag"
-            fi
-          }
-
-          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
-            create_tag "core"
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
-            create_tag "server"
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
-            create_tag "openapi"
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
-            create_tag "client"
-          fi
-          
-          if [ "${{ steps.check-versions.outputs.publish_react_query }}" == "true" ]; then
-            create_tag "react-query"
-          fi
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run build
+      - run: |
+          echo '@richie-rpc:registry=https://registry.npmjs.org' >> .npmrc
+          echo '//registry.npmjs.org/:_authToken=${NPM_TOKEN}' >> .npmrc
+          echo '//registry.npmjs.org/:always-auth=true' >> .npmrc
+      - run: bunx --bun changeset publish --access=public --registry=https://registry.npmjs.org/
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Restore development state
-        if: always()
-        run: bun run restore
-
-      - name: Publish summary
-        if: steps.check-versions.outputs.any_to_publish == 'true'
-        run: |
-          echo "## 📦 Published Packages" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          if [ "${{ steps.check-versions.outputs.publish_core }}" == "true" ]; then
-            CORE_VERSION=$(node -p "require('./packages/core/package.json').version")
-            echo "- [@richie-rpc/core@$CORE_VERSION](https://www.npmjs.com/package/@richie-rpc/core/v/$CORE_VERSION) (tag: \`core@v$CORE_VERSION\`)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_server }}" == "true" ]; then
-            SERVER_VERSION=$(node -p "require('./packages/server/package.json').version")
-            echo "- [@richie-rpc/server@$SERVER_VERSION](https://www.npmjs.com/package/@richie-rpc/server/v/$SERVER_VERSION) (tag: \`server@v$SERVER_VERSION\`)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_openapi }}" == "true" ]; then
-            OPENAPI_VERSION=$(node -p "require('./packages/openapi/package.json').version")
-            echo "- [@richie-rpc/openapi@$OPENAPI_VERSION](https://www.npmjs.com/package/@richie-rpc/openapi/v/$OPENAPI_VERSION) (tag: \`openapi@v$OPENAPI_VERSION\`)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_client }}" == "true" ]; then
-            CLIENT_VERSION=$(node -p "require('./packages/client/package.json').version")
-            echo "- [@richie-rpc/client@$CLIENT_VERSION](https://www.npmjs.com/package/@richie-rpc/client/v/$CLIENT_VERSION) (tag: \`client@v$CLIENT_VERSION\`)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          if [ "${{ steps.check-versions.outputs.publish_react_query }}" == "true" ]; then
-            REACT_QUERY_VERSION=$(node -p "require('./packages/react-query/package.json').version")
-            echo "- [@richie-rpc/react-query@$REACT_QUERY_VERSION](https://www.npmjs.com/package/@richie-rpc/react-query/v/$REACT_QUERY_VERSION) (tag: \`react-query@v$REACT_QUERY_VERSION\`)" >> $GITHUB_STEP_SUMMARY
-          fi
-      - name: Skip summary
-        if: steps.check-versions.outputs.any_to_publish != 'true'
-        run: |
-          echo "## ⏭️ Skipped Publishing" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Version already exists on npm. No publish needed." >> $GITHUB_STEP_SUMMARY
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
