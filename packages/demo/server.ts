@@ -3,6 +3,26 @@ import { createRouter, Status } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 import reactDemoHtml from './index.html';
 
+// Simple context with mock data
+type AppContext = {
+  appName: string;
+  version: string;
+  features: {
+    darkMode: boolean;
+    analytics: boolean;
+  };
+};
+
+// Mock app configuration
+const appConfig: AppContext = {
+  appName: 'Richie RPC Demo',
+  version: '1.0.0',
+  features: {
+    darkMode: true,
+    analytics: false,
+  },
+};
+
 // In-memory database
 const users: Map<string, User> = new Map();
 let nextId = 1;
@@ -22,8 +42,8 @@ users.set('2', {
   age: 35,
 });
 
-// Create router with handlers
-const router = createRouter(
+// Create router with handlers and context
+const router = createRouter<typeof usersContract, AppContext>(
   usersContract,
   {
     listUsers: async ({ query }) => {
@@ -42,7 +62,10 @@ const router = createRouter(
       };
     },
 
-    getUser: async ({ params }) => {
+    getUser: async ({ params, context }) => {
+      // Example: Use context data (e.g., for logging or conditional logic)
+      console.log(`Getting user ${params.id} from ${context.appName} v${context.version}`);
+
       const user = users.get(params.id);
 
       if (!user) {
@@ -124,18 +147,28 @@ const router = createRouter(
     },
 
     // Custom status code example: I'm a teapot (RFC 2324)
-    teapot: async () => {
+    teapot: async ({ context }) => {
+      // Example: Use context to customize response
       return {
         status: 418 as const,
         body: {
           message: "I'm a teapot! I cannot brew coffee.",
           isTeapot: true,
+          appInfo: {
+            name: context.appName,
+            version: context.version,
+            darkModeEnabled: context.features.darkMode,
+          },
         },
       };
     },
   },
   {
     basePath: '/api',
+    context: async () => {
+      // Return the mock app configuration as context
+      return appConfig;
+    },
   },
 );
 

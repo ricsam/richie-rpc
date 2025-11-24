@@ -13,12 +13,13 @@ import type { z } from 'zod';
 export { Status };
 
 // Handler input types
-export type HandlerInput<T extends EndpointDefinition> = {
+export type HandlerInput<T extends EndpointDefinition, C = unknown> = {
   params: ExtractParams<T>;
   query: ExtractQuery<T>;
   headers: ExtractHeaders<T>;
   body: ExtractBody<T>;
   request: Request;
+  context: C;
 };
 
 // Handler response type
@@ -31,13 +32,13 @@ export type HandlerResponse<T extends EndpointDefinition> = {
 }[keyof T['responses']];
 
 // Handler function type
-export type Handler<T extends EndpointDefinition> = (
-  input: HandlerInput<T>,
+export type Handler<T extends EndpointDefinition, C = unknown> = (
+  input: HandlerInput<T, C>,
 ) => Promise<HandlerResponse<T>> | HandlerResponse<T>;
 
 // Contract handlers mapping
-export type ContractHandlers<T extends Contract> = {
-  [K in keyof T]: Handler<T[K]>;
+export type ContractHandlers<T extends Contract, C = unknown> = {
+  [K in keyof T]: Handler<T[K], C>;
 };
 
 // Error classes
@@ -65,11 +66,12 @@ export class RouteNotFoundError extends Error {
 /**
  * Parse and validate request data
  */
-async function parseRequest<T extends EndpointDefinition>(
+async function parseRequest<T extends EndpointDefinition, C = unknown>(
   request: Request,
   endpoint: T,
   pathParams: Record<string, string>,
-): Promise<HandlerInput<T>> {
+  context: C,
+): Promise<HandlerInput<T, C>> {
   const url = new URL(request.url);
 
   // Parse path params
@@ -132,7 +134,7 @@ async function parseRequest<T extends EndpointDefinition>(
     body = result.data;
   }
 
-  return { params, query, headers, body, request } as HandlerInput<T>;
+  return { params, query, headers, body, request, context } as HandlerInput<T, C>;
 }
 
 /**
@@ -201,20 +203,26 @@ function createErrorResponse(error: unknown): Response {
 /**
  * Router configuration options
  */
-export interface RouterOptions {
+export interface RouterOptions<C = unknown> {
   basePath?: string;
+  context?: (request: Request, routeName?: string, endpoint?: EndpointDefinition) => C | Promise<C>;
 }
 
 /**
  * Router class that manages contract endpoints
  */
-export class Router<T extends Contract> {
+export class Router<T extends Contract, C = unknown> {
   private basePath: string;
+  private contextFactory?: (
+    request: Request,
+    routeName?: string,
+    endpoint?: EndpointDefinition,
+  ) => C | Promise<C>;
 
   constructor(
     private contract: T,
-    private handlers: ContractHandlers<T>,
-    options?: RouterOptions,
+    private handlers: ContractHandlers<T, C>,
+    options?: RouterOptions<C>,
   ) {
     // Normalize basePath: ensure it starts with / and doesn't end with /
     const bp = options?.basePath || '';
@@ -224,6 +232,7 @@ export class Router<T extends Contract> {
     } else {
       this.basePath = '';
     }
+    this.contextFactory = options?.context;
   }
 
   /**
@@ -266,8 +275,13 @@ export class Router<T extends Contract> {
       const { name, endpoint, params } = match;
       const handler = this.handlers[name];
 
+      // Create context if factory is provided
+      const context = this.contextFactory
+        ? await this.contextFactory(request, String(name), endpoint)
+        : (undefined as C);
+
       // Parse and validate request
-      const input = await parseRequest(request, endpoint, params);
+      const input = await parseRequest(request, endpoint, params, context);
 
       // Call handler
       const handlerResponse = await handler(input as any);
@@ -290,10 +304,10 @@ export class Router<T extends Contract> {
 /**
  * Create a router from a contract and handlers
  */
-export function createRouter<T extends Contract>(
+export function createRouter<T extends Contract, C = unknown>(
   contract: T,
-  handlers: ContractHandlers<T>,
-  options?: RouterOptions,
-): Router<T> {
+  handlers: ContractHandlers<T, C>,
+  options?: RouterOptions<C>,
+): Router<T, C> {
   return new Router(contract, handlers, options);
 }
