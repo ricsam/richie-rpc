@@ -7,7 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "@richie-rpc/demo"
-  ]
+  "ignore": ["@richie-rpc/demo"]
 }
