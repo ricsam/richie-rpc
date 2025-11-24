@@ -106,6 +106,11 @@ export const usersContract = defineContract({
       418: z.object({
         message: z.string(),
         isTeapot: z.boolean(),
+        appInfo: z.object({
+          name: z.string(),
+          version: z.string(),
+          darkModeEnabled: z.boolean(),
+        }),
       }),
     },
   },

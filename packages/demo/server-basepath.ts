@@ -123,17 +123,33 @@ const router = createRouter(
     },
 
     // Custom status code example: I'm a teapot (RFC 2324)
-    teapot: async () => {
+    teapot: async ({ context }) => {
       return {
         status: 418 as const,
         body: {
           message: "I'm a teapot! I cannot brew coffee.",
           isTeapot: true,
+          appInfo: {
+            name: context.appName,
+            version: context.version,
+            darkModeEnabled: context.features.darkMode,
+          },
         },
       };
     },
   },
-  { basePath: '/api' },
+  {
+    basePath: '/api',
+    context: async () => {
+      return {
+        appName: 'Richie RPC Demo',
+        version: '1.0.0',
+        features: {
+          darkMode: true,
+        },
+      };
+    },
+  },
 );
 
 // Generate OpenAPI spec with basePath
