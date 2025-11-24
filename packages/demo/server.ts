@@ -1,5 +1,5 @@
 import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
-import { createRouter, Status } from '@richie-rpc/server';
+import { createRouter, RouteNotFoundError, Status, ValidationError } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 import reactDemoHtml from './index.html';
 
@@ -198,7 +198,26 @@ const server = Bun.serve({
   routes: {
     '/openapi.json': Response.json(openAPISpec),
     '/docs': docsHtml,
-    '/api/*': router.fetch,
+    '/api/*': async (request) => {
+      try {
+        return await router.handle(request);
+      } catch (error) {
+        if (error instanceof ValidationError) {
+          return Response.json(
+            {
+              error: 'Validation Error',
+              field: error.field,
+              issues: error.issues,
+            },
+            { status: 400 },
+          );
+        }
+        if (error instanceof RouteNotFoundError) {
+          return Response.json({ error: 'Not Found' }, { status: 404 });
+        }
+        return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+      }
+    },
     '/': reactDemoHtml,
   },
 });
