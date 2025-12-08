@@ -135,7 +135,13 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
           >,
         ) => {
           return useQuery({
-            queryKey: [name, options],
+            queryKey: [
+              name,
+              options.params ?? null,
+              options.query ?? null,
+              options.headers ?? null,
+              options.body ?? null,
+            ],
             queryFn: () => clientMethod(options),
             ...queryOptions,
           });
@@ -148,7 +154,13 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
           >,
         ) => {
           return useSuspenseQuery({
-            queryKey: [name, options],
+            queryKey: [
+              name,
+              options.params ?? null,
+              options.query ?? null,
+              options.headers ?? null,
+              options.body ?? null,
+            ],
             queryFn: () => clientMethod(options),
             ...queryOptions,
           });

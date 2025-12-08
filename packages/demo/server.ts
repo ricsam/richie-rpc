@@ -223,6 +223,6 @@ const server = Bun.serve({
 });
 
 console.log(`🚀 Server running at http://localhost:${server.port}`);
-console.log(`⚛️  React Demo at http://localhost:${server.port}/demo`);
+console.log(`⚛️  React Demo at http://localhost:${server.port}/`);
 console.log(`📚 API Docs available at http://localhost:${server.port}/docs`);
 console.log(`📄 OpenAPI Spec at http://localhost:${server.port}/openapi.json`);
