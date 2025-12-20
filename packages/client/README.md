@@ -88,6 +88,76 @@ const data = await client.getData({
 });
 ```
 
+### Canceling Requests
+
+You can cancel in-flight requests using `AbortController`:
+
+```typescript
+const controller = new AbortController();
+
+// Pass the abort signal to the request
+const promise = client.getUser({
+  params: { id: '123' },
+  abortSignal: controller.signal,
+});
+
+// Cancel the request
+controller.abort();
+
+try {
+  await promise;
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request was cancelled');
+  }
+}
+```
+
+**React Example:**
+
+```typescript
+useEffect(() => {
+  const controller = new AbortController();
+  
+  client.getConversation({
+    params: { projectId, sessionId },
+    abortSignal: controller.signal,
+  }).then((response) => {
+    if (response.status === 200) {
+      setData(response.data);
+    }
+  }).catch((error) => {
+    if (error.name !== 'AbortError') {
+      console.error('Request failed:', error);
+    }
+  });
+  
+  // Cleanup: abort request if component unmounts
+  return () => controller.abort();
+}, [projectId, sessionId]);
+```
+
+**Timeout Example:**
+
+```typescript
+const controller = new AbortController();
+
+// Abort after 5 seconds
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+try {
+  const response = await client.getData({
+    abortSignal: controller.signal,
+  });
+  clearTimeout(timeoutId);
+  console.log(response.data);
+} catch (error) {
+  if (error.name === 'AbortError') {
+    console.log('Request timed out');
+  }
+}
+```
+
 ## Features
 
 - ✅ Full type safety based on contract
@@ -99,6 +169,7 @@ const data = await client.getData({
 - ✅ Detailed error information
 - ✅ Support for all HTTP methods
 - ✅ Custom headers per request
+- ✅ Request cancellation with AbortController
 
 ## Configuration
 
@@ -192,8 +263,9 @@ Each client method accepts an options object with the following fields (based on
 - `query`: Query parameters (if endpoint has query schema)
 - `headers`: Custom headers (if endpoint has headers schema)
 - `body`: Request body (if endpoint has body schema)
+- `abortSignal`: AbortSignal for request cancellation (optional, always available)
 
-Only the fields defined in the contract are available and typed.
+Only the fields defined in the contract are available and typed (except `abortSignal`, which is always available).
 
 ## Validation
 

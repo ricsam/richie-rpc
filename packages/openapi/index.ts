@@ -2,6 +2,35 @@ import type { Contract, EndpointDefinition } from '@richie-rpc/core';
 import { parsePathParams } from '@richie-rpc/core';
 import { z } from 'zod';
 
+/**
+ * Parameters for Zod's toJSONSchema function
+ * Based on Zod v4's JSONSchemaGeneratorParams and EmitParams
+ */
+export interface ZodToJSONSchemaParams {
+  /** The JSON Schema version to target.
+   * - `"draft-2020-12"` — Default. JSON Schema Draft 2020-12
+   * - `"draft-7"` — JSON Schema Draft 7
+   * - `"draft-4"` — JSON Schema Draft 4
+   * - `"openapi-3.0"` — OpenAPI 3.0 Schema Object */
+  target?: 'draft-4' | 'draft-7' | 'draft-2020-12' | 'openapi-3.0';
+  /** How to handle unrepresentable types.
+   * - `"throw"` — Default. Unrepresentable types throw an error
+   * - `"any"` — Unrepresentable types become `{}` */
+  unrepresentable?: 'throw' | 'any';
+  /** Whether to extract the `"input"` or `"output"` type. Relevant to transforms, defaults, coerced primitives, etc.
+   * - `"output"` — Default. Convert the output schema.
+   * - `"input"` — Convert the input schema. */
+  io?: 'input' | 'output';
+  /** How to handle cycles.
+   * - `"ref"` — Default. Cycles will be broken using $defs
+   * - `"throw"` — Cycles will throw an error if encountered */
+  cycles?: 'ref' | 'throw';
+  /** How to handle reused schemas.
+   * - `"ref"` — Extract reused schemas as $defs
+   * - `"inline"` — Inline reused schemas */
+  reused?: 'ref' | 'inline';
+}
+
 // OpenAPI 3.1 types
 export interface OpenAPIInfo {
   title: string;
@@ -39,14 +68,15 @@ export interface OpenAPIOptions {
   servers?: OpenAPIServer[];
   schemaPrefix?: string;
   basePath?: string;
+  jsonSchemaParams?: ZodToJSONSchemaParams;
 }
 
 /**
  * Convert Zod schema to JSON Schema for OpenAPI
  */
-function zodSchemaToJsonSchema(schema: z.ZodTypeAny): any {
+function zodSchemaToJsonSchema(schema: z.ZodTypeAny, params?: ZodToJSONSchemaParams): any {
   // Zod v4 has built-in JSON Schema support
-  const jsonSchema = z.toJSONSchema(schema);
+  const jsonSchema = z.toJSONSchema(schema, params);
   // Remove $schema field as it's not needed in OpenAPI
   if (jsonSchema && typeof jsonSchema === 'object' && '$schema' in jsonSchema) {
     delete jsonSchema.$schema;
@@ -65,7 +95,11 @@ function convertPathToOpenAPI(path: string): string {
 /**
  * Generate OpenAPI parameter objects for path parameters
  */
-function generatePathParameters(path: string, paramsSchema?: z.ZodTypeAny): any[] {
+function generatePathParameters(
+  path: string,
+  paramsSchema?: z.ZodTypeAny,
+  jsonSchemaParams?: ZodToJSONSchemaParams,
+): any[] {
   const paramNames = parsePathParams(path);
 
   if (paramNames.length === 0) return [];
@@ -73,7 +107,7 @@ function generatePathParameters(path: string, paramsSchema?: z.ZodTypeAny): any[
   // If we have a schema, use it to get types
   let paramSchemas: Record<string, any> = {};
   if (paramsSchema) {
-    const jsonSchema = zodSchemaToJsonSchema(paramsSchema);
+    const jsonSchema = zodSchemaToJsonSchema(paramsSchema, jsonSchemaParams);
     paramSchemas = jsonSchema.properties || {};
   }
 
@@ -88,10 +122,13 @@ function generatePathParameters(path: string, paramsSchema?: z.ZodTypeAny): any[
 /**
  * Generate OpenAPI parameter objects for query parameters
  */
-function generateQueryParameters(querySchema?: z.ZodTypeAny): any[] {
+function generateQueryParameters(
+  querySchema?: z.ZodTypeAny,
+  jsonSchemaParams?: ZodToJSONSchemaParams,
+): any[] {
   if (!querySchema) return [];
 
-  const jsonSchema = zodSchemaToJsonSchema(querySchema);
+  const jsonSchema = zodSchemaToJsonSchema(querySchema, jsonSchemaParams);
   const properties = jsonSchema.properties || {};
   const required = jsonSchema.required || [];
 
@@ -106,14 +143,17 @@ function generateQueryParameters(querySchema?: z.ZodTypeAny): any[] {
 /**
  * Generate OpenAPI request body object
  */
-function generateRequestBody(bodySchema?: z.ZodTypeAny): any {
+function generateRequestBody(
+  bodySchema?: z.ZodTypeAny,
+  jsonSchemaParams?: ZodToJSONSchemaParams,
+): any {
   if (!bodySchema) return undefined;
 
   return {
     required: true,
     content: {
       'application/json': {
-        schema: zodSchemaToJsonSchema(bodySchema),
+        schema: zodSchemaToJsonSchema(bodySchema, jsonSchemaParams),
       },
     },
   };
@@ -122,7 +162,10 @@ function generateRequestBody(bodySchema?: z.ZodTypeAny): any {
 /**
  * Generate OpenAPI responses object
  */
-function generateResponses(responses: Record<number, z.ZodTypeAny>): any {
+function generateResponses(
+  responses: Record<number, z.ZodTypeAny>,
+  jsonSchemaParams?: ZodToJSONSchemaParams,
+): any {
   const result: any = {};
 
   for (const [status, schema] of Object.entries(responses)) {
@@ -130,7 +173,7 @@ function generateResponses(responses: Record<number, z.ZodTypeAny>): any {
       description: getStatusDescription(Number(status)),
       content: {
         'application/json': {
-          schema: zodSchemaToJsonSchema(schema),
+          schema: zodSchemaToJsonSchema(schema, jsonSchemaParams),
         },
       },
     };
@@ -165,16 +208,20 @@ function getStatusDescription(status: number): string {
 /**
  * Generate OpenAPI operation object for an endpoint
  */
-function generateOperation(endpoint: EndpointDefinition, operationId: string): any {
-  const pathParams = generatePathParameters(endpoint.path, endpoint.params);
-  const queryParams = generateQueryParameters(endpoint.query);
+function generateOperation(
+  endpoint: EndpointDefinition,
+  operationId: string,
+  jsonSchemaParams?: ZodToJSONSchemaParams,
+): any {
+  const pathParams = generatePathParameters(endpoint.path, endpoint.params, jsonSchemaParams);
+  const queryParams = generateQueryParameters(endpoint.query, jsonSchemaParams);
   const parameters = [...pathParams, ...queryParams];
 
   const operation: any = {
     operationId,
     parameters: parameters.length > 0 ? parameters : undefined,
-    requestBody: generateRequestBody(endpoint.body),
-    responses: generateResponses(endpoint.responses),
+    requestBody: generateRequestBody(endpoint.body, jsonSchemaParams),
+    responses: generateResponses(endpoint.responses, jsonSchemaParams),
   };
 
   // Remove undefined fields
@@ -218,7 +265,11 @@ export function generateOpenAPISpec<T extends Contract>(
       paths[openAPIPath] = {};
     }
 
-    paths[openAPIPath][method] = generateOperation(endpoint, String(name));
+    paths[openAPIPath][method] = generateOperation(
+      endpoint,
+      String(name),
+      options.jsonSchemaParams,
+    );
   }
 
   const spec: OpenAPISpec = {

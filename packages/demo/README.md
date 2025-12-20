@@ -18,7 +18,7 @@ This package demonstrates a complete working example of the Richie RPC library w
 
 ## Running the Demo
 
-### Start the server
+### Start the users demo server
 
 ```bash
 bun run start
@@ -27,7 +27,20 @@ bun run start
 The server will start on `http://localhost:3000` with:
 
 - React Query demo app at `/demo` (or `/`)
-- API endpoints at `/users`
+- API endpoints at `/api/users`
+- OpenAPI spec at `/openapi.json`
+- API documentation UI at `/docs`
+
+### Start the dictionary demo server
+
+```bash
+bun run start:dictionary
+```
+
+The dictionary server will start on `http://localhost:3001` with:
+
+- Dictionary React demo app at `/`
+- API endpoints at `/api/dictionary`
 - OpenAPI spec at `/openapi.json`
 - API documentation UI at `/docs`
 
@@ -105,13 +118,20 @@ Delete a user.
 
 ## Project Structure
 
+### Users Demo
 - `contract.ts` - API contract definition with Zod schemas
 - `server.ts` - Server implementation with handlers
 - `react-example.tsx` - React app demonstrating @richie-rpc/react-query hooks
-- `public/index.html` - HTML page for React demo
+- `index.html` - HTML page for React demo
 - `client-test.ts` - Client integration tests
 - `tests/api.spec.ts` - Playwright E2E tests
 - `playwright.config.ts` - Playwright configuration
+
+### Dictionary Demo
+- `dictionary-contract.ts` - Dictionary API contract definition
+- `dictionary-server.ts` - Dictionary server implementation
+- `dictionary-example.tsx` - Dictionary React app with search, create, and delete
+- `dictionary.html` - HTML page for dictionary demo
 
 ## Success Criteria ✅
 

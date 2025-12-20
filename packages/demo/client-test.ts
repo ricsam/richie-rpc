@@ -100,6 +100,26 @@ async function runTests() {
       }
     }
 
+    // Test 9: Test abort signal
+    console.log('\n9️⃣ Testing abort signal...');
+    try {
+      const abortController = new AbortController();
+      const promise = client.listUsers({
+        query: {},
+        abortSignal: abortController.signal,
+      });
+      // Abort immediately
+      abortController.abort();
+      await promise;
+      console.log('❌ Should have thrown abort error');
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('✅ Correctly caught abort error');
+      } else {
+        throw error;
+      }
+    }
+
     console.log('\n✨ All tests passed!\n');
   } catch (error) {
     console.error('\n❌ Test failed:', error);

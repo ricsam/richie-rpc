@@ -23,6 +23,7 @@ export type EndpointRequestOptions<T extends EndpointDefinition> = {
   query?: ExtractQuery<T> extends never ? never : ExtractQuery<T>;
   headers?: ExtractHeaders<T> extends never ? never : ExtractHeaders<T>;
   body?: ExtractBody<T> extends never ? never : ExtractBody<T>;
+  abortSignal?: AbortSignal;
 };
 
 // Response type for an endpoint (union of all possible responses)
@@ -161,6 +162,11 @@ async function makeRequest<T extends EndpointDefinition>(
     method: endpoint.method,
     headers,
   };
+
+  // Add abort signal if present
+  if (options.abortSignal) {
+    init.signal = options.abortSignal;
+  }
 
   // Add body if present
   if (options.body !== undefined) {

@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "bun run server.ts",
+    "start:dictionary": "bun run dictionary-server.ts",
     "test": "echo 'No unit tests in demo package. Use test:e2e for Playwright tests.' && exit 0",
     "test:e2e": "playwright test"
   },

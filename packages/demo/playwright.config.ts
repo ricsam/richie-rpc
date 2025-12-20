@@ -10,8 +10,14 @@ export default defineConfig({
   reporter: 'list',
   use: {
     baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
+    trace: {
+      mode: 'on',
+      // Save traces to test-results directory
+      // You can view them with: npx playwright show-trace <trace-file>
+    },
   },
+  // Configure where test artifacts (including traces) are saved
+  outputDir: 'test-results',
   projects: [
     {
       name: 'chromium',
