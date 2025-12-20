@@ -18,6 +18,10 @@ Richie RPC is a monorepo containing 4 packages that work together to provide end
 3. **@richie-rpc/openapi** - Generate OpenAPI specs from contracts
 4. **@richie-rpc/client** - Make type-safe API calls with fetch
 
+```
+bun add @richie-rpc/core @richie-rpc/server @richie-rpc/openapi @richie-rpc/client
+```
+
 ## Features
 
 - ✅ **End-to-end type safety** - From contract definition to client usage
