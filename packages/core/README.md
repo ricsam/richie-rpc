@@ -47,6 +47,7 @@ Each endpoint can have:
 - `query` (optional): Zod schema for query parameters
 - `headers` (optional): Zod schema for request headers
 - `body` (optional): Zod schema for request body
+- `contentType` (optional): Request content type (`'application/json'` or `'multipart/form-data'`)
 - `responses` (required): Object mapping status codes to Zod schemas
 
 ## Features
@@ -58,6 +59,8 @@ Each endpoint can have:
 - ✅ Multiple response types per endpoint
 - ✅ Full TypeScript inference
 - ✅ Status code constants for cleaner code
+- ✅ File uploads with `multipart/form-data` support
+- ✅ Nested file structures in request bodies
 
 ## Utilities
 
@@ -93,6 +96,69 @@ buildUrl('http://api.example.com/api', '/users');
 ```
 
 The `buildUrl` function properly concatenates the baseUrl with the path, supporting basePath prefixes in the baseUrl.
+
+### File Upload / FormData Utilities
+
+The core package provides utilities for handling `multipart/form-data` requests with nested file structures.
+
+#### Defining File Upload Endpoints
+
+Use `contentType: 'multipart/form-data'` and `z.instanceof(File)` in your body schema:
+
+```typescript
+import { defineContract, Status } from '@richie-rpc/core';
+import { z } from 'zod';
+
+const contract = defineContract({
+  uploadDocuments: {
+    method: 'POST',
+    path: '/upload',
+    contentType: 'multipart/form-data',
+    body: z.object({
+      documents: z.array(z.object({
+        file: z.instanceof(File),
+        name: z.string(),
+        tags: z.array(z.string()).optional(),
+      })),
+      category: z.string(),
+    }),
+    responses: {
+      [Status.Created]: z.object({
+        uploadedCount: z.number(),
+        filenames: z.array(z.string()),
+      }),
+    },
+  },
+});
+```
+
+#### How It Works
+
+FormData is inherently flat, but Richie RPC supports nested structures using a hybrid JSON + Files approach:
+
+1. **Client-side**: Files are extracted from the object and replaced with `{ __fileRef__: "path" }` placeholders. The JSON structure is sent as `__json__` and files are sent as separate FormData entries.
+
+2. **Server-side**: The JSON is parsed, and `__fileRef__` placeholders are replaced with actual File objects from the FormData.
+
+#### Utility Functions
+
+```typescript
+import { objectToFormData, formDataToObject } from '@richie-rpc/core';
+
+// Client-side: Convert object with Files to FormData
+const formData = objectToFormData({
+  documents: [
+    { file: file1, name: 'doc1.pdf' },
+    { file: file2, name: 'doc2.pdf' },
+  ],
+  category: 'reports',
+});
+// Result: FormData with __json__ + files at "documents.0.file", "documents.1.file"
+
+// Server-side: Convert FormData back to object with Files
+const obj = formDataToObject(formData);
+// Result: { documents: [{ file: File, name: 'doc1.pdf' }, ...], category: 'reports' }
+```
 
 ## Status Codes
 

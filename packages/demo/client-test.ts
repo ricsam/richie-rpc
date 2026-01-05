@@ -120,6 +120,29 @@ async function runTests() {
       }
     }
 
+    // Test 10: File upload with nested files
+    console.log('\n🔟 Testing uploadDocuments (formData with nested files)...');
+    const file1 = new File(['hello world'], 'doc1.txt', { type: 'text/plain' });
+    const file2 = new File(['test content'], 'doc2.txt', { type: 'text/plain' });
+
+    const uploadResponse = await client.uploadDocuments({
+      body: {
+        documents: [
+          { file: file1, name: 'Document 1', tags: ['important', 'test'] },
+          { file: file2, name: 'Document 2' },
+        ],
+        category: 'test-category',
+      },
+    });
+
+    if (uploadResponse.status === 201) {
+      console.log(`✅ Uploaded ${uploadResponse.data.uploadedCount} files`);
+      console.log(`   Total size: ${uploadResponse.data.totalSize} bytes`);
+      console.log(`   Filenames: ${uploadResponse.data.filenames.join(', ')}`);
+    } else {
+      throw new Error('Expected 201 status');
+    }
+
     console.log('\n✨ All tests passed!\n');
   } catch (error) {
     console.error('\n❌ Test failed:', error);

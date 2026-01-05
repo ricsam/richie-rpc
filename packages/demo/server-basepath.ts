@@ -137,6 +137,26 @@ const router = createRouter(
         },
       };
     },
+
+    // File upload with nested files
+    uploadDocuments: async ({ body }) => {
+      const filenames: string[] = [];
+      let totalSize = 0;
+
+      for (const doc of body.documents) {
+        filenames.push(doc.file.name);
+        totalSize += doc.file.size;
+      }
+
+      return {
+        status: Status.Created,
+        body: {
+          uploadedCount: body.documents.length,
+          totalSize,
+          filenames,
+        },
+      };
+    },
   },
   {
     basePath: '/api',

@@ -109,6 +109,41 @@ test.describe('Richie RPC API Integration', () => {
     expect(data.users.length).toBeLessThanOrEqual(1);
     expect(data.total).toBeGreaterThan(0);
   });
+
+  test('should upload files with nested structure via multipart/form-data', async ({ request }) => {
+    // Build the JSON structure with file references (our hybrid approach)
+    const jsonBody = {
+      documents: [
+        { file: { __fileRef__: 'documents.0.file' }, name: 'Document 1', tags: ['important', 'e2e'] },
+        { file: { __fileRef__: 'documents.1.file' }, name: 'Document 2' },
+      ],
+      category: 'e2e-test',
+    };
+
+    // Use Playwright's multipart API
+    const response = await request.post('/api/upload', {
+      multipart: {
+        __json__: JSON.stringify(jsonBody),
+        'documents.0.file': {
+          name: 'doc1.txt',
+          mimeType: 'text/plain',
+          buffer: Buffer.from('hello world'),
+        },
+        'documents.1.file': {
+          name: 'doc2.txt',
+          mimeType: 'text/plain',
+          buffer: Buffer.from('test content'),
+        },
+      },
+    });
+
+    expect(response.status()).toBe(201);
+    const data = await response.json();
+    expect(data.uploadedCount).toBe(2);
+    expect(data.totalSize).toBeGreaterThan(0);
+    expect(data.filenames).toContain('doc1.txt');
+    expect(data.filenames).toContain('doc2.txt');
+  });
 });
 
 test.describe('OpenAPI Spec Validation', () => {

@@ -162,6 +162,33 @@ const router = createRouter<typeof usersContract, AppContext>(
         },
       };
     },
+
+    // File upload with nested files
+    uploadDocuments: async ({ body }) => {
+      const filenames: string[] = [];
+      let totalSize = 0;
+
+      for (const doc of body.documents) {
+        // doc.file is a File object, doc.name and doc.tags are typed correctly
+        filenames.push(doc.file.name);
+        totalSize += doc.file.size;
+        console.log(
+          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
+        );
+        if (doc.tags) {
+          console.log(`  Tags: ${doc.tags.join(', ')}`);
+        }
+      }
+
+      return {
+        status: Status.Created,
+        body: {
+          uploadedCount: body.documents.length,
+          totalSize,
+          filenames,
+        },
+      };
+    },
   },
   {
     basePath: '/api',

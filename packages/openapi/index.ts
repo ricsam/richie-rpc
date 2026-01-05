@@ -76,7 +76,11 @@ export interface OpenAPIOptions {
  */
 function zodSchemaToJsonSchema(schema: z.ZodTypeAny, params?: ZodToJSONSchemaParams): any {
   // Zod v4 has built-in JSON Schema support
-  const jsonSchema = z.toJSONSchema(schema, params);
+  // Use 'any' for unrepresentable types like z.instanceof(File) to avoid errors
+  const jsonSchema = z.toJSONSchema(schema, {
+    unrepresentable: 'any',
+    ...params,
+  });
   // Remove $schema field as it's not needed in OpenAPI
   if (jsonSchema && typeof jsonSchema === 'object' && '$schema' in jsonSchema) {
     delete jsonSchema.$schema;
@@ -144,17 +148,18 @@ function generateQueryParameters(
  * Generate OpenAPI request body object
  */
 function generateRequestBody(
-  bodySchema?: z.ZodTypeAny,
+  endpoint: EndpointDefinition,
   jsonSchemaParams?: ZodToJSONSchemaParams,
 ): any {
-  if (!bodySchema) return undefined;
+  if (!endpoint.body) return undefined;
+
+  const contentType = endpoint.contentType ?? 'application/json';
+  const schema = zodSchemaToJsonSchema(endpoint.body, jsonSchemaParams);
 
   return {
     required: true,
     content: {
-      'application/json': {
-        schema: zodSchemaToJsonSchema(bodySchema, jsonSchemaParams),
-      },
+      [contentType]: { schema },
     },
   };
 }
@@ -220,7 +225,7 @@ function generateOperation(
   const operation: any = {
     operationId,
     parameters: parameters.length > 0 ? parameters : undefined,
-    requestBody: generateRequestBody(endpoint.body, jsonSchemaParams),
+    requestBody: generateRequestBody(endpoint, jsonSchemaParams),
     responses: generateResponses(endpoint.responses, jsonSchemaParams),
   };
 

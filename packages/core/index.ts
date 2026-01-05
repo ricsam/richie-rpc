@@ -3,6 +3,9 @@ import type { z } from 'zod';
 // HTTP methods supported
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
 
+// Content types supported for request bodies
+export type ContentType = 'application/json' | 'multipart/form-data';
+
 // HTTP status codes as const object for type-safe responses without 'as const'
 export const Status = {
   // Success responses
@@ -42,6 +45,7 @@ export interface EndpointDefinition {
   query?: z.ZodTypeAny;
   headers?: z.ZodTypeAny;
   body?: z.ZodTypeAny;
+  contentType?: ContentType;
   responses: Record<number, z.ZodTypeAny>;
 }
 
@@ -207,4 +211,76 @@ export function parseQuery(searchParams: URLSearchParams): Record<string, string
 // Type helper to ensure a value is a valid contract
 export function defineContract<T extends Contract>(contract: T): T {
   return contract;
+}
+
+/**
+ * Convert an object to FormData using the hybrid JSON + Files approach.
+ * Files are extracted and replaced with { __fileRef__: "path" } placeholders.
+ * The resulting FormData contains __json__ with the serialized structure
+ * and individual file entries at their path keys.
+ */
+export function objectToFormData(obj: Record<string, unknown>): FormData {
+  const formData = new FormData();
+  const files: Array<{ path: string; file: File }> = [];
+
+  function traverse(value: unknown, path: string): unknown {
+    if (value instanceof File) {
+      files.push({ path, file: value });
+      return { __fileRef__: path };
+    }
+    if (Array.isArray(value)) {
+      return value.map((item, i) => traverse(item, `${path}.${i}`));
+    }
+    if (value && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = traverse(v, path ? `${path}.${k}` : k);
+      }
+      return result;
+    }
+    return value;
+  }
+
+  const jsonWithRefs = traverse(obj, '');
+  formData.append('__json__', JSON.stringify(jsonWithRefs));
+
+  for (const { path, file } of files) {
+    formData.append(path, file);
+  }
+
+  return formData;
+}
+
+/**
+ * Parse FormData back to an object, reconstructing the structure with File objects.
+ * Expects FormData created by objectToFormData with __json__ and file entries.
+ * Falls back to simple Object.fromEntries for FormData without __json__.
+ */
+export function formDataToObject(formData: FormData): Record<string, unknown> {
+  const jsonStr = formData.get('__json__');
+  if (typeof jsonStr !== 'string') {
+    return Object.fromEntries(formData.entries());
+  }
+
+  const obj = JSON.parse(jsonStr);
+
+  function replaceRefs(value: unknown): unknown {
+    if (value && typeof value === 'object' && '__fileRef__' in value) {
+      const path = (value as { __fileRef__: string }).__fileRef__;
+      return formData.get(path);
+    }
+    if (Array.isArray(value)) {
+      return value.map(replaceRefs);
+    }
+    if (value && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(value)) {
+        result[k] = replaceRefs(v);
+      }
+      return result;
+    }
+    return value;
+  }
+
+  return replaceRefs(obj) as Record<string, unknown>;
 }

@@ -114,6 +114,30 @@ export const usersContract = defineContract({
       }),
     },
   },
+
+  // File upload with nested files
+  uploadDocuments: {
+    method: 'POST',
+    path: '/upload',
+    contentType: 'multipart/form-data',
+    body: z.object({
+      documents: z.array(
+        z.object({
+          file: z.instanceof(File),
+          name: z.string(),
+          tags: z.array(z.string()).optional(),
+        }),
+      ),
+      category: z.string(),
+    }),
+    responses: {
+      [Status.Created]: z.object({
+        uploadedCount: z.number(),
+        totalSize: z.number(),
+        filenames: z.array(z.string()),
+      }),
+    },
+  },
 });
 
 export type User = z.infer<typeof UserSchema>;

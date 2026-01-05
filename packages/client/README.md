@@ -88,6 +88,38 @@ const data = await client.getData({
 });
 ```
 
+### File Uploads (multipart/form-data)
+
+Upload files with full type safety. Files can be nested anywhere in the request body:
+
+```typescript
+// Contract defines the file upload endpoint
+// (see @richie-rpc/core for defining contentType: 'multipart/form-data')
+
+// Client usage - just pass File objects in the body
+const file1 = new File(['content'], 'report.pdf', { type: 'application/pdf' });
+const file2 = new File(['data'], 'data.csv', { type: 'text/csv' });
+
+const response = await client.uploadDocuments({
+  body: {
+    documents: [
+      { file: file1, name: 'Q4 Report', tags: ['quarterly', 'finance'] },
+      { file: file2, name: 'Sales Data' },
+    ],
+    category: 'reports',
+  },
+});
+
+if (response.status === 201) {
+  console.log(`Uploaded ${response.data.uploadedCount} files`);
+}
+```
+
+The client automatically:
+- Detects `multipart/form-data` content type from the contract
+- Serializes nested structures with File objects to FormData
+- Sets the correct `Content-Type` header with boundary
+
 ### Canceling Requests
 
 You can cancel in-flight requests using `AbortController`:
@@ -170,6 +202,8 @@ try {
 - ✅ Support for all HTTP methods
 - ✅ Custom headers per request
 - ✅ Request cancellation with AbortController
+- ✅ File uploads with `multipart/form-data`
+- ✅ Nested file structures in request bodies
 
 ## Configuration
 

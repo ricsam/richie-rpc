@@ -6,7 +6,7 @@ import type {
   ExtractParams,
   ExtractQuery,
 } from '@richie-rpc/core';
-import { matchPath, parseQuery, Status } from '@richie-rpc/core';
+import { matchPath, parseQuery, Status, formDataToObject } from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Re-export Status for convenience
@@ -117,12 +117,9 @@ async function parseRequest<T extends EndpointDefinition, C = unknown>(
 
     if (contentType.includes('application/json')) {
       bodyData = await request.json();
-    } else if (contentType.includes('application/x-www-form-urlencoded')) {
-      const formData = await request.formData();
-      bodyData = Object.fromEntries(formData.entries());
     } else if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      bodyData = Object.fromEntries(formData.entries());
+      bodyData = formDataToObject(formData);
     } else {
       bodyData = await request.text();
     }

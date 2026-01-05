@@ -6,7 +6,7 @@ import type {
   ExtractParams,
   ExtractQuery,
 } from '@richie-rpc/core';
-import { buildUrl, interpolatePath } from '@richie-rpc/core';
+import { buildUrl, interpolatePath, objectToFormData } from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Client configuration
@@ -170,8 +170,15 @@ async function makeRequest<T extends EndpointDefinition>(
 
   // Add body if present
   if (options.body !== undefined) {
-    headers.set('content-type', 'application/json');
-    init.body = JSON.stringify(options.body);
+    const contentType = endpoint.contentType ?? 'application/json';
+
+    if (contentType === 'multipart/form-data') {
+      // Don't set Content-Type header - browser sets boundary automatically
+      init.body = objectToFormData(options.body as Record<string, unknown>);
+    } else {
+      headers.set('content-type', 'application/json');
+      init.body = JSON.stringify(options.body);
+    }
   }
 
   // Make request

@@ -97,7 +97,8 @@ Bun.serve({
 - ✅ Path parameter matching
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
-- ✅ Form data support
+- ✅ File uploads with `multipart/form-data`
+- ✅ Nested file structures in request bodies
 - ✅ BasePath support for serving APIs under path prefixes
 - ✅ Detailed validation errors
 - ✅ 404 handling for unknown routes
@@ -185,6 +186,63 @@ const router = createRouter(contract, {
   }
 });
 ```
+
+## Handling File Uploads
+
+The server automatically handles `multipart/form-data` requests when the contract specifies `contentType: 'multipart/form-data'`. File objects are fully reconstructed and passed to your handler:
+
+```typescript
+const contract = defineContract({
+  uploadDocuments: {
+    method: 'POST',
+    path: '/upload',
+    contentType: 'multipart/form-data',
+    body: z.object({
+      documents: z.array(z.object({
+        file: z.instanceof(File),
+        name: z.string(),
+        tags: z.array(z.string()).optional(),
+      })),
+      category: z.string(),
+    }),
+    responses: {
+      [Status.Created]: z.object({
+        uploadedCount: z.number(),
+        totalSize: z.number(),
+      }),
+    },
+  },
+});
+
+const router = createRouter(contract, {
+  uploadDocuments: async ({ body }) => {
+    // body.documents is fully typed with File objects
+    let totalSize = 0;
+
+    for (const doc of body.documents) {
+      // doc.file is a File object
+      const buffer = await doc.file.arrayBuffer();
+      totalSize += buffer.byteLength;
+
+      console.log(`Processing: ${doc.name} (${doc.file.name})`);
+      console.log(`Tags: ${doc.tags?.join(', ') ?? 'none'}`);
+    }
+
+    return {
+      status: Status.Created,
+      body: {
+        uploadedCount: body.documents.length,
+        totalSize,
+      },
+    };
+  },
+});
+```
+
+The server automatically:
+- Parses `multipart/form-data` requests
+- Reconstructs nested structures with File objects
+- Validates the body against your Zod schema
 
 ## Error Handling
 

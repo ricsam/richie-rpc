@@ -63,6 +63,28 @@ async function testBasePath() {
     }
     console.log();
 
+    // Test 6: File upload with nested files
+    console.log('📁 Testing file upload with nested files...');
+    const file1 = new File(['hello world'], 'doc1.txt', { type: 'text/plain' });
+    const file2 = new File(['test content'], 'doc2.txt', { type: 'text/plain' });
+
+    const uploadResponse = await client.uploadDocuments({
+      body: {
+        documents: [
+          { file: file1, name: 'Document 1', tags: ['important'] },
+          { file: file2, name: 'Document 2' },
+        ],
+        category: 'basepath-test',
+      },
+    });
+    console.log(`   Status: ${uploadResponse.status}`);
+    if (uploadResponse.status === 201) {
+      console.log(`   Uploaded: ${uploadResponse.data.uploadedCount} files`);
+      console.log(`   Total size: ${uploadResponse.data.totalSize} bytes`);
+      console.log(`   Filenames: ${uploadResponse.data.filenames.join(', ')}`);
+    }
+    console.log();
+
     console.log('✅ All basePath tests completed successfully!');
   } catch (error) {
     console.error('❌ Test failed:', error);

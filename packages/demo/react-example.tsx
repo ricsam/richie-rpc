@@ -344,7 +344,92 @@ function _OptimisticUpdateExample({ userId }: { userId: string }) {
 }
 
 /**
- * Example 8: Parallel Queries
+ * Example 8: File Upload Mutation
+ * Upload files with multipart/form-data
+ */
+function FileUploadForm() {
+  const [files, setFiles] = useState<File[]>([]);
+  const [category, setCategory] = useState('documents');
+
+  const uploadMutation = hooks.uploadDocuments.useMutation({
+    onSuccess: (data) => {
+      console.log('Upload successful:', data);
+      setFiles([]);
+    },
+    onError: (error) => {
+      console.error('Upload failed:', error);
+    },
+  });
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+    }
+  };
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (files.length === 0) return;
+
+    uploadMutation.mutate({
+      body: {
+        documents: files.map((file) => ({
+          file,
+          name: file.name,
+          tags: ['uploaded-via-react'],
+        })),
+        category,
+      },
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="file-upload-form">
+      <h3>Upload Documents</h3>
+      <div>
+        <label>
+          Files:
+          <input type="file" multiple onChange={handleFileChange} />
+        </label>
+      </div>
+      <div>
+        <label>
+          Category:
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="documents">Documents</option>
+            <option value="images">Images</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+      </div>
+      {files.length > 0 && (
+        <div className="selected-files">
+          <p>Selected files:</p>
+          <ul>
+            {files.map((file, index) => (
+              <li key={`${file.name}-${index}`}>
+                {file.name} ({(file.size / 1024).toFixed(2)} KB)
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <button type="submit" disabled={uploadMutation.isPending || files.length === 0}>
+        {uploadMutation.isPending ? 'Uploading...' : 'Upload Files'}
+      </button>
+      {uploadMutation.error && <div className="error">Error: {uploadMutation.error.message}</div>}
+      {uploadMutation.data && (
+        <div className="success">
+          Uploaded {uploadMutation.data.data.uploadedCount} files (
+          {(uploadMutation.data.data.totalSize / 1024).toFixed(2)} KB total)
+        </div>
+      )}
+    </form>
+  );
+}
+
+/**
+ * Example 9: Parallel Queries
  */
 function Dashboard() {
   // All these queries run in parallel
@@ -400,6 +485,11 @@ export function App() {
         {/* Create User Mutation */}
         <section>
           <CreateUserForm />
+        </section>
+
+        {/* File Upload */}
+        <section>
+          <FileUploadForm />
         </section>
 
         {/* Parallel Queries */}
