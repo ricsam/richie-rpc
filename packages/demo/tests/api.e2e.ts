@@ -114,7 +114,11 @@ test.describe('Richie RPC API Integration', () => {
     // Build the JSON structure with file references (our hybrid approach)
     const jsonBody = {
       documents: [
-        { file: { __fileRef__: 'documents.0.file' }, name: 'Document 1', tags: ['important', 'e2e'] },
+        {
+          file: { __fileRef__: 'documents.0.file' },
+          name: 'Document 1',
+          tags: ['important', 'e2e'],
+        },
         { file: { __fileRef__: 'documents.1.file' }, name: 'Document 2' },
       ],
       category: 'e2e-test',

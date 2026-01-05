@@ -166,5 +166,3 @@ console.log(`🚀 Dictionary server running at http://localhost:${server.port}`)
 console.log(`⚛️  Dictionary Demo at http://localhost:${server.port}/`);
 console.log(`📚 API Docs available at http://localhost:${server.port}/docs`);
 console.log(`📄 OpenAPI Spec at http://localhost:${server.port}/openapi.json`);
-
-

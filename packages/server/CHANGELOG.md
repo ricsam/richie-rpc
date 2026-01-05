@@ -1,5 +1,13 @@
 # @richie-rpc/server
 
+## 1.2.3
+
+### Patch Changes
+
+- add file upload support
+- Updated dependencies
+  - @richie-rpc/core@1.2.2
+
 ## 1.2.2
 
 ### Patch Changes

@@ -67,5 +67,3 @@ export const dictionaryContract = defineContract({
 
 export type DictionaryEntry = z.infer<typeof DictionaryEntrySchema>;
 export type CreateDictionaryEntry = z.infer<typeof CreateDictionaryEntrySchema>;
-
-

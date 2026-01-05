@@ -1,5 +1,13 @@
 # @richie-rpc/react-query
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies
+  - @richie-rpc/client@1.2.3
+  - @richie-rpc/core@1.2.2
+
 ## 1.0.3
 
 ### Patch Changes
