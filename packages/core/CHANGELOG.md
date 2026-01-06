@@ -1,5 +1,11 @@
 # @richie-rpc/core
 
+## 1.2.3
+
+### Patch Changes
+
+- add support for streaming /1
+
 ## 1.2.2
 
 ### Patch Changes

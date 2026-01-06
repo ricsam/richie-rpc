@@ -157,6 +157,32 @@ const router = createRouter(
         },
       };
     },
+
+    // File download
+    downloadFile: async ({ params }) => {
+      const mockFiles: Record<string, { content: string; name: string; type: string }> = {
+        'doc-1': { content: 'Hello, World!', name: 'hello.txt', type: 'text/plain' },
+      };
+
+      const fileInfo = mockFiles[params.fileId];
+
+      if (!fileInfo) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: 'Not Found',
+            message: `File with id ${params.fileId} not found`,
+          },
+        };
+      }
+
+      const file = new File([fileInfo.content], fileInfo.name, { type: fileInfo.type });
+
+      return {
+        status: 200 as const,
+        body: file,
+      };
+    },
   },
   {
     basePath: '/api',

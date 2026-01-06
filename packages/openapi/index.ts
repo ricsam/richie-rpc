@@ -1,4 +1,4 @@
-import type { Contract, EndpointDefinition } from '@richie-rpc/core';
+import type { Contract, StandardEndpointDefinition } from '@richie-rpc/core';
 import { parsePathParams } from '@richie-rpc/core';
 import { z } from 'zod';
 
@@ -148,7 +148,7 @@ function generateQueryParameters(
  * Generate OpenAPI request body object
  */
 function generateRequestBody(
-  endpoint: EndpointDefinition,
+  endpoint: StandardEndpointDefinition,
   jsonSchemaParams?: ZodToJSONSchemaParams,
 ): any {
   if (!endpoint.body) return undefined;
@@ -214,7 +214,7 @@ function getStatusDescription(status: number): string {
  * Generate OpenAPI operation object for an endpoint
  */
 function generateOperation(
-  endpoint: EndpointDefinition,
+  endpoint: StandardEndpointDefinition,
   operationId: string,
   jsonSchemaParams?: ZodToJSONSchemaParams,
 ): any {
@@ -257,6 +257,12 @@ export function generateOpenAPISpec<T extends Contract>(
 
   // Process each endpoint in the contract
   for (const [name, endpoint] of Object.entries(contract)) {
+    // Currently only standard endpoints are supported in OpenAPI generation
+    // Streaming and SSE endpoints will be added in a future update
+    if (endpoint.type !== 'standard') {
+      continue;
+    }
+
     let openAPIPath = convertPathToOpenAPI(endpoint.path);
 
     // Prefix with basePath if provided

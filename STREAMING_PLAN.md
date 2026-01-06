@@ -23,7 +23,7 @@ Add three realtime communication features to richie-rpc:
 |------|---------|
 | [packages/core/index.ts](packages/core/index.ts) | Add discriminated union endpoint types, type extraction utilities |
 | [packages/core/websocket.ts](packages/core/websocket.ts) | **NEW** - WebSocket contract types and `defineWebSocketContract` |
-| [packages/client/index.ts](packages/client/index.ts) | Add streaming/SSE client methods, update `createClient` |
+| [packages/client/index.ts](packages/client/index.ts) | Add streaming/SSE client methods, XHR upload progress, update `createClient` |
 | [packages/client/websocket.ts](packages/client/websocket.ts) | **NEW** - WebSocket client with `createWebSocketClient` |
 | [packages/server/index.ts](packages/server/index.ts) | Add streaming/SSE response handling in Router |
 | [packages/server/websocket.ts](packages/server/websocket.ts) | **NEW** - WebSocket router for Bun integration |
@@ -274,6 +274,166 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
   };
 }
 ```
+
+### Upload Progress for Standard Endpoints
+
+For `type: 'standard'` endpoints with `contentType: 'multipart/form-data'`, support upload progress tracking via XMLHttpRequest.
+
+**Types:**
+
+```typescript
+export interface UploadProgressEvent {
+  loaded: number;    // Bytes uploaded
+  total: number;     // Total bytes
+  progress: number;  // 0-1 (percentage as decimal)
+}
+
+// Add to EndpointRequestOptions
+export type EndpointRequestOptions<T extends EndpointDefinition> = {
+  // ... existing options
+  onUploadProgress?: (event: UploadProgressEvent) => void;
+};
+```
+
+**Implementation in `makeRequest`:**
+
+Since the client is browser-only, use XMLHttpRequest when `onUploadProgress` is provided:
+
+```typescript
+async function makeRequest<T extends EndpointDefinition>(
+  config: ClientConfig,
+  endpoint: T,
+  options: EndpointRequestOptions<T>,
+): Promise<EndpointResponse<T>> {
+  // ... validation and URL building
+
+  // Use XHR for upload progress support
+  if (options.onUploadProgress && options.body !== undefined) {
+    return makeRequestWithXHR(config, endpoint, options);
+  }
+
+  // ... existing fetch implementation
+}
+
+function makeRequestWithXHR<T extends EndpointDefinition>(
+  config: ClientConfig,
+  endpoint: T,
+  options: EndpointRequestOptions<T>,
+): Promise<EndpointResponse<T>> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+
+    // Build URL (reuse existing logic)
+    let path = endpoint.path;
+    if (options.params) {
+      path = interpolatePath(path, options.params as Record<string, string | number>);
+    }
+    const url = buildUrl(config.baseUrl, path, options.query);
+
+    xhr.open(endpoint.method, url);
+
+    // Set headers
+    if (config.headers) {
+      for (const [key, value] of Object.entries(config.headers)) {
+        xhr.setRequestHeader(key, value);
+      }
+    }
+    if (options.headers) {
+      for (const [key, value] of Object.entries(options.headers)) {
+        xhr.setRequestHeader(key, String(value));
+      }
+    }
+
+    // Upload progress
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && options.onUploadProgress) {
+        options.onUploadProgress({
+          loaded: e.loaded,
+          total: e.total,
+          progress: e.loaded / e.total,
+        });
+      }
+    };
+
+    // Handle abort signal
+    if (options.abortSignal) {
+      options.abortSignal.addEventListener('abort', () => xhr.abort());
+    }
+
+    xhr.onload = () => {
+      let data: unknown;
+      const contentType = xhr.getResponseHeader('content-type') || '';
+
+      if (xhr.status === 204) {
+        data = {};
+      } else if (contentType.includes('application/json')) {
+        data = JSON.parse(xhr.responseText);
+      } else {
+        data = xhr.responseText || {};
+      }
+
+      // Validate response if enabled
+      if (config.validateResponse !== false) {
+        validateResponse(endpoint, xhr.status, data);
+      }
+
+      resolve({ status: xhr.status, data } as EndpointResponse<T>);
+    };
+
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.onabort = () => reject(new DOMException('Aborted', 'AbortError'));
+
+    // Send body
+    const contentType = endpoint.contentType ?? 'application/json';
+    if (contentType === 'multipart/form-data') {
+      xhr.send(objectToFormData(options.body as Record<string, unknown>));
+    } else {
+      xhr.setRequestHeader('content-type', 'application/json');
+      xhr.send(JSON.stringify(options.body));
+    }
+  });
+}
+```
+
+**React Query Usage Example:**
+
+```typescript
+function FileUploadForm() {
+  const [progress, setProgress] = useState<number | null>(null);
+
+  const uploadMutation = hooks.uploadDocuments.useMutation({
+    onSuccess: () => setProgress(null),
+    onError: () => setProgress(null),
+  });
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    setProgress(0);
+
+    uploadMutation.mutate({
+      body: { documents, category },
+      onUploadProgress: (e) => setProgress(e.progress * 100),
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* ... file input */}
+      {progress !== null && (
+        <div className="progress-bar">
+          <div style={{ width: `${progress}%` }} />
+          <span>{progress.toFixed(0)}%</span>
+        </div>
+      )}
+      <button type="submit" disabled={uploadMutation.isPending}>
+        {uploadMutation.isPending ? `Uploading ${progress?.toFixed(0)}%...` : 'Upload'}
+      </button>
+    </form>
+  );
+}
+```
+
+---
 
 ### WebSocket Client (`packages/client/websocket.ts`)
 
@@ -785,12 +945,13 @@ chat: {
 
 ## Implementation Order
 
-1. **Core types** - Replace EndpointDefinition with discriminated unions
+1. **Core types** - Replace EndpointDefinition with discriminated unions, add `UploadProgressEvent`
 2. **Core websocket.ts** - WebSocket contract types
 3. **Server streaming/SSE** - Push-based handlers with `stream.send()`/`emitter.send()`, response creation
 4. **Server websocket.ts** - WebSocket router for Bun
-5. **Client streaming** - NDJSON parser, event-based API with `.on('chunk'/'close'/'error')`
-6. **Client SSE** - EventSource wrapper, event-based API with `.on(eventName)`
-7. **Client websocket.ts** - Typed WebSocket client with `.on()`, `.onError()`, `.onStateChange()`
-8. **Demo endpoints** - Add examples for each feature
-9. **Tests** - Unit and integration tests
+5. **Client upload progress** - Add `onUploadProgress` to request options, XHR-based upload with progress
+6. **Client streaming** - NDJSON parser, event-based API with `.on('chunk'/'close'/'error')`
+7. **Client SSE** - EventSource wrapper, event-based API with `.on(eventName)`
+8. **Client websocket.ts** - Typed WebSocket client with `.on()`, `.onError()`, `.onStateChange()`
+9. **Demo endpoints** - Add examples for each feature (including file upload with progress)
+10. **Tests** - Unit and integration tests

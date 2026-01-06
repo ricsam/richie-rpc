@@ -1,5 +1,14 @@
 # @richie-rpc/react-query
 
+## 1.0.5
+
+### Patch Changes
+
+- add support for streaming /1
+- Updated dependencies
+  - @richie-rpc/client@1.2.4
+  - @richie-rpc/core@1.2.3
+
 ## 1.0.4
 
 ### Patch Changes

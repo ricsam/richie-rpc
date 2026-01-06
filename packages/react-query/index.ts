@@ -3,8 +3,15 @@ import type {
   ClientMethod,
   EndpointRequestOptions,
   EndpointResponse,
+  SSEClientMethod,
+  StreamingClientMethod,
 } from '@richie-rpc/client';
-import type { Contract, EndpointDefinition } from '@richie-rpc/core';
+import type {
+  Contract,
+  SSEEndpointDefinition,
+  StandardEndpointDefinition,
+  StreamingEndpointDefinition,
+} from '@richie-rpc/core';
 import {
   type UseMutationOptions,
   type UseMutationResult,
@@ -27,7 +34,7 @@ type MutationMethods = 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
  * Hook wrapper for query endpoints (GET, HEAD)
  * Provides useQuery and useSuspenseQuery methods
  */
-export type QueryHook<T extends EndpointDefinition> = {
+export type QueryHook<T extends StandardEndpointDefinition> = {
   /**
    * Standard query hook that returns loading states
    */
@@ -52,7 +59,7 @@ export type QueryHook<T extends EndpointDefinition> = {
  * Hook wrapper for mutation endpoints (POST, PUT, PATCH, DELETE)
  * Provides useMutation method
  */
-export type MutationHook<T extends EndpointDefinition> = {
+export type MutationHook<T extends StandardEndpointDefinition> = {
   /**
    * Mutation hook for write operations
    */
@@ -67,18 +74,48 @@ export type MutationHook<T extends EndpointDefinition> = {
 /**
  * Conditionally apply hook type based on HTTP method
  */
-export type EndpointHook<T extends EndpointDefinition> = T['method'] extends QueryMethods
+export type EndpointHook<T extends StandardEndpointDefinition> = T['method'] extends QueryMethods
   ? QueryHook<T>
   : T['method'] extends MutationMethods
     ? MutationHook<T>
     : never;
 
 /**
+ * Hook wrapper for streaming endpoints
+ * Exposes the streaming client method directly since React Query
+ * doesn't fit well with long-lived streaming connections
+ */
+export type StreamingHook<T extends StreamingEndpointDefinition> = {
+  /**
+   * Start a streaming request
+   */
+  stream: StreamingClientMethod<T>;
+};
+
+/**
+ * Hook wrapper for SSE endpoints
+ * Exposes the SSE client method directly since React Query
+ * doesn't fit well with long-lived SSE connections
+ */
+export type SSEHook<T extends SSEEndpointDefinition> = {
+  /**
+   * Create an SSE connection
+   */
+  connect: SSEClientMethod<T>;
+};
+
+/**
  * Complete hooks object for a contract
- * Each endpoint gets appropriate hooks based on its HTTP method
+ * Each endpoint gets appropriate hooks based on its type and HTTP method
  */
 export type Hooks<T extends Contract> = {
-  [K in keyof T]: EndpointHook<T[K]>;
+  [K in keyof T]: T[K] extends StandardEndpointDefinition
+    ? EndpointHook<T[K]>
+    : T[K] extends StreamingEndpointDefinition
+      ? StreamingHook<T[K]>
+      : T[K] extends SSEEndpointDefinition
+        ? SSEHook<T[K]>
+        : never;
 };
 
 /**
@@ -121,16 +158,35 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
   const hooks: Record<string, unknown> = {};
 
   for (const [name, endpoint] of Object.entries(contract)) {
+    // Handle streaming endpoints
+    if (endpoint.type === 'streaming') {
+      const streamMethod = client[name as keyof T] as unknown as StreamingClientMethod<StreamingEndpointDefinition>;
+      hooks[name] = {
+        stream: streamMethod,
+      };
+      continue;
+    }
+
+    // Handle SSE endpoints
+    if (endpoint.type === 'sse') {
+      const connectMethod = client[name as keyof T] as unknown as SSEClientMethod<SSEEndpointDefinition>;
+      hooks[name] = {
+        connect: connectMethod,
+      };
+      continue;
+    }
+
+    // Handle standard endpoints
     const method = endpoint.method;
-    const clientMethod = client[name as keyof T] as unknown as ClientMethod<EndpointDefinition>;
+    const clientMethod = client[name as keyof T] as unknown as ClientMethod<StandardEndpointDefinition>;
 
     if (method === 'GET' || method === 'HEAD') {
       // Create query hooks for read operations
       hooks[name] = {
         useQuery: (
-          options: EndpointRequestOptions<EndpointDefinition>,
+          options: EndpointRequestOptions<StandardEndpointDefinition>,
           queryOptions?: Omit<
-            UseQueryOptions<EndpointResponse<EndpointDefinition>, Error>,
+            UseQueryOptions<EndpointResponse<StandardEndpointDefinition>, Error>,
             'queryKey' | 'queryFn'
           >,
         ) => {
@@ -147,9 +203,9 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
           });
         },
         useSuspenseQuery: (
-          options: EndpointRequestOptions<EndpointDefinition>,
+          options: EndpointRequestOptions<StandardEndpointDefinition>,
           queryOptions?: Omit<
-            UseSuspenseQueryOptions<EndpointResponse<EndpointDefinition>, Error>,
+            UseSuspenseQueryOptions<EndpointResponse<StandardEndpointDefinition>, Error>,
             'queryKey' | 'queryFn'
           >,
         ) => {
@@ -172,15 +228,15 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
         useMutation: (
           mutationOptions?: Omit<
             UseMutationOptions<
-              EndpointResponse<EndpointDefinition>,
+              EndpointResponse<StandardEndpointDefinition>,
               Error,
-              EndpointRequestOptions<EndpointDefinition>
+              EndpointRequestOptions<StandardEndpointDefinition>
             >,
             'mutationFn'
           >,
         ) => {
           return useMutation({
-            mutationFn: (options: EndpointRequestOptions<EndpointDefinition>) =>
+            mutationFn: (options: EndpointRequestOptions<StandardEndpointDefinition>) =>
               clientMethod(options),
             ...mutationOptions,
           });

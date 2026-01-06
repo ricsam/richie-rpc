@@ -50,10 +50,92 @@ Each endpoint can have:
 - `contentType` (optional): Request content type (`'application/json'` or `'multipart/form-data'`)
 - `responses` (required): Object mapping status codes to Zod schemas
 
+### Streaming Endpoint
+
+For AI-style streaming responses using NDJSON:
+
+```typescript
+const contract = defineContract({
+  generateText: {
+    type: 'streaming',
+    method: 'POST',
+    path: '/generate',
+    body: z.object({ prompt: z.string() }),
+    chunk: z.object({ text: z.string() }),
+    finalResponse: z.object({ totalTokens: z.number() }),
+  },
+});
+```
+
+- `type: 'streaming'` (required): Marks this as a streaming endpoint
+- `method` (required): Must be `'POST'`
+- `chunk` (required): Zod schema for each streamed chunk
+- `finalResponse` (optional): Zod schema for the final response after stream ends
+
+### SSE Endpoint
+
+For server-to-client event streaming:
+
+```typescript
+const contract = defineContract({
+  notifications: {
+    type: 'sse',
+    method: 'GET',
+    path: '/notifications',
+    query: z.object({ userId: z.string() }),
+    events: {
+      message: z.object({ text: z.string(), timestamp: z.string() }),
+      userJoined: z.object({ userId: z.string() }),
+      heartbeat: z.object({ timestamp: z.string() }),
+    },
+  },
+});
+```
+
+- `type: 'sse'` (required): Marks this as an SSE endpoint
+- `method` (required): Must be `'GET'`
+- `events` (required): Object mapping event names to Zod schemas
+
+### WebSocket Contract
+
+For bidirectional real-time communication, use `defineWebSocketContract`:
+
+```typescript
+import { defineWebSocketContract } from '@richie-rpc/core';
+
+const wsContract = defineWebSocketContract({
+  chat: {
+    path: '/ws/chat/:roomId',
+    params: z.object({ roomId: z.string() }),
+    query: z.object({ token: z.string().optional() }),
+    clientMessages: {
+      sendMessage: { payload: z.object({ text: z.string() }) },
+      typing: { payload: z.object({ isTyping: z.boolean() }) },
+    },
+    serverMessages: {
+      message: { payload: z.object({ userId: z.string(), text: z.string() }) },
+      userTyping: { payload: z.object({ userId: z.string(), isTyping: z.boolean() }) },
+      error: { payload: z.object({ code: z.string(), message: z.string() }) },
+    },
+  },
+});
+```
+
+- `path` (required): WebSocket endpoint path with optional parameters
+- `params` (optional): Zod schema for path parameters
+- `query` (optional): Zod schema for query parameters
+- `clientMessages` (required): Messages the client can send to the server
+- `serverMessages` (required): Messages the server can send to the client
+
+Each message type has a `payload` field with a Zod schema for validation.
+
 ## Features
 
 - ✅ Type-safe contract definitions
 - ✅ Zod v4+ schema validation
+- ✅ HTTP Streaming endpoints (NDJSON)
+- ✅ Server-Sent Events (SSE) endpoints
+- ✅ WebSocket contracts with typed messages
 - ✅ Path parameter parsing and interpolation
 - ✅ Query parameter handling
 - ✅ Multiple response types per endpoint

@@ -1,5 +1,13 @@
 # @richie-rpc/openapi
 
+## 1.1.4
+
+### Patch Changes
+
+- add support for streaming /1
+- Updated dependencies
+  - @richie-rpc/core@1.2.3
+
 ## 1.1.3
 
 ### Patch Changes

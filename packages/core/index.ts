@@ -37,20 +37,67 @@ export const Status = {
   GatewayTimeout: 504 as const,
 } as const;
 
-// Endpoint definition structure
-export interface EndpointDefinition {
-  method: HttpMethod;
+// Base fields shared by all endpoint types
+interface BaseEndpointFields {
   path: string;
   params?: z.ZodTypeAny;
   query?: z.ZodTypeAny;
   headers?: z.ZodTypeAny;
+}
+
+// Standard HTTP endpoint
+export interface StandardEndpointDefinition extends BaseEndpointFields {
+  type: 'standard';
+  method: HttpMethod;
   body?: z.ZodTypeAny;
   contentType?: ContentType;
   responses: Record<number, z.ZodTypeAny>;
 }
 
+// Streaming response endpoint (NDJSON)
+export interface StreamingEndpointDefinition extends BaseEndpointFields {
+  type: 'streaming';
+  method: 'POST';
+  body?: z.ZodTypeAny;
+  contentType?: ContentType;
+  /** Schema for each NDJSON chunk (type inference only, not validated) */
+  chunk: z.ZodTypeAny;
+  /** Optional final response after stream ends */
+  finalResponse?: z.ZodTypeAny;
+  /** Error responses for non-streaming failures */
+  errorResponses?: Record<number, z.ZodTypeAny>;
+}
+
+// SSE endpoint
+export interface SSEEndpointDefinition extends BaseEndpointFields {
+  type: 'sse';
+  method: 'GET';
+  /** Event types: key = event name, value = data schema (type inference only) */
+  events: Record<string, z.ZodTypeAny>;
+  /** Error responses for connection failures */
+  errorResponses?: Record<number, z.ZodTypeAny>;
+}
+
+// Download endpoint (binary file response)
+export interface DownloadEndpointDefinition extends BaseEndpointFields {
+  type: 'download';
+  method: 'GET'; // Downloads are GET-only
+  /** Error responses (non-2xx status codes) */
+  errorResponses?: Record<number, z.ZodTypeAny>;
+}
+
+// Union of all endpoint types
+export type AnyEndpointDefinition =
+  | StandardEndpointDefinition
+  | StreamingEndpointDefinition
+  | SSEEndpointDefinition
+  | DownloadEndpointDefinition;
+
+// Alias for backwards compatibility in type utilities
+export type EndpointDefinition = AnyEndpointDefinition;
+
 // Contract is a collection of named endpoints
-export type Contract = Record<string, EndpointDefinition>;
+export type Contract = Record<string, AnyEndpointDefinition>;
 
 // Extract the Zod type from a schema
 export type InferZodType<T> = T extends z.ZodTypeAny ? z.infer<T> : never;
@@ -70,27 +117,83 @@ export type ExtractHeaders<T extends EndpointDefinition> = T['headers'] extends 
   ? InferZodType<T['headers']>
   : never;
 
-// Extract body type from endpoint
-export type ExtractBody<T extends EndpointDefinition> = T['body'] extends z.ZodTypeAny
+// Extract body type from endpoint (only standard and streaming have body)
+export type ExtractBody<T extends EndpointDefinition> = T extends { body: z.ZodTypeAny }
   ? InferZodType<T['body']>
   : never;
 
-// Extract response types for all status codes
-export type ExtractResponses<T extends EndpointDefinition> = {
-  [K in keyof T['responses']]: T['responses'][K] extends z.ZodTypeAny
-    ? InferZodType<T['responses'][K]>
-    : never;
-};
+// Extract response types for all status codes (only standard has responses)
+export type ExtractResponses<T extends EndpointDefinition> = T extends {
+  responses: Record<number, z.ZodTypeAny>;
+}
+  ? {
+      [K in keyof T['responses']]: T['responses'][K] extends z.ZodTypeAny
+        ? InferZodType<T['responses'][K]>
+        : never;
+    }
+  : never;
 
-// Extract a specific response type by status code
+// Extract a specific response type by status code (only standard has responses)
 export type ExtractResponse<
   T extends EndpointDefinition,
   Status extends number,
-> = Status extends keyof T['responses']
-  ? T['responses'][Status] extends z.ZodTypeAny
-    ? InferZodType<T['responses'][Status]>
+> = T extends { responses: Record<number, z.ZodTypeAny> }
+  ? Status extends keyof T['responses']
+    ? T['responses'][Status] extends z.ZodTypeAny
+      ? InferZodType<T['responses'][Status]>
+      : never
     : never
   : never;
+
+// Extract chunk type from streaming endpoint
+export type ExtractChunk<T extends StreamingEndpointDefinition> = T['chunk'] extends z.ZodTypeAny
+  ? InferZodType<T['chunk']>
+  : never;
+
+// Extract final response type from streaming endpoint
+export type ExtractFinalResponse<T extends StreamingEndpointDefinition> =
+  T['finalResponse'] extends z.ZodTypeAny ? InferZodType<T['finalResponse']> : undefined;
+
+// Extract SSE event union type
+export type ExtractSSEEvents<T extends SSEEndpointDefinition> = {
+  [K in keyof T['events']]: {
+    event: K;
+    data: T['events'][K] extends z.ZodTypeAny ? InferZodType<T['events'][K]> : never;
+    id?: string;
+  };
+}[keyof T['events']];
+
+// Extract specific SSE event data type
+export type ExtractSSEEventData<
+  T extends SSEEndpointDefinition,
+  K extends keyof T['events'],
+> = T['events'][K] extends z.ZodTypeAny ? InferZodType<T['events'][K]> : never;
+
+// Extract error responses for download endpoint
+export type ExtractDownloadErrorResponse<
+  T extends DownloadEndpointDefinition,
+  Status extends keyof T['errorResponses'],
+> = T['errorResponses'] extends Record<number, z.ZodTypeAny>
+  ? Status extends keyof T['errorResponses']
+    ? T['errorResponses'][Status] extends z.ZodTypeAny
+      ? InferZodType<T['errorResponses'][Status]>
+      : never
+    : never
+  : never;
+
+// Upload progress event
+export interface UploadProgressEvent {
+  loaded: number;
+  total: number;
+  progress: number; // 0-1 (percentage as decimal)
+}
+
+// Download progress event
+export interface DownloadProgressEvent {
+  loaded: number;
+  total: number;
+  progress: number; // 0-1 (percentage as decimal), NaN if total unknown
+}
 
 // Path parameter extraction utilities
 export type ExtractPathParams<T extends string> =
@@ -284,3 +387,6 @@ export function formDataToObject(formData: FormData): Record<string, unknown> {
 
   return replaceRefs(obj) as Record<string, unknown>;
 }
+
+// Re-export WebSocket types
+export * from './websocket';

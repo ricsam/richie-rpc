@@ -190,12 +190,233 @@ try {
 }
 ```
 
+## Streaming Responses
+
+For streaming endpoints, the client returns an event-based result:
+
+```typescript
+const contract = defineContract({
+  generateText: {
+    type: 'streaming',
+    method: 'POST',
+    path: '/generate',
+    body: z.object({ prompt: z.string() }),
+    chunk: z.object({ text: z.string() }),
+    finalResponse: z.object({ totalTokens: z.number() }),
+  },
+});
+
+const client = createClient(contract, { baseUrl: 'http://localhost:3000' });
+
+const result = client.generateText({ body: { prompt: 'Hello world' } });
+
+// Listen for chunks
+result.on('chunk', (chunk) => {
+  process.stdout.write(chunk.text);
+});
+
+// Listen for stream completion
+result.on('close', (final) => {
+  if (final) {
+    console.log(`\nTotal tokens: ${final.totalTokens}`);
+  }
+});
+
+// Handle errors
+result.on('error', (error) => {
+  console.error('Stream error:', error.message);
+});
+
+// Abort if needed
+result.abort();
+```
+
+### StreamingResult Interface
+
+- `on('chunk', handler)` - Subscribe to chunks
+- `on('close', handler)` - Subscribe to stream close (with optional final response)
+- `on('error', handler)` - Subscribe to errors
+- `abort()` - Abort the stream
+- `aborted` - Check if the stream was aborted
+
+## Server-Sent Events (SSE)
+
+For SSE endpoints, the client returns an event-based connection:
+
+```typescript
+const contract = defineContract({
+  notifications: {
+    type: 'sse',
+    method: 'GET',
+    path: '/notifications',
+    events: {
+      message: z.object({ text: z.string(), timestamp: z.string() }),
+      heartbeat: z.object({ timestamp: z.string() }),
+    },
+  },
+});
+
+const client = createClient(contract, { baseUrl: 'http://localhost:3000' });
+
+const conn = client.notifications();
+
+// Listen for specific event types
+conn.on('message', (data) => {
+  console.log(`Message: ${data.text} at ${data.timestamp}`);
+});
+
+conn.on('heartbeat', (data) => {
+  console.log('Heartbeat:', data.timestamp);
+});
+
+// Handle connection errors
+conn.on('error', (error) => {
+  console.error('SSE error:', error.message);
+});
+
+// Close when done
+conn.close();
+
+// Check connection state
+console.log('State:', conn.state); // 'connecting' | 'open' | 'closed'
+```
+
+### SSEConnection Interface
+
+- `on(event, handler)` - Subscribe to a specific event type
+- `on('error', handler)` - Subscribe to connection errors
+- `close()` - Close the connection
+- `state` - Current connection state
+
+## WebSocket Client
+
+For bidirectional real-time communication, use `createWebSocketClient`:
+
+```typescript
+import { createWebSocketClient } from '@richie-rpc/client';
+import { defineWebSocketContract } from '@richie-rpc/core';
+
+const wsContract = defineWebSocketContract({
+  chat: {
+    path: '/ws/chat/:roomId',
+    params: z.object({ roomId: z.string() }),
+    clientMessages: {
+      sendMessage: { payload: z.object({ text: z.string() }) },
+    },
+    serverMessages: {
+      message: { payload: z.object({ userId: z.string(), text: z.string() }) },
+      error: { payload: z.object({ code: z.string(), message: z.string() }) },
+    },
+  },
+});
+
+const wsClient = createWebSocketClient(wsContract, {
+  baseUrl: 'ws://localhost:3000',
+});
+
+// Get a typed WebSocket instance
+const chat = wsClient.chat({ params: { roomId: 'general' } });
+
+// Connect (returns disconnect function)
+const disconnect = chat.connect();
+
+// Track connection state
+chat.onStateChange((connected) => {
+  console.log('Connected:', connected);
+});
+
+// Listen for specific message types
+chat.on('message', (payload) => {
+  console.log(`${payload.userId}: ${payload.text}`);
+});
+
+chat.on('error', (payload) => {
+  console.error(`Error ${payload.code}: ${payload.message}`);
+});
+
+// Listen for all messages
+chat.onMessage((message) => {
+  console.log('Received:', message.type, message.payload);
+});
+
+// Handle connection errors
+chat.onError((error) => {
+  console.error('Connection error:', error.message);
+});
+
+// Send messages (validates before sending)
+chat.send('sendMessage', { text: 'Hello!' });
+
+// Disconnect when done
+disconnect();
+```
+
+### TypedWebSocket Interface
+
+- `connect()` - Connect to the WebSocket server, returns disconnect function
+- `send(type, payload)` - Send a typed message (validates before sending)
+- `on(type, handler)` - Subscribe to a specific message type
+- `onMessage(handler)` - Subscribe to all messages
+- `onStateChange(handler)` - Track connection state changes
+- `onError(handler)` - Handle connection errors
+- `connected` - Check current connection state
+
+### React Integration Example
+
+```typescript
+function ChatRoom({ roomId }: { roomId: string }) {
+  const [connected, setConnected] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  const chat = useMemo(
+    () => wsClient.chat({ params: { roomId } }),
+    [roomId]
+  );
+
+  // Connection lifecycle
+  useEffect(() => {
+    const disconnect = chat.connect();
+    return () => disconnect();
+  }, [chat]);
+
+  // Track connection state
+  useEffect(() => {
+    return chat.onStateChange(setConnected);
+  }, [chat]);
+
+  // Subscribe to messages (only when connected)
+  useEffect(() => {
+    if (!connected) return;
+    return chat.on('message', (payload) => {
+      setMessages((prev) => [...prev, payload]);
+    });
+  }, [connected, chat]);
+
+  const handleSend = (text: string) => {
+    chat.send('sendMessage', { text });
+  };
+
+  return (
+    <div>
+      <div>Status: {connected ? 'Connected' : 'Disconnected'}</div>
+      {messages.map((msg, i) => (
+        <div key={i}>{msg.userId}: {msg.text}</div>
+      ))}
+      <button onClick={() => handleSend('Hello!')}>Send</button>
+    </div>
+  );
+}
+```
+
 ## Features
 
 - ✅ Full type safety based on contract
 - ✅ Automatic path parameter interpolation
 - ✅ Query parameter encoding
 - ✅ BasePath support in baseUrl
+- ✅ HTTP Streaming with event-based API
+- ✅ Server-Sent Events (SSE) client
+- ✅ WebSocket client with typed messages
 - ✅ Request validation before sending
 - ✅ Response validation after receiving
 - ✅ Detailed error information

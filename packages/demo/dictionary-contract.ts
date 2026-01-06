@@ -30,6 +30,7 @@ const ErrorSchema = z.object({
 export const dictionaryContract = defineContract({
   // Get dictionary entries with optional search
   getDictionaryEntries: {
+    type: 'standard',
     method: 'GET',
     path: '/dictionary',
     query: z.object({
@@ -42,6 +43,7 @@ export const dictionaryContract = defineContract({
 
   // Create a new dictionary entry
   createDictionaryEntry: {
+    type: 'standard',
     method: 'POST',
     path: '/dictionary',
     body: CreateDictionaryEntrySchema,
@@ -53,6 +55,7 @@ export const dictionaryContract = defineContract({
 
   // Delete a dictionary entry
   deleteDictionaryEntry: {
+    type: 'standard',
     method: 'DELETE',
     path: '/dictionary/:id',
     params: z.object({

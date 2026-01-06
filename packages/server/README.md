@@ -94,6 +94,9 @@ Bun.serve({
 - ✅ Automatic response validation
 - ✅ Type-safe handler inputs
 - ✅ Type-safe status codes with `Status` const object
+- ✅ HTTP Streaming with `StreamEmitter`
+- ✅ Server-Sent Events with `SSEEmitter`
+- ✅ WebSocket router with pub/sub support
 - ✅ Path parameter matching
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
@@ -243,6 +246,171 @@ The server automatically:
 - Parses `multipart/form-data` requests
 - Reconstructs nested structures with File objects
 - Validates the body against your Zod schema
+
+## Streaming Responses
+
+For AI-style streaming responses, handlers receive a `stream` object:
+
+```typescript
+const contract = defineContract({
+  generateText: {
+    type: 'streaming',
+    method: 'POST',
+    path: '/generate',
+    body: z.object({ prompt: z.string() }),
+    chunk: z.object({ text: z.string() }),
+    finalResponse: z.object({ totalTokens: z.number() }),
+  },
+});
+
+const router = createRouter(contract, {
+  generateText: async ({ body, stream }) => {
+    const words = body.prompt.split(' ');
+
+    for (const word of words) {
+      if (!stream.isOpen) return; // Client disconnected
+      stream.send({ text: word + ' ' });
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    stream.close({ totalTokens: words.length });
+  },
+});
+```
+
+### StreamEmitter Interface
+
+- `send(chunk)` - Send a chunk to the client (NDJSON format)
+- `close(finalResponse?)` - Close the stream with optional final response
+- `isOpen` - Check if the stream is still open
+
+## Server-Sent Events (SSE)
+
+For server-to-client event streaming, handlers receive an `emitter` object:
+
+```typescript
+const contract = defineContract({
+  notifications: {
+    type: 'sse',
+    method: 'GET',
+    path: '/notifications',
+    events: {
+      message: z.object({ text: z.string() }),
+      heartbeat: z.object({ timestamp: z.string() }),
+    },
+  },
+});
+
+const router = createRouter(contract, {
+  notifications: ({ emitter, signal }) => {
+    // Send heartbeats every 30 seconds
+    const heartbeatInterval = setInterval(() => {
+      if (!emitter.isOpen) return;
+      emitter.send('heartbeat', { timestamp: new Date().toISOString() });
+    }, 30000);
+
+    // Cleanup when client disconnects
+    signal.addEventListener('abort', () => {
+      clearInterval(heartbeatInterval);
+    });
+
+    // Optional: return cleanup function
+    return () => clearInterval(heartbeatInterval);
+  },
+});
+```
+
+### SSEEmitter Interface
+
+- `send(event, data, options?)` - Send an event with data and optional ID
+- `close()` - Close the connection
+- `isOpen` - Check if the connection is still open
+
+## WebSocket Router
+
+For bidirectional real-time communication, use `createWebSocketRouter`:
+
+```typescript
+import { createWebSocketRouter } from '@richie-rpc/server';
+import { defineWebSocketContract } from '@richie-rpc/core';
+
+const wsContract = defineWebSocketContract({
+  chat: {
+    path: '/ws/chat/:roomId',
+    params: z.object({ roomId: z.string() }),
+    clientMessages: {
+      sendMessage: { payload: z.object({ text: z.string() }) },
+    },
+    serverMessages: {
+      message: { payload: z.object({ userId: z.string(), text: z.string() }) },
+      error: { payload: z.object({ code: z.string(), message: z.string() }) },
+    },
+  },
+});
+
+const wsRouter = createWebSocketRouter(wsContract, {
+  chat: {
+    open(ws) {
+      // Called when connection opens
+      ws.subscribe(`room:${ws.data.params.roomId}`);
+      console.log('User joined room:', ws.data.params.roomId);
+    },
+
+    message(ws, msg) {
+      // Called for each validated client message
+      if (msg.type === 'sendMessage') {
+        ws.publish(`room:${ws.data.params.roomId}`, {
+          type: 'message',
+          payload: { userId: 'user1', text: msg.payload.text },
+        });
+      }
+    },
+
+    close(ws) {
+      // Called when connection closes
+      console.log('User left room:', ws.data.params.roomId);
+    },
+
+    validationError(ws, error) {
+      // Called when client message validation fails
+      ws.send({
+        type: 'error',
+        payload: { code: 'VALIDATION_ERROR', message: error.message },
+      });
+    },
+  },
+});
+```
+
+### TypedServerWebSocket Interface
+
+- `send(type, payload)` - Send a typed message to the client
+- `subscribe(topic)` - Subscribe to a pub/sub topic
+- `unsubscribe(topic)` - Unsubscribe from a topic
+- `publish(topic, type, payload)` - Broadcast to all subscribers
+- `close(code?, reason?)` - Close the connection
+- `data` - Access params, query, headers from the connection
+
+### Integrating with Bun.serve
+
+```typescript
+Bun.serve({
+  port: 3000,
+
+  websocket: wsRouter.websocketHandler,
+
+  fetch(request, server) {
+    // Try WebSocket upgrade
+    const wsMatch = wsRouter.matchAndPrepareUpgrade(request);
+    if (wsMatch && request.headers.get('upgrade') === 'websocket') {
+      if (server.upgrade(request, { data: wsMatch })) return;
+    }
+
+    // Handle regular HTTP requests
+    return router.fetch(request);
+  },
+});
+```
 
 ## Error Handling
 

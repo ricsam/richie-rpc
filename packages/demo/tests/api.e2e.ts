@@ -148,6 +148,39 @@ test.describe('Richie RPC API Integration', () => {
     expect(data.filenames).toContain('doc1.txt');
     expect(data.filenames).toContain('doc2.txt');
   });
+
+  test('should download files successfully', async ({ request }) => {
+    const response = await request.get('/api/files/doc-1');
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toBe('text/plain');
+    expect(response.headers()['content-disposition']).toContain('attachment');
+    expect(response.headers()['content-disposition']).toContain('hello.txt');
+    expect(response.headers()['content-length']).toBeDefined();
+
+    const body = await response.body();
+    expect(body.toString()).toBe('Hello, World! This is a test document.');
+  });
+
+  test('should return 404 for non-existent file download', async ({ request }) => {
+    const response = await request.get('/api/files/non-existent');
+
+    expect(response.status()).toBe(404);
+    const error = await response.json();
+    expect(error.error).toBe('Not Found');
+    expect(error.message).toContain('non-existent');
+  });
+
+  test('should download JSON file with correct content-type', async ({ request }) => {
+    const response = await request.get('/api/files/doc-2');
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toBe('application/json');
+    expect(response.headers()['content-disposition']).toContain('data.json');
+
+    const body = await response.body();
+    expect(body.toString()).toBe('{"message": "JSON content"}');
+  });
 });
 
 test.describe('OpenAPI Spec Validation', () => {

@@ -27,6 +27,9 @@ bun add @richie-rpc/core @richie-rpc/server @richie-rpc/openapi @richie-rpc/clie
 - ✅ **End-to-end type safety** - From contract definition to client usage
 - ✅ **Zod v4 validation** - Request and response validation on both client and server with built-in JSON Schema support
 - ✅ **OpenAPI 3.1 generation** - Automatic spec generation with Scalar docs UI
+- ✅ **HTTP Streaming** - NDJSON streaming responses for AI-style outputs
+- ✅ **Server-Sent Events** - One-way server-to-client event streaming
+- ✅ **WebSockets** - Bidirectional real-time communication with typed messages
 - ✅ **BasePath support** - Serve APIs under path prefixes (e.g., `/api`)
 - ✅ **Bun-native** - Built specifically for Bun.serve (WHATWG fetch compatible)
 - ✅ **Minimal dependencies** - Just Zod, no external schema converters
@@ -127,6 +130,123 @@ const newUser = await client.createUser({
 console.log(newUser.data.id); // ✅ Type-safe
 ```
 
+## Real-Time Communication
+
+Richie RPC supports three real-time patterns with full type safety.
+
+### HTTP Streaming (NDJSON)
+
+Stream responses for AI-style outputs:
+
+```typescript
+// Contract
+const contract = defineContract({
+  generateText: {
+    type: 'streaming',
+    method: 'POST',
+    path: '/generate',
+    body: z.object({ prompt: z.string() }),
+    chunk: z.object({ text: z.string() }),
+    finalResponse: z.object({ totalTokens: z.number() }),
+  },
+});
+
+// Server
+generateText: async ({ body, stream }) => {
+  for (const word of body.prompt.split(' ')) {
+    stream.send({ text: word + ' ' });
+    await delay(100);
+  }
+  stream.close({ totalTokens: body.prompt.split(' ').length });
+}
+
+// Client
+const result = client.generateText({ body: { prompt: 'Hello world' } });
+result.on('chunk', (chunk) => process.stdout.write(chunk.text));
+result.on('close', (final) => console.log(`\nTokens: ${final?.totalTokens}`));
+```
+
+### Server-Sent Events (SSE)
+
+Push events from server to client:
+
+```typescript
+// Contract
+const contract = defineContract({
+  notifications: {
+    type: 'sse',
+    method: 'GET',
+    path: '/notifications',
+    events: {
+      message: z.object({ text: z.string(), timestamp: z.string() }),
+      heartbeat: z.object({ timestamp: z.string() }),
+    },
+  },
+});
+
+// Server
+notifications: ({ emitter, signal }) => {
+  const interval = setInterval(() => {
+    emitter.send('heartbeat', { timestamp: new Date().toISOString() });
+  }, 30000);
+  signal.addEventListener('abort', () => clearInterval(interval));
+}
+
+// Client
+const conn = client.notifications();
+conn.on('message', (data) => console.log(data.text));
+conn.on('heartbeat', (data) => console.log('ping:', data.timestamp));
+```
+
+### WebSockets
+
+Bidirectional real-time communication:
+
+```typescript
+// Contract
+import { defineWebSocketContract } from '@richie-rpc/core';
+
+const wsContract = defineWebSocketContract({
+  chat: {
+    path: '/ws/chat/:roomId',
+    params: z.object({ roomId: z.string() }),
+    clientMessages: {
+      sendMessage: { payload: z.object({ text: z.string() }) },
+    },
+    serverMessages: {
+      message: { payload: z.object({ userId: z.string(), text: z.string() }) },
+    },
+  },
+});
+
+// Server
+import { createWebSocketRouter } from '@richie-rpc/server';
+
+const wsRouter = createWebSocketRouter(wsContract, {
+  chat: {
+    open(ws) { ws.subscribe(`room:${ws.data.params.roomId}`); },
+    message(ws, msg) {
+      ws.publish(`room:${ws.data.params.roomId}`, {
+        type: 'message',
+        payload: { userId: 'user1', text: msg.payload.text },
+      });
+    },
+  },
+});
+
+// Client
+import { createWebSocketClient } from '@richie-rpc/client';
+
+const wsClient = createWebSocketClient(wsContract, { baseUrl: 'ws://localhost:3000' });
+const chat = wsClient.chat({ params: { roomId: 'general' } });
+
+const disconnect = chat.connect();
+chat.on('message', (payload) => console.log(`${payload.userId}: ${payload.text}`));
+chat.send('sendMessage', { text: 'Hello!' });
+```
+
+See the [examples/](./examples/) directory for complete working examples.
+
 ## Installation
 
 All packages require `zod@^4` as a peer dependency. Install it alongside the Richie RPC packages:
@@ -155,9 +275,9 @@ bun add @richie-rpc/openapi @richie-rpc/core zod@^4 # For OpenAPI
 Core package for defining type-safe API contracts.
 
 - Contract definition API
+- Streaming, SSE, and WebSocket contract types
 - Type inference utilities
 - Path parameter parsing
-- URL building utilities
 
 [Read more →](./packages/core/README.md)
 
@@ -166,9 +286,10 @@ Core package for defining type-safe API contracts.
 Server implementation with automatic validation for Bun.serve.
 
 - Type-safe request handlers
+- Streaming responses with `StreamEmitter`
+- Server-Sent Events with `SSEEmitter`
+- WebSocket router with pub/sub support
 - Automatic request/response validation
-- Path matching and routing
-- Error handling
 
 [Read more →](./packages/server/README.md)
 
@@ -188,9 +309,10 @@ OpenAPI 3.1 specification generator.
 Type-safe fetch client for consuming APIs.
 
 - Fully typed API methods
+- Streaming response parser (NDJSON)
+- SSE client with typed events
+- WebSocket client with typed messages
 - Automatic validation
-- Path parameter interpolation
-- Custom headers support
 
 [Read more →](./packages/client/README.md)
 
@@ -258,6 +380,7 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
 ┌─────────────────────────────────────────────────────────┐
 │                     Contract (Core)                     │
 │  Single source of truth with Zod schemas              │
+│  HTTP • Streaming • SSE • WebSocket contracts         │
 └─────────────┬─────────────────────────┬─────────────────┘
               │                         │
      ┌────────▼────────┐       ┌────────▼─────────┐
@@ -265,6 +388,9 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
      │  - Validation   │       │  - Type-safe     │
      │  - Routing      │       │  - Validation    │
      │  - Handlers     │       │  - Fetch wrapper │
+     │  - Streaming    │       │  - Stream parser │
+     │  - SSE emitter  │       │  - SSE client    │
+     │  - WebSocket    │       │  - WS client     │
      └────────┬────────┘       └──────────────────┘
               │
      ┌────────▼────────┐

@@ -1,7 +1,14 @@
-import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
-import { createRouter, RouteNotFoundError, Status, ValidationError } from '@richie-rpc/server';
-import { type User, usersContract } from './contract';
-import reactDemoHtml from './index.html';
+import { createDocsResponse, generateOpenAPISpec } from "@richie-rpc/openapi";
+import {
+  createRouter,
+  RouteNotFoundError,
+  Status,
+  ValidationError,
+} from "@richie-rpc/server";
+import { type User, usersContract } from "./contract";
+import { streamingRouter, wsRouter } from "./streaming-server";
+import reactDemoHtml from "./index.html";
+import type { UpgradeData } from "@richie-rpc/server/websocket";
 
 // Simple context with mock data
 type AppContext = {
@@ -15,8 +22,8 @@ type AppContext = {
 
 // Mock app configuration
 const appConfig: AppContext = {
-  appName: 'Richie RPC Demo',
-  version: '1.0.0',
+  appName: "Richie RPC Demo",
+  version: "1.0.0",
   features: {
     darkMode: true,
     analytics: false,
@@ -28,17 +35,17 @@ const users: Map<string, User> = new Map();
 let nextId = 1;
 
 // Seed some initial data
-users.set('1', {
-  id: '1',
-  name: 'Alice Johnson',
-  email: 'alice@example.com',
+users.set("1", {
+  id: "1",
+  name: "Alice Johnson",
+  email: "alice@example.com",
   age: 28,
 });
 
-users.set('2', {
-  id: '2',
-  name: 'Bob Smith',
-  email: 'bob@example.com',
+users.set("2", {
+  id: "2",
+  name: "Bob Smith",
+  email: "bob@example.com",
   age: 35,
 });
 
@@ -64,7 +71,9 @@ const router = createRouter<typeof usersContract, AppContext>(
 
     getUser: async ({ params, context }) => {
       // Example: Use context data (e.g., for logging or conditional logic)
-      console.log(`Getting user ${params.id} from ${context.appName} v${context.version}`);
+      console.log(
+        `Getting user ${params.id} from ${context.appName} v${context.version}`
+      );
 
       const user = users.get(params.id);
 
@@ -72,7 +81,7 @@ const router = createRouter<typeof usersContract, AppContext>(
         return {
           status: Status.NotFound,
           body: {
-            error: 'Not Found',
+            error: "Not Found",
             message: `User with id ${params.id} not found`,
           },
         };
@@ -106,7 +115,7 @@ const router = createRouter<typeof usersContract, AppContext>(
         return {
           status: Status.NotFound,
           body: {
-            error: 'Not Found',
+            error: "Not Found",
             message: `User with id ${params.id} not found`,
           },
         };
@@ -132,7 +141,7 @@ const router = createRouter<typeof usersContract, AppContext>(
         return {
           status: Status.NotFound,
           body: {
-            error: 'Not Found',
+            error: "Not Found",
             message: `User with id ${params.id} not found`,
           },
         };
@@ -173,10 +182,10 @@ const router = createRouter<typeof usersContract, AppContext>(
         filenames.push(doc.file.name);
         totalSize += doc.file.size;
         console.log(
-          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
+          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`
         );
         if (doc.tags) {
-          console.log(`  Tags: ${doc.tags.join(', ')}`);
+          console.log(`  Tags: ${doc.tags.join(", ")}`);
         }
       }
 
@@ -189,63 +198,185 @@ const router = createRouter<typeof usersContract, AppContext>(
         },
       };
     },
+
+    // File download
+    downloadFile: async ({ params }) => {
+      // Mock file storage - in real app, this would fetch from disk/S3/etc
+      const mockFiles: Record<
+        string,
+        { content: string; name: string; type: string }
+      > = {
+        "doc-1": {
+          content: "Hello, World! This is a test document.",
+          name: "hello.txt",
+          type: "text/plain",
+        },
+        "doc-2": {
+          content: '{"message": "JSON content"}',
+          name: "data.json",
+          type: "application/json",
+        },
+      };
+
+      const fileInfo = mockFiles[params.fileId];
+
+      if (!fileInfo) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: "Not Found",
+            message: `File with id ${params.fileId} not found`,
+          },
+        };
+      }
+
+      const file = new File([fileInfo.content], fileInfo.name, {
+        type: fileInfo.type,
+      });
+
+      return {
+        status: 200 as const,
+        body: file,
+      };
+    },
   },
   {
-    basePath: '/api',
+    basePath: "/api",
     context: async () => {
       // Return the mock app configuration as context
       return appConfig;
     },
-  },
+  }
 );
 
 // Generate OpenAPI spec
 const openAPISpec = generateOpenAPISpec(usersContract, {
   info: {
-    title: 'Users API',
-    version: '1.0.0',
-    description: 'A simple user management API',
+    title: "Users API",
+    version: "1.0.0",
+    description: "A simple user management API",
   },
   servers: [
     {
-      url: `http://${process.env.HOST || 'localhost'}:${process.env.PORT || '3000'}/api`,
-      description: 'Development server',
+      url: `http://${process.env.HOST || "localhost"}:${
+        process.env.PORT || "3000"
+      }/api`,
+      description: "Development server",
     },
   ],
 });
 
 // Create docs HTML
-const docsHtml = createDocsResponse('/openapi.json', {
-  title: 'Users API Documentation',
+const docsHtml = createDocsResponse("/openapi.json", {
+  title: "Users API Documentation",
 });
 
 // Start server
 const server = Bun.serve({
-  port: Number.parseInt(process.env.PORT || '3000', 10),
+  port: Number.parseInt(process.env.PORT || "3000", 10),
   routes: {
-    '/openapi.json': Response.json(openAPISpec),
-    '/docs': docsHtml,
-    '/api/*': async (request) => {
+    "/index.html": reactDemoHtml,
+    "/docs": docsHtml,
+  },
+  async fetch(request, server): Promise<Response> {
+    const url = new URL(request.url);
+
+    // Handle WebSocket upgrade
+    const upgradeData = await wsRouter.matchAndPrepareUpgrade(request);
+    if (upgradeData) {
+      const success = server.upgrade(request, { data: upgradeData });
+      if (success) {
+        // Return empty response - Bun handles the upgrade
+        return new Response(null, { status: 101 });
+      }
+      return new Response("WebSocket upgrade failed", { status: 500 });
+    }
+
+    // Static routes
+    if (url.pathname === "/openapi.json") {
+      return Response.json(openAPISpec);
+    }
+    if (url.pathname === "/docs") {
+      return docsHtml;
+    }
+    if (
+      ["/", "/index.html", "/chat", "/ai", "/logs", "/downloads"].includes(
+        url.pathname
+      )
+    ) {
+      return fetch("http://localhost:3000/index.html");
+    }
+
+    // Streaming API routes
+    if (url.pathname.startsWith("/streaming/")) {
+      try {
+        return await streamingRouter.handle(request);
+      } catch (error) {
+        console.error("Streaming router error:", error);
+        if (error instanceof ValidationError) {
+          return Response.json(
+            {
+              error: "Validation Error",
+              field: error.field,
+              issues: error.issues,
+            },
+            { status: 400 }
+          );
+        }
+        if (error instanceof RouteNotFoundError) {
+          return Response.json({ error: "Not Found" }, { status: 404 });
+        }
+        return Response.json(
+          {
+            error: "Internal Server Error",
+            message: error instanceof Error ? error.message : String(error),
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Users API routes
+    if (url.pathname.startsWith("/api")) {
       try {
         return await router.handle(request);
       } catch (error) {
         if (error instanceof ValidationError) {
           return Response.json(
             {
-              error: 'Validation Error',
+              error: "Validation Error",
               field: error.field,
               issues: error.issues,
             },
-            { status: 400 },
+            { status: 400 }
           );
         }
         if (error instanceof RouteNotFoundError) {
-          return Response.json({ error: 'Not Found' }, { status: 404 });
+          return Response.json({ error: "Not Found" }, { status: 404 });
         }
-        return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+        return Response.json(
+          { error: "Internal Server Error" },
+          { status: 500 }
+        );
       }
+    }
+
+    return new Response("Not Found", { status: 404 });
+  },
+  websocket: {
+    data: {} as UpgradeData,
+    open(ws) {
+      return wsRouter.websocketHandler.open(ws);
     },
-    '/': reactDemoHtml,
+    message(ws, message) {
+      return wsRouter.websocketHandler.message(ws, message);
+    },
+    close(ws, code, reason) {
+      return wsRouter.websocketHandler.close(ws, code, reason);
+    },
+    drain(ws) {
+      return wsRouter.websocketHandler.drain(ws);
+    },
   },
 });
 

@@ -35,6 +35,7 @@ const UserListSchema = z.object({
 export const usersContract = defineContract({
   // List all users
   listUsers: {
+    type: 'standard',
     method: 'GET',
     path: '/users',
     query: z.object({
@@ -48,6 +49,7 @@ export const usersContract = defineContract({
 
   // Get a single user
   getUser: {
+    type: 'standard',
     method: 'GET',
     path: '/users/:id',
     params: z.object({
@@ -61,6 +63,7 @@ export const usersContract = defineContract({
 
   // Create a new user
   createUser: {
+    type: 'standard',
     method: 'POST',
     path: '/users',
     body: CreateUserSchema,
@@ -72,6 +75,7 @@ export const usersContract = defineContract({
 
   // Update a user
   updateUser: {
+    type: 'standard',
     method: 'PUT',
     path: '/users/:id',
     params: z.object({
@@ -87,6 +91,7 @@ export const usersContract = defineContract({
 
   // Delete a user
   deleteUser: {
+    type: 'standard',
     method: 'DELETE',
     path: '/users/:id',
     params: z.object({
@@ -100,6 +105,7 @@ export const usersContract = defineContract({
 
   // Custom status code example
   teapot: {
+    type: 'standard',
     method: 'GET',
     path: '/teapot',
     responses: {
@@ -117,6 +123,7 @@ export const usersContract = defineContract({
 
   // File upload with nested files
   uploadDocuments: {
+    type: 'standard',
     method: 'POST',
     path: '/upload',
     contentType: 'multipart/form-data',
@@ -136,6 +143,19 @@ export const usersContract = defineContract({
         totalSize: z.number(),
         filenames: z.array(z.string()),
       }),
+    },
+  },
+
+  // File download
+  downloadFile: {
+    type: 'download',
+    method: 'GET',
+    path: '/files/:fileId',
+    params: z.object({
+      fileId: z.string(),
+    }),
+    errorResponses: {
+      [Status.NotFound]: ErrorSchema,
     },
   },
 });
