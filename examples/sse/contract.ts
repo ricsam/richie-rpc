@@ -27,7 +27,7 @@ export const sseContract = defineContract({
         level: z.enum(['info', 'warn', 'error']),
         message: z.string(),
         source: z.string().optional(),
-        metadata: z.record(z.unknown()).optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
       }),
       heartbeat: z.object({
         timestamp: z.string(),

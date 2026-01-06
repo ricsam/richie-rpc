@@ -3,11 +3,13 @@
 ## Summary
 
 Add three realtime communication features to richie-rpc:
+
 1. **Streaming responses** - POST endpoints that stream NDJSON chunks back (e.g., AI typing)
 2. **SSE** - GET endpoints that push server events to clients
 3. **WebSockets** - Bidirectional realtime with separate `defineWebSocketContract`
 
 **Key decisions:**
+
 - **No backwards compatibility** - all endpoints require explicit `type` field
 - Discriminated unions (explicit `type` field) over optional attributes
 - NDJSON format for streaming responses
@@ -19,14 +21,14 @@ Add three realtime communication features to richie-rpc:
 
 ## Files to Create/Modify
 
-| File | Changes |
-|------|---------|
-| [packages/core/index.ts](packages/core/index.ts) | Add discriminated union endpoint types, type extraction utilities |
-| [packages/core/websocket.ts](packages/core/websocket.ts) | **NEW** - WebSocket contract types and `defineWebSocketContract` |
-| [packages/client/index.ts](packages/client/index.ts) | Add streaming/SSE client methods, XHR upload progress, update `createClient` |
-| [packages/client/websocket.ts](packages/client/websocket.ts) | **NEW** - WebSocket client with `createWebSocketClient` |
-| [packages/server/index.ts](packages/server/index.ts) | Add streaming/SSE response handling in Router |
-| [packages/server/websocket.ts](packages/server/websocket.ts) | **NEW** - WebSocket router for Bun integration |
+| File                                                         | Changes                                                                      |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| [packages/core/index.ts](packages/core/index.ts)             | Add discriminated union endpoint types, type extraction utilities            |
+| [packages/core/websocket.ts](packages/core/websocket.ts)     | **NEW** - WebSocket contract types and `defineWebSocketContract`             |
+| [packages/client/index.ts](packages/client/index.ts)         | Add streaming/SSE client methods, XHR upload progress, update `createClient` |
+| [packages/client/websocket.ts](packages/client/websocket.ts) | **NEW** - WebSocket client with `createWebSocketClient`                      |
+| [packages/server/index.ts](packages/server/index.ts)         | Add streaming/SSE response handling in Router                                |
+| [packages/server/websocket.ts](packages/server/websocket.ts) | **NEW** - WebSocket router for Bun integration                               |
 
 ---
 
@@ -90,8 +92,9 @@ export type Contract = Record<string, AnyEndpointDefinition>;
 
 ```typescript
 // Extract chunk type from streaming endpoint
-export type ExtractChunk<T extends StreamingEndpointDefinition> =
-  T['chunk'] extends z.ZodTypeAny ? z.infer<T['chunk']> : never;
+export type ExtractChunk<T extends StreamingEndpointDefinition> = T['chunk'] extends z.ZodTypeAny
+  ? z.infer<T['chunk']>
+  : never;
 
 // Extract SSE event union
 export type ExtractSSEEvents<T extends SSEEndpointDefinition> = {
@@ -216,8 +219,12 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
       listeners[event].add(handler);
       return () => listeners[event].delete(handler);
     },
-    abort() { controller.abort(); },
-    get aborted() { return controller.signal.aborted; },
+    abort() {
+      controller.abort();
+    },
+    get aborted() {
+      return controller.signal.aborted;
+    },
   };
 }
 ```
@@ -267,7 +274,9 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
       listeners[event].add(handler);
       return () => listeners[event].delete(handler);
     },
-    close() { eventSource.close(); },
+    close() {
+      eventSource.close();
+    },
     get state() {
       return ['connecting', 'open', 'closed'][eventSource.readyState] as any;
     },
@@ -283,9 +292,9 @@ For `type: 'standard'` endpoints with `contentType: 'multipart/form-data'`, supp
 
 ```typescript
 export interface UploadProgressEvent {
-  loaded: number;    // Bytes uploaded
-  total: number;     // Total bytes
-  progress: number;  // 0-1 (percentage as decimal)
+  loaded: number; // Bytes uploaded
+  total: number; // Total bytes
+  progress: number; // 0-1 (percentage as decimal)
 }
 
 // Add to EndpointRequestOptions
@@ -473,6 +482,7 @@ export function createWebSocketClient<T extends WebSocketContract>(
 ```
 
 **React integration example:**
+
 ```typescript
 const ws = wsClient.chat({ params: { roomId: 'room1' } });
 const [connected, setConnected] = useState(false);
@@ -499,6 +509,7 @@ useEffect(() => {
 ```
 
 **Client validates outgoing messages before sending:**
+
 ```typescript
 send(message) {
   const schema = contract.clientMessages[message.type];
@@ -575,7 +586,7 @@ export interface SSEEmitter<T extends SSEEndpointDefinition> {
 
 export type SSEHandler<T extends SSEEndpointDefinition, C> = (
   input: SSEHandlerInput<T, C>,
-) => void | (() => void);  // Returns cleanup function
+) => void | (() => void); // Returns cleanup function
 ```
 
 ### WebSocket Router (`packages/server/websocket.ts`)

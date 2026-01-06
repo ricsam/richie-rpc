@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 /**
  * WebSocket Server Example
  *
@@ -5,7 +6,7 @@
  * with typed messages, rooms, and pub/sub.
  */
 
-import { createWebSocketRouter } from '@richie-rpc/server';
+import { createWebSocketRouter } from '@richie-rpc/server/websocket';
 import { chatContract } from './contract';
 
 // Store connected users per room
@@ -39,175 +40,184 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Create the WebSocket router
-export const wsRouter = createWebSocketRouter(chatContract, {
-  chat: {
-    open(ws) {
-      const roomId = ws.data.params.roomId;
-      const connectionId = generateId();
+// Define the per-connection state type
+interface ChatConnectionState {
+  connectionId: string;
+}
 
-      // Store connection ID in ws.data for later use
-      (ws.data as any).connectionId = connectionId;
+// Create the WebSocket router with typed state
+export const wsRouter = createWebSocketRouter(
+  chatContract,
+  {
+    chat: {
+      open(ws) {
+        const roomId = ws.data.params.roomId;
+        const connectionId = generateId();
 
-      console.log(`[WS] Connection opened for room ${roomId}`);
+        // Store connection ID in typed state
+        ws.data.state.connectionId = connectionId;
 
-      // Subscribe to the room topic for broadcasts
-      ws.subscribe(`room:${roomId}`);
-    },
+        console.log(`[WS] Connection opened for room ${roomId}`);
 
-    message(ws, msg) {
-      const roomId = ws.data.params.roomId;
-      const connectionId = (ws.data as any).connectionId;
-      const room = getOrCreateRoom(roomId);
+        // Subscribe to the room topic for broadcasts
+        ws.subscribe(`room:${roomId}`);
+      },
 
-      switch (msg.type) {
-        case 'join': {
-          // Check if username is taken
-          const existingUser = Array.from(room.users.values()).find(
-            (u) => u.username.toLowerCase() === msg.payload.username.toLowerCase()
-          );
+      message(ws, msg) {
+        const roomId = ws.data.params.roomId;
+        const connectionId = ws.data.state.connectionId;
+        const room = getOrCreateRoom(roomId);
 
-          if (existingUser) {
-            ws.send('error', {
-              code: 'USERNAME_TAKEN',
-              message: `Username "${msg.payload.username}" is already taken in this room`,
+        switch (msg.type) {
+          case 'join': {
+            // Check if username is taken
+            const existingUser = Array.from(room.users.values()).find(
+              (u) => u.username.toLowerCase() === msg.payload.username.toLowerCase(),
+            );
+
+            if (existingUser) {
+              ws.send('error', {
+                code: 'USERNAME_TAKEN',
+                message: `Username "${msg.payload.username}" is already taken in this room`,
+              });
+              return;
+            }
+
+            // Add user to room
+            const user: User = {
+              id: connectionId,
+              username: msg.payload.username,
+              avatar: msg.payload.avatar,
+            };
+            room.users.set(connectionId, user);
+
+            console.log(`[WS] ${user.username} joined room ${roomId}`);
+
+            // Send room state to the joining user
+            ws.send('roomState', {
+              roomId,
+              users: Array.from(room.users.values()).map((u) => ({
+                userId: u.id,
+                username: u.username,
+                avatar: u.avatar,
+              })),
+              recentMessages: room.messages.slice(-50), // Last 50 messages
             });
-            return;
-          }
 
-          // Add user to room
-          const user: User = {
-            id: connectionId,
-            username: msg.payload.username,
-            avatar: msg.payload.avatar,
-          };
-          room.users.set(connectionId, user);
-
-          console.log(`[WS] ${user.username} joined room ${roomId}`);
-
-          // Send room state to the joining user
-          ws.send('roomState', {
-            roomId,
-            users: Array.from(room.users.values()).map((u) => ({
-              userId: u.id,
-              username: u.username,
-              avatar: u.avatar,
-            })),
-            recentMessages: room.messages.slice(-50), // Last 50 messages
-          });
-
-          // Notify others that user joined
-          ws.publish(`room:${roomId}`, 'userJoined', {
-            userId: user.id,
-            username: user.username,
-            avatar: user.avatar,
-            userCount: room.users.size,
-          });
-          break;
-        }
-
-        case 'message': {
-          const user = room.users.get(connectionId);
-          if (!user) {
-            ws.send('error', {
-              code: 'NOT_JOINED',
-              message: 'You must join the room before sending messages',
+            // Notify others that user joined
+            ws.publish(`room:${roomId}`, 'userJoined', {
+              userId: user.id,
+              username: user.username,
+              avatar: user.avatar,
+              userCount: room.users.size,
             });
-            return;
+            break;
           }
 
-          // Create message
-          const message = {
-            id: generateId(),
-            userId: user.id,
-            username: user.username,
-            text: msg.payload.text,
-            replyTo: msg.payload.replyTo,
-            timestamp: new Date().toISOString(),
-          };
+          case 'message': {
+            const user = room.users.get(connectionId);
+            if (!user) {
+              ws.send('error', {
+                code: 'NOT_JOINED',
+                message: 'You must join the room before sending messages',
+              });
+              return;
+            }
 
-          // Store message (keep last 100)
-          room.messages.push(message);
-          if (room.messages.length > 100) {
-            room.messages.shift();
+            // Create message
+            const message = {
+              id: generateId(),
+              userId: user.id,
+              username: user.username,
+              text: msg.payload.text,
+              replyTo: msg.payload.replyTo,
+              timestamp: new Date().toISOString(),
+            };
+
+            // Store message (keep last 100)
+            room.messages.push(message);
+            if (room.messages.length > 100) {
+              room.messages.shift();
+            }
+
+            console.log(`[WS] ${user.username}: ${msg.payload.text}`);
+
+            // Broadcast to all users in room (including sender)
+            ws.publish(`room:${roomId}`, 'message', message);
+            // Also send to self (publish doesn't send to the sender)
+            ws.send('message', message);
+            break;
           }
 
-          console.log(`[WS] ${user.username}: ${msg.payload.text}`);
+          case 'typing': {
+            const user = room.users.get(connectionId);
+            if (!user) return;
 
-          // Broadcast to all users in room (including sender)
-          ws.publish(`room:${roomId}`, 'message', message);
-          // Also send to self (publish doesn't send to the sender)
-          ws.send('message', message);
-          break;
+            // Broadcast typing indicator to others
+            ws.publish(`room:${roomId}`, 'typing', {
+              userId: user.id,
+              username: user.username,
+              isTyping: msg.payload.isTyping,
+            });
+            break;
+          }
+
+          case 'leave': {
+            const user = room.users.get(connectionId);
+            if (user) {
+              room.users.delete(connectionId);
+              console.log(`[WS] ${user.username} left room ${roomId}`);
+
+              ws.publish(`room:${roomId}`, 'userLeft', {
+                userId: user.id,
+                username: user.username,
+                userCount: room.users.size,
+              });
+            }
+            ws.close();
+            break;
+          }
         }
+      },
 
-        case 'typing': {
-          const user = room.users.get(connectionId);
-          if (!user) return;
+      close(ws) {
+        const roomId = ws.data.params.roomId;
+        const connectionId = ws.data.state.connectionId;
+        const room = rooms.get(roomId);
 
-          // Broadcast typing indicator to others
-          ws.publish(`room:${roomId}`, 'typing', {
-            userId: user.id,
-            username: user.username,
-            isTyping: msg.payload.isTyping,
-          });
-          break;
-        }
-
-        case 'leave': {
+        if (room) {
           const user = room.users.get(connectionId);
           if (user) {
             room.users.delete(connectionId);
-            console.log(`[WS] ${user.username} left room ${roomId}`);
+            console.log(`[WS] ${user.username} disconnected from room ${roomId}`);
 
+            // Notify others
             ws.publish(`room:${roomId}`, 'userLeft', {
               userId: user.id,
               username: user.username,
               userCount: room.users.size,
             });
           }
-          ws.close();
-          break;
+
+          // Clean up empty rooms
+          if (room.users.size === 0) {
+            rooms.delete(roomId);
+            console.log(`[WS] Room ${roomId} is now empty and removed`);
+          }
         }
-      }
-    },
+      },
 
-    close(ws) {
-      const roomId = ws.data.params.roomId;
-      const connectionId = (ws.data as any).connectionId;
-      const room = rooms.get(roomId);
-
-      if (room) {
-        const user = room.users.get(connectionId);
-        if (user) {
-          room.users.delete(connectionId);
-          console.log(`[WS] ${user.username} disconnected from room ${roomId}`);
-
-          // Notify others
-          ws.publish(`room:${roomId}`, 'userLeft', {
-            userId: user.id,
-            username: user.username,
-            userCount: room.users.size,
-          });
-        }
-
-        // Clean up empty rooms
-        if (room.users.size === 0) {
-          rooms.delete(roomId);
-          console.log(`[WS] Room ${roomId} is now empty and removed`);
-        }
-      }
-    },
-
-    validationError(ws, error) {
-      console.error('[WS] Validation error:', error.message);
-      ws.send('error', {
-        code: 'INVALID_MESSAGE',
-        message: error.message,
-      });
+      validationError(ws, error) {
+        console.error('[WS] Validation error:', error.message);
+        ws.send('error', {
+          code: 'INVALID_MESSAGE',
+          message: error.message,
+        });
+      },
     },
   },
-});
+  { state: {} as ChatConnectionState },
+);
 
 // Start the server
 if (import.meta.main) {
@@ -216,9 +226,9 @@ if (import.meta.main) {
 
     websocket: wsRouter.websocketHandler,
 
-    fetch(request, server) {
+    async fetch(request, server) {
       // Try WebSocket upgrade
-      const wsMatch = wsRouter.matchAndPrepareUpgrade(request);
+      const wsMatch = await wsRouter.matchAndPrepareUpgrade(request);
       if (wsMatch && request.headers.get('upgrade') === 'websocket') {
         if (server.upgrade(request, { data: wsMatch })) {
           return; // Upgrade successful

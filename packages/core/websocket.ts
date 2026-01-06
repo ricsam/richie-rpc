@@ -73,8 +73,9 @@ export type ExtractWSParams<T extends WebSocketContractDefinition> =
 /**
  * Extract query type from WebSocket endpoint
  */
-export type ExtractWSQuery<T extends WebSocketContractDefinition> =
-  T['query'] extends z.ZodTypeAny ? z.infer<T['query']> : never;
+export type ExtractWSQuery<T extends WebSocketContractDefinition> = T['query'] extends z.ZodTypeAny
+  ? z.infer<T['query']>
+  : never;
 
 /**
  * Extract headers type from WebSocket endpoint

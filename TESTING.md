@@ -12,6 +12,7 @@ cd packages/demo
 ```
 
 This will:
+
 - ✅ Start the server
 - ✅ Run client integration tests
 - ✅ Verify OpenAPI spec endpoint
@@ -28,6 +29,7 @@ bun run start
 ```
 
 The server will be available at:
+
 - http://localhost:3000 - API endpoints
 - http://localhost:3000/docs - Interactive API documentation
 - http://localhost:3000/openapi.json - OpenAPI specification
@@ -42,6 +44,7 @@ bun run client-test.ts
 ```
 
 This runs a comprehensive suite of integration tests:
+
 - List users
 - Get a specific user
 - Create a new user
@@ -61,6 +64,7 @@ bun run test:e2e
 ```
 
 The E2E tests verify:
+
 - OpenAPI spec is served correctly
 - OpenAPI spec matches actual endpoint behavior
 - Full CRUD operations work via HTTP
@@ -151,4 +155,3 @@ The test suite covers:
    - Client-server communication
    - Real HTTP requests
    - Browser-based UI testing
-

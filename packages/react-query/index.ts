@@ -160,7 +160,9 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
   for (const [name, endpoint] of Object.entries(contract)) {
     // Handle streaming endpoints
     if (endpoint.type === 'streaming') {
-      const streamMethod = client[name as keyof T] as unknown as StreamingClientMethod<StreamingEndpointDefinition>;
+      const streamMethod = client[
+        name as keyof T
+      ] as unknown as StreamingClientMethod<StreamingEndpointDefinition>;
       hooks[name] = {
         stream: streamMethod,
       };
@@ -169,7 +171,9 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
 
     // Handle SSE endpoints
     if (endpoint.type === 'sse') {
-      const connectMethod = client[name as keyof T] as unknown as SSEClientMethod<SSEEndpointDefinition>;
+      const connectMethod = client[
+        name as keyof T
+      ] as unknown as SSEClientMethod<SSEEndpointDefinition>;
       hooks[name] = {
         connect: connectMethod,
       };
@@ -178,7 +182,9 @@ export function createHooks<T extends Contract>(client: Client<T>, contract: T):
 
     // Handle standard endpoints
     const method = endpoint.method;
-    const clientMethod = client[name as keyof T] as unknown as ClientMethod<StandardEndpointDefinition>;
+    const clientMethod = client[
+      name as keyof T
+    ] as unknown as ClientMethod<StandardEndpointDefinition>;
 
     if (method === 'GET' || method === 'HEAD') {
       // Create query hooks for read operations

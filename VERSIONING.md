@@ -7,7 +7,7 @@ Richie RPC uses **independent versioning** for each package in the monorepo.
 Each package has its own version number and can be released independently:
 
 - `@richie-rpc/core` - Currently at v1.1.0
-- `@richie-rpc/server` - Currently at v1.1.0  
+- `@richie-rpc/server` - Currently at v1.1.0
 - `@richie-rpc/openapi` - Currently at v1.0.0
 - `@richie-rpc/client` - Currently at v1.0.0
 
@@ -42,11 +42,13 @@ Follow [Semantic Versioning](https://semver.org/):
 ### Which Packages to Bump
 
 **Option 1: Synchronized (Simpler)**
+
 - Bump all packages together
 - Easier to manage
 - Users always have matching versions
 
 **Option 2: Independent (Current)**
+
 - Bump only changed packages
 - More granular releases
 - Smaller changesets
@@ -56,12 +58,14 @@ Follow [Semantic Versioning](https://semver.org/):
 ### Automatic (CI/CD)
 
 1. Update version in package.json files:
+
    ```bash
    # Example: Bug fix in server only
    # Edit packages/server/package.json: "version": "1.1.1"
    ```
 
 2. Commit and push:
+
    ```bash
    git add packages/server/package.json
    git commit -m "chore(server): bump version to 1.1.1"
@@ -132,17 +136,22 @@ Maintain changelogs per package or use GitHub Releases:
 # @richie-rpc/core
 
 ## [1.1.0] - 2025-10-28
+
 ### Added
+
 - Status const object for type-safe status codes
 
 ## [1.0.0] - 2025-10-28
+
 ### Added
+
 - Initial release
 ```
 
 ### GitHub Releases
 
 Create releases for each tag:
+
 - `core@v1.1.0` - Release notes for core package
 - `server@v1.1.0` - Release notes for server package
 
@@ -154,13 +163,14 @@ When bumping versions, consider dependencies:
 // packages/server/package.json
 {
   "peerDependencies": {
-    "@richie-rpc/core": "workspace:*"  // Dev: uses workspace
+    "@richie-rpc/core": "workspace:*" // Dev: uses workspace
     // After build: "^1.1.0"           // Published: uses version
   }
 }
 ```
 
 **Rules:**
+
 1. If you bump `core`, consider bumping dependent packages (`server`, `client`, `openapi`)
 2. Dependent packages can have higher or lower versions than core
 3. Use `^` for peer dependencies (allows compatible updates)
@@ -170,11 +180,13 @@ When bumping versions, consider dependencies:
 ### From v1.0.0 to v1.1.0
 
 **@richie-rpc/core & @richie-rpc/server:**
+
 - Added: `Status` const object
 - No breaking changes
 - Fully backwards compatible
 
 **@richie-rpc/openapi & @richie-rpc/client:**
+
 - No changes from v1.0.0
 
 ## Best Practices
@@ -229,4 +241,3 @@ As of this writing:
 - `@richie-rpc/server@1.1.0` (tag: `server@v1.1.0`)
 - `@richie-rpc/openapi@1.0.0` (tag: `openapi@v1.0.0`)
 - `@richie-rpc/client@1.0.0` (tag: `client@v1.0.0`)
-

@@ -21,11 +21,13 @@ bun run verify
 ### Making Changes
 
 1. Create a new branch:
+
    ```bash
    git checkout -b feature/my-feature
    ```
 
 2. Make your changes and ensure all checks pass:
+
    ```bash
    bun run typecheck  # Type check all packages
    bun run lint       # Lint code
@@ -33,6 +35,7 @@ bun run verify
    ```
 
 3. Commit your changes:
+
    ```bash
    git add .
    git commit -m "feat: add new feature"
@@ -69,12 +72,14 @@ When making changes that should be published:
 ### CI/CD Pipeline
 
 When you push to any branch:
+
 - ✅ Type checking runs
 - ✅ Linting runs
 - ✅ Build runs
 - ✅ Tests run (including E2E with Playwright)
 
 When merged to `main` and versions are bumped:
+
 - ✅ All CI checks run
 - ✅ Packages are built
 - ✅ Packages are published to npm
@@ -85,6 +90,7 @@ When merged to `main` and versions are bumped:
 To publish a new version:
 
 1. Update version in all package.json files:
+
    ```bash
    # packages/core/package.json
    # packages/server/package.json
@@ -93,6 +99,7 @@ To publish a new version:
    ```
 
 2. Commit and push to main:
+
    ```bash
    git add packages/*/package.json
    git commit -m "chore: bump version to 0.2.0"
@@ -175,4 +182,3 @@ richie-rpc/
 ## Questions?
 
 Feel free to open an issue for any questions or concerns!
-

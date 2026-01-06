@@ -5,7 +5,7 @@
  * with React using hooks for a chat application.
  */
 
-import { createWebSocketClient } from '@richie-rpc/client';
+import { createWebSocketClient } from '@richie-rpc/client/websocket';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { chatContract } from './contract';
 
@@ -44,10 +44,7 @@ function useChat(roomId: string, username: string) {
   const [error, setError] = useState<string | null>(null);
 
   // Create stable chat instance
-  const chat = useMemo(
-    () => wsClient.chat({ params: { roomId } }),
-    [roomId]
-  );
+  const chat = useMemo(() => wsClient.chat({ params: { roomId } }), [roomId]);
 
   // Connection lifecycle
   useEffect(() => {
@@ -145,7 +142,7 @@ function useChat(roomId: string, username: string) {
       if (!joined) return;
       chat.send('message', { text });
     },
-    [chat, joined]
+    [chat, joined],
   );
 
   const setTyping = useCallback(
@@ -153,7 +150,7 @@ function useChat(roomId: string, username: string) {
       if (!joined) return;
       chat.send('typing', { isTyping });
     },
-    [chat, joined]
+    [chat, joined],
   );
 
   const leave = useCallback(() => {
@@ -174,23 +171,9 @@ function useChat(roomId: string, username: string) {
 }
 
 // Example Chat Component
-export function ChatRoom({
-  roomId,
-  username,
-}: {
-  roomId: string;
-  username: string;
-}) {
-  const {
-    connected,
-    joined,
-    users,
-    messages,
-    typingUsers,
-    error,
-    sendMessage,
-    setTyping,
-  } = useChat(roomId, username);
+export function ChatRoom({ roomId, username }: { roomId: string; username: string }) {
+  const { connected, joined, users, messages, typingUsers, error, sendMessage, setTyping } =
+    useChat(roomId, username);
 
   const [inputText, setInputText] = useState('');
   const [isTypingLocal, setIsTypingLocal] = useState(false);
@@ -252,15 +235,10 @@ export function ChatRoom({
       {/* Messages */}
       <div className="messages">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`message ${msg.username === username ? 'own' : ''}`}
-          >
+          <div key={msg.id} className={`message ${msg.username === username ? 'own' : ''}`}>
             <span className="username">{msg.username}</span>
             <span className="text">{msg.text}</span>
-            <span className="time">
-              {new Date(msg.timestamp).toLocaleTimeString()}
-            </span>
+            <span className="time">{new Date(msg.timestamp).toLocaleTimeString()}</span>
           </div>
         ))}
       </div>
@@ -268,8 +246,8 @@ export function ChatRoom({
       {/* Typing indicator */}
       {typingUsers.length > 0 && (
         <div className="typing-indicator">
-          {typingUsers.map((u) => u.username).join(', ')}{' '}
-          {typingUsers.length === 1 ? 'is' : 'are'} typing...
+          {typingUsers.map((u) => u.username).join(', ')} {typingUsers.length === 1 ? 'is' : 'are'}{' '}
+          typing...
         </div>
       )}
 

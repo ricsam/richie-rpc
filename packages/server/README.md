@@ -20,19 +20,19 @@ const router = createRouter(contract, {
   getUser: async ({ params }) => {
     // params is fully typed based on the contract
     const user = await db.getUser(params.id);
-    
+
     if (!user) {
       return { status: Status.NotFound, body: { error: 'User not found' } };
     }
-    
+
     return { status: Status.OK, body: user };
   },
-  
+
   createUser: async ({ body }) => {
     // body is fully typed and already validated
     const user = await db.createUser(body);
     return { status: Status.Created, body: user };
-  }
+  },
 });
 ```
 
@@ -41,22 +41,22 @@ const router = createRouter(contract, {
 You can serve your API under a path prefix (e.g., `/api`) using the `basePath` option:
 
 ```typescript
-const router = createRouter(contract, handlers, { 
-  basePath: '/api' 
+const router = createRouter(contract, handlers, {
+  basePath: '/api',
 });
 
 Bun.serve({
   port: 3000,
   fetch(request) {
     const url = new URL(request.url);
-    
+
     // Route all /api/* requests to the router
     if (url.pathname.startsWith('/api/')) {
       return router.fetch(request);
     }
-    
+
     return new Response('Not Found', { status: 404 });
-  }
+  },
 });
 ```
 
@@ -67,7 +67,7 @@ The router will automatically strip the basePath prefix before matching routes. 
 ```typescript
 Bun.serve({
   port: 3000,
-  fetch: router.fetch
+  fetch: router.fetch,
 });
 ```
 
@@ -78,13 +78,13 @@ Bun.serve({
   port: 3000,
   fetch(request) {
     const url = new URL(request.url);
-    
+
     if (url.pathname.startsWith('/api')) {
       return router.handle(request);
     }
-    
+
     return new Response('Not Found', { status: 404 });
-  }
+  },
 });
 ```
 
@@ -140,14 +140,15 @@ Use the `Status` const object for type-safe status codes:
 ```typescript
 import { Status } from '@richie-rpc/server';
 
-return { status: Status.OK, body: user };           // 200
-return { status: Status.Created, body: newUser };   // 201
-return { status: Status.NoContent, body: {} };      // 204
-return { status: Status.BadRequest, body: error };  // 400
-return { status: Status.NotFound, body: error };    // 404
+return { status: Status.OK, body: user }; // 200
+return { status: Status.Created, body: newUser }; // 201
+return { status: Status.NoContent, body: {} }; // 204
+return { status: Status.BadRequest, body: error }; // 400
+return { status: Status.NotFound, body: error }; // 404
 ```
 
 Available status codes in `Status` object:
+
 - **Success**: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
 - **Redirection**: `MovedPermanently` (301), `Found` (302), `NotModified` (304)
 - **Client Errors**: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `MethodNotAllowed` (405), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
@@ -175,18 +176,18 @@ const contract = defineContract({
     method: 'GET',
     path: '/teapot',
     responses: {
-      418: z.object({ message: z.string(), isTeapot: z.boolean() })
-    }
-  }
+      418: z.object({ message: z.string(), isTeapot: z.boolean() }),
+    },
+  },
 });
 
 const router = createRouter(contract, {
   teapot: async () => {
     return {
       status: 418 as const,
-      body: { message: "I'm a teapot", isTeapot: true }
+      body: { message: "I'm a teapot", isTeapot: true },
     };
-  }
+  },
 });
 ```
 
@@ -201,11 +202,13 @@ const contract = defineContract({
     path: '/upload',
     contentType: 'multipart/form-data',
     body: z.object({
-      documents: z.array(z.object({
-        file: z.instanceof(File),
-        name: z.string(),
-        tags: z.array(z.string()).optional(),
-      })),
+      documents: z.array(
+        z.object({
+          file: z.instanceof(File),
+          name: z.string(),
+          tags: z.array(z.string()).optional(),
+        }),
+      ),
       category: z.string(),
     }),
     responses: {
@@ -243,6 +246,7 @@ const router = createRouter(contract, {
 ```
 
 The server automatically:
+
 - Parses `multipart/form-data` requests
 - Reconstructs nested structures with File objects
 - Validates the body against your Zod schema
@@ -359,9 +363,9 @@ const wsRouter = createWebSocketRouter(wsContract, {
     message(ws, msg) {
       // Called for each validated client message
       if (msg.type === 'sendMessage') {
-        ws.publish(`room:${ws.data.params.roomId}`, {
-          type: 'message',
-          payload: { userId: 'user1', text: msg.payload.text },
+        ws.publish(`room:${ws.data.params.roomId}`, 'message', {
+          userId: 'user1',
+          text: msg.payload.text,
         });
       }
     },
@@ -373,14 +377,64 @@ const wsRouter = createWebSocketRouter(wsContract, {
 
     validationError(ws, error) {
       // Called when client message validation fails
-      ws.send({
-        type: 'error',
-        payload: { code: 'VALIDATION_ERROR', message: error.message },
-      });
+      ws.send('error', { code: 'VALIDATION_ERROR', message: error.message });
     },
   },
 });
 ```
+
+### Typed Per-Connection State
+
+You can store typed per-connection state by defining a state interface and passing it as an option. This follows the same pattern as Bun's WebSocket data:
+
+```typescript
+// Define your per-connection state type
+interface ChatConnectionState {
+  connectionId: string;
+  userId?: string;
+  username?: string;
+}
+
+const wsRouter = createWebSocketRouter(
+  wsContract,
+  {
+    chat: {
+      open(ws) {
+        // Initialize typed state - fully typed, no casts needed
+        ws.data.state.connectionId = generateId();
+        ws.subscribe(`room:${ws.data.params.roomId}`);
+      },
+
+      message(ws, msg) {
+        // Access typed state
+        const { connectionId, username } = ws.data.state;
+
+        if (msg.type === 'join') {
+          // Update state
+          ws.data.state.username = msg.payload.username;
+          ws.data.state.userId = connectionId;
+        }
+
+        if (msg.type === 'sendMessage' && username) {
+          ws.publish(`room:${ws.data.params.roomId}`, 'message', {
+            userId: connectionId,
+            text: msg.payload.text,
+          });
+        }
+      },
+
+      close(ws) {
+        // State is available throughout connection lifecycle
+        console.log(`User ${ws.data.state.username} disconnected`);
+      },
+    },
+  },
+  // Pass state type hint as third argument
+  { state: {} as ChatConnectionState },
+);
+```
+
+The state object is initialized as an empty object for each connection and is available via `ws.data.state` in all handlers (`open`, `message`, `close`, `validationError`).
 
 ### TypedServerWebSocket Interface
 
@@ -389,7 +443,10 @@ const wsRouter = createWebSocketRouter(wsContract, {
 - `unsubscribe(topic)` - Unsubscribe from a topic
 - `publish(topic, type, payload)` - Broadcast to all subscribers
 - `close(code?, reason?)` - Close the connection
-- `data` - Access params, query, headers from the connection
+- `data.params` - Access path parameters from the connection
+- `data.query` - Access query parameters from the connection
+- `data.headers` - Access headers from the connection
+- `data.state` - Access typed per-connection state (see above)
 
 ### Integrating with Bun.serve
 
@@ -399,9 +456,9 @@ Bun.serve({
 
   websocket: wsRouter.websocketHandler,
 
-  fetch(request, server) {
+  async fetch(request, server) {
     // Try WebSocket upgrade
-    const wsMatch = wsRouter.matchAndPrepareUpgrade(request);
+    const wsMatch = await wsRouter.matchAndPrepareUpgrade(request);
     if (wsMatch && request.headers.get('upgrade') === 'websocket') {
       if (server.upgrade(request, { data: wsMatch })) return;
     }
@@ -423,11 +480,13 @@ The router throws specific error classes that you can catch and handle. These er
 Thrown when request or response validation fails. Contains detailed Zod validation issues.
 
 **Properties:**
+
 - `field: string` - The field that failed validation (`"params"`, `"query"`, `"headers"`, `"body"`, or `"response[status]"`)
 - `issues: z.ZodIssue[]` - Array of Zod validation issues with detailed error information
 - `message: string` - Error message
 
 **When thrown:**
+
 - Invalid path parameters (params)
 - Invalid query parameters (query)
 - Invalid request headers (headers)
@@ -455,10 +514,10 @@ Bun.serve({
             field: error.field,
             issues: error.issues,
           },
-          { status: 400 }
+          { status: 400 },
         );
       }
-      
+
       if (error instanceof RouteNotFoundError) {
         // Handle route not found
         return Response.json(
@@ -466,16 +525,13 @@ Bun.serve({
             error: 'Not Found',
             message: `Route ${error.method} ${error.path} not found`,
           },
-          { status: 404 }
+          { status: 404 },
         );
       }
-      
+
       // Handle unexpected errors
       console.error('Unexpected error:', error);
-      return Response.json(
-        { error: 'Internal Server Error' },
-        { status: 500 }
-      );
+      return Response.json({ error: 'Internal Server Error' }, { status: 500 });
     }
   },
 });
@@ -486,10 +542,12 @@ Bun.serve({
 Thrown when no matching route is found for the request.
 
 **Properties:**
+
 - `path: string` - The requested path
 - `method: string` - The HTTP method (GET, POST, etc.)
 
 **When thrown:**
+
 - No endpoint in the contract matches the request method and path
 
 **Example:**
@@ -504,7 +562,7 @@ try {
         error: 'Not Found',
         message: `Cannot ${error.method} ${error.path}`,
       },
-      { status: 404 }
+      { status: 404 },
     );
   }
   throw error; // Re-throw other errors
@@ -514,12 +572,7 @@ try {
 ### Complete Error Handling Example
 
 ```typescript
-import {
-  createRouter,
-  ValidationError,
-  RouteNotFoundError,
-  Status,
-} from '@richie-rpc/server';
+import { createRouter, ValidationError, RouteNotFoundError, Status } from '@richie-rpc/server';
 
 const router = createRouter(contract, handlers);
 
@@ -527,7 +580,7 @@ Bun.serve({
   port: 3000,
   async fetch(request) {
     const url = new URL(request.url);
-    
+
     // Handle API routes
     if (url.pathname.startsWith('/api/')) {
       try {
@@ -545,29 +598,26 @@ Bun.serve({
                 code: issue.code,
               })),
             },
-            { status: 400 }
+            { status: 400 },
           );
         }
-        
+
         if (error instanceof RouteNotFoundError) {
           return Response.json(
             {
               error: 'Not Found',
               message: `Route ${error.method} ${error.path} not found`,
             },
-            { status: 404 }
+            { status: 404 },
           );
         }
-        
+
         // Log unexpected errors
         console.error('Unexpected error:', error);
-        return Response.json(
-          { error: 'Internal Server Error' },
-          { status: 500 }
-        );
+        return Response.json({ error: 'Internal Server Error' }, { status: 500 });
       }
     }
-    
+
     // Handle other routes
     return new Response('Not Found', { status: 404 });
   },
@@ -615,4 +665,3 @@ Both request and response data are validated against the contract schemas:
 ## License
 
 MIT
-

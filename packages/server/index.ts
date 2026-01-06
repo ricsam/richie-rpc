@@ -341,7 +341,10 @@ async function parseStreamingRequest<T extends StreamingEndpointDefinition, C = 
     body = result.data;
   }
 
-  return { params, query, headers, body, request, context } as Omit<StreamingHandlerInput<T, C>, 'stream'>;
+  return { params, query, headers, body, request, context } as Omit<
+    StreamingHandlerInput<T, C>,
+    'stream'
+  >;
 }
 
 /**
@@ -391,7 +394,10 @@ async function parseSSERequest<T extends SSEEndpointDefinition, C = unknown>(
   }
 
   // SSE endpoints don't have a body (GET only)
-  return { params, query, headers, request, context } as Omit<SSEHandlerInput<T, C>, 'emitter' | 'signal'>;
+  return { params, query, headers, request, context } as Omit<
+    SSEHandlerInput<T, C>,
+    'emitter' | 'signal'
+  >;
 }
 
 /**
@@ -534,14 +540,14 @@ function createStreamingResponse<T extends StreamingEndpointDefinition>(
   const stream: StreamEmitter<T> = {
     send(chunk) {
       if (!closed) {
-        writer.write(encoder.encode(JSON.stringify(chunk) + '\n'));
+        writer.write(encoder.encode(`${JSON.stringify(chunk)}\n`));
       }
     },
     close(final) {
       if (!closed) {
         closed = true;
         if (final !== undefined) {
-          writer.write(encoder.encode(JSON.stringify({ __final__: true, data: final }) + '\n'));
+          writer.write(encoder.encode(`${JSON.stringify({ __final__: true, data: final })}\n`));
         }
         writer.close();
       }
@@ -570,7 +576,10 @@ function createStreamingResponse<T extends StreamingEndpointDefinition>(
  * Create an SSE response
  */
 function createSSEResponse<T extends SSEEndpointDefinition>(
-  handler: (emitter: SSEEmitter<T>, signal: AbortSignal) => void | (() => void) | Promise<void | (() => void)>,
+  handler: (
+    emitter: SSEEmitter<T>,
+    signal: AbortSignal,
+  ) => void | (() => void) | Promise<void | (() => void)>,
 ): Response {
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
@@ -744,7 +753,9 @@ export class Router<T extends Contract, C = unknown> {
       // Parse request for download endpoint
       const input = await parseDownloadRequest(request, endpoint, params, context);
       const downloadHandler = handler as unknown as DownloadHandler<DownloadEndpointDefinition, C>;
-      const response = await downloadHandler(input as DownloadHandlerInput<DownloadEndpointDefinition, C>);
+      const response = await downloadHandler(
+        input as DownloadHandlerInput<DownloadEndpointDefinition, C>,
+      );
       return createDownloadResponse(
         endpoint as DownloadEndpointDefinition,
         response as DownloadHandlerResponse<DownloadEndpointDefinition>,
@@ -754,7 +765,9 @@ export class Router<T extends Contract, C = unknown> {
     // Standard endpoint
     const input = await parseRequest(request, endpoint, params, context);
     const standardHandler = handler as unknown as Handler<StandardEndpointDefinition, C>;
-    const handlerResponse = await standardHandler(input as HandlerInput<StandardEndpointDefinition, C>);
+    const handlerResponse = await standardHandler(
+      input as HandlerInput<StandardEndpointDefinition, C>,
+    );
     return createResponse(
       endpoint as StandardEndpointDefinition,
       handlerResponse as HandlerResponse<StandardEndpointDefinition>,

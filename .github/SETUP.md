@@ -9,10 +9,11 @@ This guide explains how to configure your GitHub repository for automated CI/CD.
 To publish packages to npm, you need to configure an npm token:
 
 1. **Create an npm token:**
+
    ```bash
    # Login to npm (if not already)
    npm login
-   
+
    # Generate a token (choose "Automation" type)
    # Visit: https://www.npmjs.com/settings/YOUR_USERNAME/tokens
    ```
@@ -36,6 +37,7 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 **Triggers:** Push to any branch, all pull requests
 
 **Steps:**
+
 1. Checkout code
 2. Setup Bun
 3. Install dependencies
@@ -52,10 +54,12 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 ### 2. Publish Workflow (`.github/workflows/publish.yml`)
 
 **Triggers:**
+
 - Push to `main` branch when `packages/*/package.json` changes
 - Manual trigger via GitHub UI (with dry-run option)
 
 **Steps:**
+
 1. Run all CI checks
 2. Build packages
 3. Check if version already published (skip if exists)
@@ -68,6 +72,7 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 6. Restore development state
 
 **Manual Trigger:**
+
 - Go to `Actions` tab in GitHub
 - Select `Publish to npm` workflow
 - Click `Run workflow`
@@ -84,6 +89,7 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
 ### Automated Publishing
 
 1. **Update versions** in all package.json files:
+
    ```bash
    # Edit packages/core/package.json
    # Edit packages/server/package.json
@@ -92,6 +98,7 @@ The `GITHUB_TOKEN` is automatically provided by GitHub Actions, no setup needed!
    ```
 
 2. **Commit and push to main:**
+
    ```bash
    git add packages/*/package.json
    git commit -m "chore: bump version to 0.2.0"
@@ -155,6 +162,7 @@ Configure branch protection for `main`:
 ### Artifacts
 
 Test results and reports are uploaded as artifacts:
+
 - Playwright test reports (kept for 7 days)
 - View in the workflow run summary
 
@@ -163,6 +171,7 @@ Test results and reports are uploaded as artifacts:
 ### "Version already exists" Error
 
 If you try to publish a version that already exists on npm:
+
 - The workflow will detect this and skip publishing
 - No error will occur
 - Update the version number and try again
@@ -186,10 +195,12 @@ The workflow automatically runs `bun run restore` to clean up build artifacts.
 ## Cost Considerations
 
 GitHub Actions provides free minutes for public repositories:
+
 - **Public repos:** Unlimited minutes
 - **Private repos:** 2,000 minutes/month (free tier)
 
 Each workflow run takes approximately:
+
 - CI: ~5 minutes
 - Publish: ~7 minutes
 
@@ -208,7 +219,7 @@ Each workflow run takes approximately:
 4. ✅ Bump version and test publish workflow
 
 For more information, see:
+
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
 - [npm Publishing Documentation](https://docs.npmjs.com/cli/v9/commands/npm-publish)
-

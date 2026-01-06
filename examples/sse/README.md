@@ -5,6 +5,7 @@ This example demonstrates how to use Richie RPC's SSE feature for one-way server
 ## Overview
 
 Server-Sent Events are ideal for:
+
 - Real-time log streaming
 - Live notifications and alerts
 - Stock tickers and price updates
@@ -32,6 +33,7 @@ bun run client.ts
 ### Contract Definition
 
 SSE endpoints use `type: 'sse'` and define:
+
 - `events` - Object mapping event names to their data schemas
 
 ```typescript
@@ -75,7 +77,7 @@ logs: ({ query, emitter, signal }) => {
 
   // Alternative: return cleanup function
   return () => clearInterval(interval);
-}
+};
 ```
 
 ### Client Usage
@@ -114,13 +116,13 @@ The `Content-Type` header is `text/event-stream`.
 
 ## Key Differences from WebSockets
 
-| Feature | SSE | WebSocket |
-|---------|-----|-----------|
-| Direction | Server → Client only | Bidirectional |
-| Protocol | HTTP | WebSocket |
-| Auto-reconnect | Built-in | Manual |
-| Binary data | No (text only) | Yes |
-| Browser support | Native EventSource | Native WebSocket |
-| Use case | Notifications, feeds | Chat, games |
+| Feature         | SSE                  | WebSocket        |
+| --------------- | -------------------- | ---------------- |
+| Direction       | Server → Client only | Bidirectional    |
+| Protocol        | HTTP                 | WebSocket        |
+| Auto-reconnect  | Built-in             | Manual           |
+| Binary data     | No (text only)       | Yes              |
+| Browser support | Native EventSource   | Native WebSocket |
+| Use case        | Notifications, feeds | Chat, games      |
 
 SSE is simpler when you only need server-to-client communication and don't need binary data support.

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
   Contract,
   DownloadEndpointDefinition,
@@ -906,9 +908,7 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
 
   // Handle errors
   eventSource.onerror = () => {
-    (listeners.error as Set<ErrorHandler>).forEach((h) =>
-      h(new Error('SSE connection error')),
-    );
+    (listeners.error as Set<ErrorHandler>).forEach((h) => h(new Error('SSE connection error')));
   };
 
   return {
@@ -963,20 +963,19 @@ export function createClient<T extends Contract>(contract: T, config: ClientConf
 
   for (const [name, endpoint] of Object.entries(contract)) {
     if (endpoint.type === 'standard') {
-      client[name] = (
-        options: EndpointRequestOptions<StandardEndpointDefinition> = {},
-      ) => {
+      client[name] = (options: EndpointRequestOptions<StandardEndpointDefinition> = {}) => {
         return makeRequest(resolvedConfig, endpoint, options);
       };
     } else if (endpoint.type === 'streaming') {
-      client[name] = (
-        options: EndpointRequestOptions<StreamingEndpointDefinition> = {},
-      ) => {
+      client[name] = (options: EndpointRequestOptions<StreamingEndpointDefinition> = {}) => {
         return makeStreamingRequest(resolvedConfig, endpoint, options);
       };
     } else if (endpoint.type === 'sse') {
       client[name] = (
-        options: Omit<EndpointRequestOptions<SSEEndpointDefinition>, 'body' | 'onUploadProgress'> = {},
+        options: Omit<
+          EndpointRequestOptions<SSEEndpointDefinition>,
+          'body' | 'onUploadProgress'
+        > = {},
       ) => {
         return createSSEConnection(resolvedConfig, endpoint, options);
       };
@@ -985,9 +984,7 @@ export function createClient<T extends Contract>(contract: T, config: ClientConf
         return makeDownloadRequest(resolvedConfig, endpoint, options);
       };
     } else {
-      throw new Error(
-        `Endpoint "${name}" has unknown type "${(endpoint as any).type}".`,
-      );
+      throw new Error(`Endpoint "${name}" has unknown type "${(endpoint as any).type}".`);
     }
   }
 

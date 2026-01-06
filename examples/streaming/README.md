@@ -5,6 +5,7 @@ This example demonstrates how to use Richie RPC's HTTP streaming feature for AI-
 ## Overview
 
 HTTP Streaming is ideal for:
+
 - AI text generation (ChatGPT-style responses)
 - Long-running computations with progress updates
 - Large data processing with incremental results
@@ -30,6 +31,7 @@ bun run client.ts
 ### Contract Definition
 
 Streaming endpoints use `type: 'streaming'` and define:
+
 - `chunk` - Schema for each streamed chunk
 - `finalResponse` - Optional schema for the final response
 
@@ -49,6 +51,7 @@ const contract = defineContract({
 ### Server Handler
 
 Handlers receive a `stream` object with:
+
 - `send(chunk)` - Send a chunk to the client
 - `close(final?)` - Close with optional final response
 - `isOpen` - Check if client is still connected
@@ -60,7 +63,7 @@ generateText: async ({ body, stream }) => {
     stream.send({ text: token });
   }
   stream.close({ totalTokens: tokens.length });
-}
+};
 ```
 
 ### Client Usage

@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type {
-  ExtractClientMessage,
   ExtractClientMessagePayload,
   ExtractServerMessage,
   ExtractServerMessagePayload,
@@ -226,10 +226,10 @@ function resolveWebSocketUrl(baseUrl: string): string {
 
   // Convert http:// to ws:// and https:// to wss://
   if (baseUrl.startsWith('http://')) {
-    return 'ws://' + baseUrl.slice(7);
+    return `ws://${baseUrl.slice(7)}`;
   }
   if (baseUrl.startsWith('https://')) {
-    return 'wss://' + baseUrl.slice(8);
+    return `wss://${baseUrl.slice(8)}`;
   }
 
   // If relative URL, resolve using window.location

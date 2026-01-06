@@ -51,17 +51,17 @@ export const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       [Status.OK]: z.object({ id: z.string(), name: z.string(), email: z.string() }),
-      [Status.NotFound]: z.object({ error: z.string() })
-    }
+      [Status.NotFound]: z.object({ error: z.string() }),
+    },
   },
   createUser: {
     method: 'POST',
     path: '/users',
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
-      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() })
-    }
-  }
+      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+    },
+  },
 });
 ```
 
@@ -84,28 +84,28 @@ const router = createRouter(contract, {
   createUser: async ({ body }) => {
     const user = await db.createUser(body);
     return { status: Status.Created, body: user };
-  }
+  },
 });
 
 const openAPISpec = generateOpenAPISpec(contract, {
-  info: { title: 'My API', version: '1.0.0' }
+  info: { title: 'My API', version: '1.0.0' },
 });
 
 Bun.serve({
   port: 3000,
   fetch(request) {
     const url = new URL(request.url);
-    
+
     if (url.pathname === '/openapi.json') {
       return Response.json(openAPISpec);
     }
-    
+
     if (url.pathname === '/docs') {
       return createDocsResponse('/openapi.json');
     }
-    
+
     return router.fetch(request);
-  }
+  },
 });
 ```
 
@@ -117,7 +117,7 @@ import { createClient } from '@richie-rpc/client';
 import { contract } from './contract';
 
 const client = createClient(contract, {
-  baseUrl: 'http://localhost:3000'
+  baseUrl: 'http://localhost:3000',
 });
 
 // Fully typed!
@@ -125,7 +125,7 @@ const user = await client.getUser({ params: { id: '123' } });
 console.log(user.data.name); // ✅ Type-safe
 
 const newUser = await client.createUser({
-  body: { name: 'Alice', email: 'alice@example.com' }
+  body: { name: 'Alice', email: 'alice@example.com' },
 });
 console.log(newUser.data.id); // ✅ Type-safe
 ```
@@ -158,7 +158,7 @@ generateText: async ({ body, stream }) => {
     await delay(100);
   }
   stream.close({ totalTokens: body.prompt.split(' ').length });
-}
+};
 
 // Client
 const result = client.generateText({ body: { prompt: 'Hello world' } });
@@ -190,7 +190,7 @@ notifications: ({ emitter, signal }) => {
     emitter.send('heartbeat', { timestamp: new Date().toISOString() });
   }, 30000);
   signal.addEventListener('abort', () => clearInterval(interval));
-}
+};
 
 // Client
 const conn = client.notifications();
@@ -224,7 +224,9 @@ import { createWebSocketRouter } from '@richie-rpc/server';
 
 const wsRouter = createWebSocketRouter(wsContract, {
   chat: {
-    open(ws) { ws.subscribe(`room:${ws.data.params.roomId}`); },
+    open(ws) {
+      ws.subscribe(`room:${ws.data.params.roomId}`);
+    },
     message(ws, msg) {
       ws.publish(`room:${ws.data.params.roomId}`, {
         type: 'message',
@@ -263,6 +265,7 @@ bun add @richie-rpc/openapi @richie-rpc/core zod@^4 # For OpenAPI
 ```
 
 **npm Packages:**
+
 - [@richie-rpc/core](https://www.npmjs.com/package/@richie-rpc/core)
 - [@richie-rpc/server](https://www.npmjs.com/package/@richie-rpc/server)
 - [@richie-rpc/openapi](https://www.npmjs.com/package/@richie-rpc/openapi)
@@ -345,6 +348,7 @@ bun run test:e2e
 ```
 
 Visit:
+
 - http://localhost:3000/docs - Interactive API documentation UI (Scalar)
 - http://localhost:3000/openapi.json - OpenAPI 3.1 specification
 - http://localhost:3000/users - API endpoints
@@ -425,6 +429,7 @@ richie-rpc/
 The project uses GitHub Actions for continuous integration and deployment:
 
 ### CI Pipeline (All Branches)
+
 - ✅ Type checking with TypeScript
 - ✅ Linting with Biome
 - ✅ Build all packages
@@ -432,6 +437,7 @@ The project uses GitHub Actions for continuous integration and deployment:
 - ✅ Run E2E tests with Playwright
 
 ### CD Pipeline (Main Branch)
+
 - ✅ All CI checks must pass first
 - ✅ Check each package individually against npm registry
 - ✅ Publish only packages with new versions

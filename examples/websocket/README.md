@@ -5,6 +5,7 @@ This example demonstrates how to use Richie RPC's WebSocket feature for bidirect
 ## Overview
 
 WebSockets are ideal for:
+
 - Real-time chat applications
 - Multiplayer games
 - Collaborative editing
@@ -35,6 +36,7 @@ bun run client.ts
 ### Contract Definition
 
 WebSocket contracts use `defineWebSocketContract` with:
+
 - `path` - WebSocket endpoint path with optional parameters
 - `clientMessages` - Messages the client can send
 - `serverMessages` - Messages the server can send
@@ -121,6 +123,7 @@ disconnect();
 ### React Integration
 
 See `client-react.tsx` for a complete React integration with:
+
 - Custom `useChat` hook
 - Connection lifecycle management
 - Auto-reconnect handling
@@ -186,13 +189,13 @@ ws.unsubscribe('room:general');
 
 ## Key Differences from SSE
 
-| Feature | WebSocket | SSE |
-|---------|-----------|-----|
-| Direction | Bidirectional | Server → Client only |
-| Protocol | WebSocket | HTTP |
-| Message format | JSON (typed) | Event stream |
-| Auto-reconnect | Manual | Built-in |
-| Binary data | Yes | No |
-| Use case | Chat, games, collaboration | Notifications, feeds |
+| Feature        | WebSocket                  | SSE                  |
+| -------------- | -------------------------- | -------------------- |
+| Direction      | Bidirectional              | Server → Client only |
+| Protocol       | WebSocket                  | HTTP                 |
+| Message format | JSON (typed)               | Event stream         |
+| Auto-reconnect | Manual                     | Built-in             |
+| Binary data    | Yes                        | No                   |
+| Use case       | Chat, games, collaboration | Notifications, feeds |
 
 Use WebSockets when you need bidirectional communication or binary data support.

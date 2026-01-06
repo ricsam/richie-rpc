@@ -5,7 +5,7 @@
  * for bidirectional real-time communication.
  */
 
-import { createWebSocketClient } from '@richie-rpc/client';
+import { createWebSocketClient } from '@richie-rpc/client/websocket';
 import { chatContract } from './contract';
 
 const wsClient = createWebSocketClient(chatContract, {
@@ -27,12 +27,12 @@ async function main() {
   });
 
   // Track connection state
-  let isConnected = false;
+  let _isConnected = false;
   let hasJoined = false;
 
   // Set up event handlers before connecting
   chat.onStateChange((connected) => {
-    isConnected = connected;
+    _isConnected = connected;
     console.log(`Connection state: ${connected ? 'Connected' : 'Disconnected'}`);
 
     if (connected && !hasJoined) {
@@ -117,11 +117,7 @@ async function main() {
   // Send some messages
   console.log('\nSending messages...\n');
 
-  const messages = [
-    'Hello everyone!',
-    'How is everyone doing today?',
-    'This is a test message.',
-  ];
+  const messages = ['Hello everyone!', 'How is everyone doing today?', 'This is a test message.'];
 
   for (const text of messages) {
     // Simulate typing

@@ -80,19 +80,24 @@ This will run Playwright tests that:
 ## API Endpoints
 
 ### GET /users
+
 List all users with optional pagination.
 
 Query parameters:
+
 - `limit` (optional): Number of users to return
 - `offset` (optional): Offset for pagination
 
 ### GET /users/:id
+
 Get a specific user by ID.
 
 ### POST /users
+
 Create a new user.
 
 Body:
+
 ```json
 {
   "name": "string",
@@ -102,9 +107,11 @@ Body:
 ```
 
 ### PUT /users/:id
+
 Update a user.
 
 Body:
+
 ```json
 {
   "name": "string (optional)",
@@ -114,11 +121,13 @@ Body:
 ```
 
 ### DELETE /users/:id
+
 Delete a user.
 
 ## Project Structure
 
 ### Users Demo
+
 - `contract.ts` - API contract definition with Zod schemas
 - `server.ts` - Server implementation with handlers
 - `react-example.tsx` - React app demonstrating @richie-rpc/react-query hooks
@@ -128,6 +137,7 @@ Delete a user.
 - `playwright.config.ts` - Playwright configuration
 
 ### Dictionary Demo
+
 - `dictionary-contract.ts` - Dictionary API contract definition
 - `dictionary-server.ts` - Dictionary server implementation
 - `dictionary-example.tsx` - Dictionary React app with search, create, and delete
@@ -147,4 +157,3 @@ All success criteria from the plan are met:
 - ✅ All packages work together in demo
 - ✅ Playwright test successfully navigates to `/docs` and tests endpoints
 - ✅ Zero runtime errors in demo integration test
-

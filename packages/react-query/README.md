@@ -55,7 +55,7 @@ Query hooks automatically fetch data when the component mounts:
 ```tsx
 function UserList() {
   const { data, isLoading, error, refetch } = hooks.listUsers.useQuery({
-    query: { limit: "10", offset: "0" }
+    query: { limit: '10', offset: '0' },
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -63,7 +63,7 @@ function UserList() {
 
   return (
     <div>
-      {data.data.users.map(user => (
+      {data.data.users.map((user) => (
         <div key={user.id}>{user.name}</div>
       ))}
       <button onClick={() => refetch()}>Refresh</button>
@@ -80,12 +80,12 @@ For React Suspense integration:
 function UserListSuspense() {
   // This will suspend the component until data is loaded
   const { data } = hooks.listUsers.useSuspenseQuery({
-    query: { limit: "10" }
+    query: { limit: '10' },
   });
 
   return (
     <div>
-      {data.data.users.map(user => (
+      {data.data.users.map((user) => (
         <div key={user.id}>{user.name}</div>
       ))}
     </div>
@@ -123,19 +123,16 @@ function CreateUserForm() {
     e.preventDefault();
     mutation.mutate({
       body: {
-        name: "Alice",
-        email: "alice@example.com",
+        name: 'Alice',
+        email: 'alice@example.com',
         age: 25,
-      }
+      },
     });
   };
 
   return (
     <form onSubmit={handleSubmit}>
-      <button 
-        type="submit" 
-        disabled={mutation.isPending}
-      >
+      <button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? 'Creating...' : 'Create User'}
       </button>
       {mutation.error && <div>Error: {mutation.error.message}</div>}
@@ -151,6 +148,7 @@ function CreateUserForm() {
 Creates a typed hooks object from a client and contract.
 
 **Parameters:**
+
 - `client`: Client created with `createClient()`
 - `contract`: Your API contract definition
 
@@ -163,6 +161,7 @@ Creates a typed hooks object from a client and contract.
 Standard query hook for read operations.
 
 **Parameters:**
+
 - `options`: Request options (params, query, headers, body)
 - `queryOptions`: Optional TanStack Query options (staleTime, cacheTime, etc.)
 
@@ -173,6 +172,7 @@ Standard query hook for read operations.
 Suspense-enabled query hook.
 
 **Parameters:**
+
 - `options`: Request options (params, query, headers, body)
 - `queryOptions`: Optional TanStack Query options
 
@@ -185,6 +185,7 @@ Suspense-enabled query hook.
 Mutation hook for write operations.
 
 **Parameters:**
+
 - `mutationOptions`: Optional TanStack Query mutation options (onSuccess, onError, etc.)
 
 **Returns:** `UseMutationResult` with mutate, isPending, error, data, etc.
@@ -197,13 +198,13 @@ Pass TanStack Query options for fine-grained control:
 
 ```tsx
 const { data } = hooks.listUsers.useQuery(
-  { query: { limit: "10" } },
+  { query: { limit: '10' } },
   {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 10 * 60 * 1000, // 10 minutes
     refetchInterval: 30000, // Refetch every 30 seconds
     refetchOnWindowFocus: false,
-  }
+  },
 );
 ```
 
@@ -216,24 +217,20 @@ import { useQueryClient } from '@tanstack/react-query';
 
 function DeleteUserButton({ userId }: { userId: string }) {
   const queryClient = useQueryClient();
-  
+
   const mutation = hooks.deleteUser.useMutation({
     onSuccess: () => {
       // Invalidate all queries that start with 'listUsers'
       queryClient.invalidateQueries({ queryKey: ['listUsers'] });
-      
+
       // Or invalidate specific query
-      queryClient.invalidateQueries({ 
-        queryKey: ['getUser', { params: { id: userId } }] 
+      queryClient.invalidateQueries({
+        queryKey: ['getUser', { params: { id: userId } }],
       });
     },
   });
 
-  return (
-    <button onClick={() => mutation.mutate({ params: { id: userId } })}>
-      Delete User
-    </button>
-  );
+  return <button onClick={() => mutation.mutate({ params: { id: userId } })}>Delete User</button>;
 }
 ```
 
@@ -253,7 +250,7 @@ const mutation = hooks.updateUser.useMutation({
     // Optimistically update
     queryClient.setQueryData(['getUser', { params: { id: userId } }], (old) => ({
       ...old,
-      data: { ...old.data, ...variables.body }
+      data: { ...old.data, ...variables.body },
     }));
 
     return { previousUser };
@@ -261,10 +258,7 @@ const mutation = hooks.updateUser.useMutation({
   onError: (err, variables, context) => {
     // Rollback on error
     if (context?.previousUser) {
-      queryClient.setQueryData(
-        ['getUser', { params: { id: userId } }],
-        context.previousUser
-      );
+      queryClient.setQueryData(['getUser', { params: { id: userId } }], context.previousUser);
     }
   },
   onSettled: () => {
@@ -283,7 +277,7 @@ function UserPosts({ userId }: { userId: string | null }) {
     { params: { userId: userId! } },
     {
       enabled: !!userId, // Only fetch when userId is available
-    }
+    },
   );
 
   // ...
@@ -332,10 +326,8 @@ Create a helper for consistent query keys:
 
 ```tsx
 const queryKeys = {
-  listUsers: (query: { limit?: string; offset?: string }) => 
-    ['listUsers', { query }] as const,
-  getUser: (id: string) => 
-    ['getUser', { params: { id } }] as const,
+  listUsers: (query: { limit?: string; offset?: string }) => ['listUsers', { query }] as const,
+  getUser: (id: string) => ['getUser', { params: { id } }] as const,
 };
 
 // Use in invalidation
@@ -357,4 +349,3 @@ See the `packages/demo` directory for complete working examples.
 ## License
 
 MIT
-

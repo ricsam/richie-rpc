@@ -23,9 +23,7 @@ async function main() {
   logs.on('log', (log) => {
     const color =
       log.level === 'error' ? '\x1b[31m' : log.level === 'warn' ? '\x1b[33m' : '\x1b[32m';
-    console.log(
-      `${color}[${log.level.toUpperCase()}]\x1b[0m ${log.timestamp} - ${log.message}`
-    );
+    console.log(`${color}[${log.level.toUpperCase()}]\x1b[0m ${log.timestamp} - ${log.message}`);
     if (log.source) {
       console.log(`  Source: ${log.source}`);
     }
@@ -52,7 +50,7 @@ async function main() {
   ticker.on('price', (data) => {
     const arrow = data.change >= 0 ? '\x1b[32m▲\x1b[0m' : '\x1b[31m▼\x1b[0m';
     console.log(
-      `${data.symbol}: $${data.price.toFixed(2)} ${arrow} ${data.change >= 0 ? '+' : ''}${data.change.toFixed(2)} (${data.changePercent.toFixed(2)}%)`
+      `${data.symbol}: $${data.price.toFixed(2)} ${arrow} ${data.change >= 0 ? '+' : ''}${data.change.toFixed(2)} (${data.changePercent.toFixed(2)}%)`,
     );
   });
 
@@ -63,7 +61,7 @@ async function main() {
 
   ticker.on('marketStatus', (status) => {
     console.log(
-      `Market is ${status.isOpen ? 'OPEN' : 'CLOSED'}. Next change: ${status.nextChange}`
+      `Market is ${status.isOpen ? 'OPEN' : 'CLOSED'}. Next change: ${status.nextChange}`,
     );
   });
 

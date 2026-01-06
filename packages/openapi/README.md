@@ -23,19 +23,19 @@ const spec = generateOpenAPISpec(contract, {
     description: 'API description',
     contact: {
       name: 'API Support',
-      email: 'support@example.com'
-    }
+      email: 'support@example.com',
+    },
   },
   servers: [
     {
       url: 'https://api.example.com',
-      description: 'Production server'
+      description: 'Production server',
     },
     {
       url: 'http://localhost:3000',
-      description: 'Development server'
-    }
-  ]
+      description: 'Development server',
+    },
+  ],
 });
 ```
 
@@ -47,9 +47,9 @@ If your API is served under a path prefix, use the `basePath` option to prefix a
 const spec = generateOpenAPISpec(contract, {
   info: {
     title: 'My API',
-    version: '1.0.0'
+    version: '1.0.0',
   },
-  basePath: '/api'  // All paths will be prefixed with /api
+  basePath: '/api', // All paths will be prefixed with /api
 });
 
 // If contract defines /users, the OpenAPI spec will show /api/users
@@ -63,15 +63,15 @@ import { createOpenAPIResponse } from '@richie-rpc/openapi';
 Bun.serve({
   fetch(request) {
     const url = new URL(request.url);
-    
+
     if (url.pathname === '/openapi.json') {
       return createOpenAPIResponse(contract, {
-        info: { title: 'My API', version: '1.0.0' }
+        info: { title: 'My API', version: '1.0.0' },
       });
     }
-    
+
     // ... other routes
-  }
+  },
 });
 ```
 
@@ -85,16 +85,16 @@ import { createDocsResponse } from '@richie-rpc/openapi';
 Bun.serve({
   fetch(request) {
     const url = new URL(request.url);
-    
+
     if (url.pathname === '/docs') {
       return createDocsResponse('/openapi.json', {
         title: 'My API Documentation',
-        layout: 'modern'
+        layout: 'modern',
       });
     }
-    
+
     // ... other routes
-  }
+  },
 });
 ```
 
@@ -117,6 +117,7 @@ Bun.serve({
 Generates an OpenAPI 3.1 specification from a contract.
 
 **Parameters:**
+
 - `contract`: The Richie RPC contract
 - `options.info`: OpenAPI info object (required)
   - `title`: API title
@@ -138,6 +139,7 @@ Creates a Response object with the OpenAPI spec as JSON.
 Creates a Response object with HTML for Scalar API documentation.
 
 **Parameters:**
+
 - `openAPIUrl`: Path to OpenAPI spec JSON (default: `/openapi.json`)
 - `options.title`: Documentation title
 - `options.layout`: UI layout (`'modern'` or `'classic'`)
@@ -199,4 +201,3 @@ The generated spec includes:
 ## License
 
 MIT
-

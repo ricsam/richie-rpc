@@ -34,14 +34,14 @@ const logMessages = {
 // Generate a random log entry
 function generateLog(level?: 'info' | 'warn' | 'error') {
   const levels: Array<'info' | 'warn' | 'error'> = ['info', 'warn', 'error'];
-  const actualLevel = level || levels[Math.floor(Math.random() * levels.length)];
+  const actualLevel = level || levels[Math.floor(Math.random() * levels.length)] || 'info';
   const messages = logMessages[actualLevel];
 
   return {
     timestamp: new Date().toISOString(),
     level: actualLevel,
-    message: messages[Math.floor(Math.random() * messages.length)],
-    source: logSources[Math.floor(Math.random() * logSources.length)],
+    message: messages[Math.floor(Math.random() * messages.length)] || 'Unknown message',
+    source: logSources[Math.floor(Math.random() * logSources.length)] || 'unknown',
   };
 }
 
@@ -63,17 +63,20 @@ export const router = createRouter(sseContract, {
     console.log(`[SSE] Client connected to logs (filter: ${filter})`);
 
     // Send logs at random intervals
-    const logInterval = setInterval(() => {
-      if (!emitter.isOpen) return;
+    const logInterval = setInterval(
+      () => {
+        if (!emitter.isOpen) return;
 
-      const log = generateLog();
+        const log = generateLog();
 
-      // Apply filters
-      if (filter !== 'all' && filter !== log.level) return;
-      if (sourceFilter && log.source !== sourceFilter) return;
+        // Apply filters
+        if (filter !== 'all' && filter !== log.level) return;
+        if (sourceFilter && log.source !== sourceFilter) return;
 
-      emitter.send('log', log);
-    }, 1000 + Math.random() * 2000);
+        emitter.send('log', log);
+      },
+      1000 + Math.random() * 2000,
+    );
 
     // Send heartbeat every 30 seconds
     const heartbeatInterval = setInterval(() => {
@@ -163,7 +166,7 @@ export const router = createRouter(sseContract, {
       if (!emitter.isOpen) return;
 
       const type =
-        notificationTypes[Math.floor(Math.random() * notificationTypes.length)];
+        notificationTypes[Math.floor(Math.random() * notificationTypes.length)] || 'message';
 
       // Apply type filter
       if (typeFilter.length > 0 && !typeFilter.includes(type)) return;

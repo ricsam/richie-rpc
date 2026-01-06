@@ -1,36 +1,5 @@
 import { expect, test } from '@playwright/test';
 
-// Helper: Parse NDJSON stream response
-async function parseNDJSON(response: Response) {
-  const chunks: any[] = [];
-  let finalResponse: any = undefined;
-
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      const parsed = JSON.parse(line);
-      if (parsed.__final__) {
-        finalResponse = parsed.data;
-      } else {
-        chunks.push(parsed);
-      }
-    }
-  }
-
-  return { chunks, finalResponse };
-}
-
 test.describe('POST Streaming (NDJSON)', () => {
   test('should receive chunks progressively', async ({ page }) => {
     await page.goto('/');
@@ -42,8 +11,12 @@ test.describe('POST Streaming (NDJSON)', () => {
         body: JSON.stringify({ prompt: 'Hello world test with multiple words' }),
       });
 
+      if (!response.body) {
+        return [];
+      }
+
       const chunks: string[] = [];
-      const reader = response.body!.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
       while (true) {
@@ -71,7 +44,11 @@ test.describe('POST Streaming (NDJSON)', () => {
       const chunks: any[] = [];
       let finalResponse: any = undefined;
 
-      const reader = response.body!.getReader();
+      if (!response.body) {
+        return { chunks: [], finalResponse: undefined };
+      }
+
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
 
@@ -114,7 +91,11 @@ test.describe('POST Streaming (NDJSON)', () => {
         signal: controller.signal,
       });
 
-      const reader = response.body!.getReader();
+      if (!response.body) {
+        return { aborted: false };
+      }
+
+      const reader = response.body.getReader();
       await reader.read(); // Read first chunk
       controller.abort(); // Abort after first chunk
 
@@ -524,7 +505,7 @@ test.describe('File Upload with Progress', () => {
           JSON.stringify({
             documents: [{ file: { __fileRef__: 'documents.0.file' }, name: 'large.txt' }],
             category: 'progress-test',
-          })
+          }),
         );
         formData.append('documents.0.file', new Blob([largeContent]), 'large.txt');
 
@@ -572,11 +553,15 @@ test.describe('File Upload with Progress', () => {
           '__json__',
           JSON.stringify({
             documents: [
-              { file: { __fileRef__: 'documents.0.file' }, name: 'doc1.txt', tags: ['test', 'e2e'] },
+              {
+                file: { __fileRef__: 'documents.0.file' },
+                name: 'doc1.txt',
+                tags: ['test', 'e2e'],
+              },
               { file: { __fileRef__: 'documents.1.file' }, name: 'doc2.txt' },
             ],
             category: 'e2e-progress-test',
-          })
+          }),
         );
         formData.append('documents.0.file', new Blob([file1Content]), 'doc1.txt');
         formData.append('documents.1.file', new Blob([file2Content]), 'doc2.txt');

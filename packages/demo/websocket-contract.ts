@@ -12,7 +12,9 @@ export const chatContract = defineWebSocketContract({
     serverMessages: {
       userJoined: { payload: z.object({ username: z.string(), userCount: z.number() }) },
       userLeft: { payload: z.object({ username: z.string(), userCount: z.number() }) },
-      message: { payload: z.object({ username: z.string(), text: z.string(), timestamp: z.string() }) },
+      message: {
+        payload: z.object({ username: z.string(), text: z.string(), timestamp: z.string() }),
+      },
       typing: { payload: z.object({ username: z.string(), isTyping: z.boolean() }) },
       error: { payload: z.object({ message: z.string() }) },
     },

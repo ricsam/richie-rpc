@@ -9,25 +9,20 @@ import { createRouter } from '@richie-rpc/server';
 import { streamingContract } from './contract';
 
 // Simulated AI token generation (replace with actual AI SDK)
-async function* generateTokens(
-  prompt: string,
-  maxTokens: number
-): AsyncGenerator<string> {
+async function* generateTokens(prompt: string, maxTokens: number): AsyncGenerator<string> {
   // Simulate tokenization by splitting on word boundaries
   const words = prompt.split(/\s+/).filter(Boolean);
 
   // Echo back the prompt words with some "AI" additions
   for (let i = 0; i < Math.min(words.length * 2, maxTokens); i++) {
-    await new Promise((resolve) =>
-      setTimeout(resolve, 50 + Math.random() * 100)
-    );
+    await new Promise((resolve) => setTimeout(resolve, 50 + Math.random() * 100));
 
     if (i < words.length) {
-      yield words[i] + ' ';
+      yield `${words[i]} `;
     } else {
       // Add some "generated" content
       const additions = ['and', 'the', 'with', 'for', 'to', 'a', 'is', '...'];
-      yield additions[i % additions.length] + ' ';
+      yield `${additions[i % additions.length]} `;
     }
   }
 }
@@ -69,7 +64,7 @@ export const router = createRouter(streamingContract, {
     }
   },
 
-  completeCode: async ({ body, stream }) => {
+  completeCode: async ({ body: _body, stream }) => {
     const startTime = Date.now();
 
     // Simulated code completion suggestions

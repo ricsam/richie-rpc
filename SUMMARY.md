@@ -7,6 +7,7 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 ## What Was Built
 
 ### 1. **@richie-rpc/core** - Contract Definition Package
+
 - Object-based contract definition API (ts-rest style)
 - Type inference utilities for extracting types from Zod schemas
 - Path parameter parsing and interpolation
@@ -15,11 +16,13 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 - Full TypeScript type safety
 
 **Key Exports:**
+
 - `defineContract()` - Helper for defining contracts
 - Path utilities: `parsePathParams()`, `matchPath()`, `interpolatePath()`, `buildUrl()`
 - Type helpers: `ExtractParams`, `ExtractQuery`, `ExtractBody`, `ExtractResponses`
 
 ### 2. **@richie-rpc/server** - Server Implementation Package
+
 - Type-safe request handlers with automatic validation
 - Zod validation for request params, query, headers, and body
 - Zod validation for response bodies
@@ -28,11 +31,13 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 - Path parameter matching and routing
 
 **Key Exports:**
+
 - `createRouter()` - Creates a router from contract and handlers
 - `Router` class with `.fetch` property for Bun.serve
 - Error classes: `ValidationError`, `RouteNotFoundError`
 
 ### 3. **@richie-rpc/openapi** - OpenAPI Generator Package
+
 - Generates OpenAPI 3.1 specifications from contracts
 - Zod to JSON Schema conversion (using `zod-to-json-schema`)
 - Support for path parameters, query parameters, request bodies, responses
@@ -40,11 +45,13 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 - Server and metadata support
 
 **Key Exports:**
+
 - `generateOpenAPISpec()` - Generates OpenAPI spec
 - `createOpenAPIResponse()` - Creates Response with spec JSON
 - `createDocsResponse()` - Creates HTML Response with Scalar UI
 
 ### 4. **@richie-rpc/client** - Type-safe Client Package
+
 - Fully typed methods generated from contract
 - Automatic request validation before sending
 - Automatic response validation after receiving
@@ -54,10 +61,12 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 - Multiple response types per endpoint
 
 **Key Exports:**
+
 - `createClient()` - Creates type-safe client from contract
 - Error classes: `ClientValidationError`, `HTTPError`
 
 ### 5. **@richie-rpc/demo** - Integration Testing Package
+
 - Complete CRUD API example (Users API)
 - Server implementation with all handlers
 - Client integration tests (8 comprehensive tests)
@@ -82,6 +91,7 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 ## Testing Results
 
 ### Client Integration Tests
+
 ```
 ✅ 1. List users with pagination
 ✅ 2. Get specific user by ID
@@ -94,6 +104,7 @@ The Richie RPC library has been successfully implemented as a TypeScript/Bun/Zod
 ```
 
 ### Playwright E2E Tests
+
 ```
 ✅ Serve OpenAPI spec at /openapi.json
 ✅ Serve API documentation at /docs
@@ -145,18 +156,21 @@ richie-rpc/
 ## Key Features
 
 ### Type Safety
+
 - **End-to-end type inference** from contract to client
 - **Compile-time type checking** for all API calls
 - **Runtime validation** with Zod on both client and server
 - **Multiple response types** mapped to HTTP status codes
 
 ### Developer Experience
+
 - **Single source of truth** - define contract once, use everywhere
 - **Automatic validation** - no manual validation code needed
 - **Clear error messages** - Zod provides detailed validation errors
 - **Interactive documentation** - Scalar UI for exploring API
 
 ### Modern Stack
+
 - **Bun-native** - built specifically for Bun.serve
 - **WHATWG Fetch compatible** - works with standard fetch API
 - **Latest Zod v3+** - full support for modern Zod features
@@ -173,9 +187,9 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       200: z.object({ id: z.string(), name: z.string() }),
-      404: z.object({ error: z.string() })
-    }
-  }
+      404: z.object({ error: z.string() }),
+    },
+  },
 });
 
 // 2. Implement server
@@ -184,7 +198,7 @@ const router = createRouter(contract, {
     const user = await db.getUser(params.id);
     if (!user) return { status: 404, body: { error: 'Not found' } };
     return { status: 200, body: user };
-  }
+  },
 });
 
 Bun.serve({ port: 3000, fetch: router.fetch });
@@ -216,12 +230,14 @@ open http://localhost:3000/docs
 ## Next Steps
 
 The library is production-ready with:
+
 - Comprehensive test coverage
 - Full documentation for each package
 - Working demo with real examples
 - Type-safe API throughout
 
 Possible future enhancements:
+
 - Middleware support
 - Authentication helpers
 - File upload handling
@@ -231,10 +247,12 @@ Possible future enhancements:
 ## Dependencies
 
 **Runtime:**
+
 - `zod` ^3.23.8 - Schema validation
 - `zod-to-json-schema` ^3.23.2 - OpenAPI generation
 
 **Development:**
+
 - `@types/bun` - Bun type definitions
 - `typescript` ^5.5.0 - TypeScript compiler
 - `@playwright/test` ^1.56.1 - E2E testing
@@ -242,4 +260,3 @@ Possible future enhancements:
 ## License
 
 MIT
-

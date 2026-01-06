@@ -134,10 +134,9 @@ export type ExtractResponses<T extends EndpointDefinition> = T extends {
   : never;
 
 // Extract a specific response type by status code (only standard has responses)
-export type ExtractResponse<
-  T extends EndpointDefinition,
-  Status extends number,
-> = T extends { responses: Record<number, z.ZodTypeAny> }
+export type ExtractResponse<T extends EndpointDefinition, Status extends number> = T extends {
+  responses: Record<number, z.ZodTypeAny>;
+}
   ? Status extends keyof T['responses']
     ? T['responses'][Status] extends z.ZodTypeAny
       ? InferZodType<T['responses'][Status]>
@@ -173,13 +172,14 @@ export type ExtractSSEEventData<
 export type ExtractDownloadErrorResponse<
   T extends DownloadEndpointDefinition,
   Status extends keyof T['errorResponses'],
-> = T['errorResponses'] extends Record<number, z.ZodTypeAny>
-  ? Status extends keyof T['errorResponses']
-    ? T['errorResponses'][Status] extends z.ZodTypeAny
-      ? InferZodType<T['errorResponses'][Status]>
+> =
+  T['errorResponses'] extends Record<number, z.ZodTypeAny>
+    ? Status extends keyof T['errorResponses']
+      ? T['errorResponses'][Status] extends z.ZodTypeAny
+        ? InferZodType<T['errorResponses'][Status]>
+        : never
       : never
-    : never
-  : never;
+    : never;
 
 // Upload progress event
 export interface UploadProgressEvent {

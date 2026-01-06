@@ -88,7 +88,7 @@ async function runTests() {
           name: '', // Invalid: empty name
           email: 'invalid-email', // Invalid: not an email
           // biome-ignore lint/suspicious/noExplicitAny: intentionally testing validation
-        } as any,
+        },
       });
       console.log('❌ Should have thrown validation error');
     } catch (error: unknown) {

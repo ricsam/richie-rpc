@@ -6,13 +6,13 @@ This document summarizes the rename from `@rfetch/*` to `@richie-rpc/*`.
 
 ### Package Names
 
-| Old Name | New Name |
-|----------|----------|
-| `@rfetch/core` | `@richie-rpc/core` |
-| `@rfetch/server` | `@richie-rpc/server` |
+| Old Name          | New Name              |
+| ----------------- | --------------------- |
+| `@rfetch/core`    | `@richie-rpc/core`    |
+| `@rfetch/server`  | `@richie-rpc/server`  |
 | `@rfetch/openapi` | `@richie-rpc/openapi` |
-| `@rfetch/client` | `@richie-rpc/client` |
-| `@rfetch/demo` | `@richie-rpc/demo` |
+| `@rfetch/client`  | `@richie-rpc/client`  |
+| `@rfetch/demo`    | `@richie-rpc/demo`    |
 
 ### Project Name
 
@@ -22,6 +22,7 @@ This document summarizes the rename from `@rfetch/*` to `@richie-rpc/*`.
 ### Import Statements
 
 **Before:**
+
 ```typescript
 import { defineContract } from '@rfetch/core';
 import { createRouter } from '@rfetch/server';
@@ -30,6 +31,7 @@ import { createClient } from '@rfetch/client';
 ```
 
 **After:**
+
 ```typescript
 import { defineContract } from '@richie-rpc/core';
 import { createRouter } from '@richie-rpc/server';
@@ -40,6 +42,7 @@ import { createClient } from '@richie-rpc/client';
 ## Files Updated
 
 ### Code Files (8 files)
+
 - ✅ `packages/core/package.json`
 - ✅ `packages/server/package.json` + `index.ts`
 - ✅ `packages/openapi/package.json` + `index.ts`
@@ -48,12 +51,14 @@ import { createClient } from '@richie-rpc/client';
 - ✅ `tsconfig.json`
 
 ### Script Files (4 files)
+
 - ✅ `scripts/build.ts`
 - ✅ `scripts/publish.ts`
 - ✅ `scripts/restore.ts`
 - ✅ `scripts/typecheck.ts`
 
 ### Documentation (11 files)
+
 - ✅ `README.md`
 - ✅ `BUILD.md`
 - ✅ `PUBLISHING.md`
@@ -64,12 +69,14 @@ import { createClient } from '@richie-rpc/client';
 - ✅ `.github/SETUP.md`
 
 ### Configuration Files (4 files)
+
 - ✅ `.cursorrules`
 - ✅ `.github/workflows/ci.yml`
 - ✅ `.github/workflows/publish.yml`
 - ✅ `.github/workflows/version-check.yml`
 
 ### Shell Scripts (1 file)
+
 - ✅ `packages/demo/verify.sh`
 
 ## Total Changes
@@ -91,4 +98,3 @@ October 28, 2025
 ## Status
 
 ✅ **Complete** - All references updated and verified working.
-

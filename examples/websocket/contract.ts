@@ -97,7 +97,7 @@ export const chatContract = defineWebSocketContract({
               userId: z.string(),
               username: z.string(),
               avatar: z.string().optional(),
-            })
+            }),
           ),
           recentMessages: z.array(
             z.object({
@@ -106,7 +106,7 @@ export const chatContract = defineWebSocketContract({
               username: z.string(),
               text: z.string(),
               timestamp: z.string(),
-            })
+            }),
           ),
         }),
       },

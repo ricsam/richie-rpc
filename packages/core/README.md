@@ -23,17 +23,17 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       [Status.OK]: z.object({ id: z.string(), name: z.string() }),
-      [Status.NotFound]: z.object({ error: z.string() })
-    }
+      [Status.NotFound]: z.object({ error: z.string() }),
+    },
   },
   createUser: {
     method: 'POST',
     path: '/users',
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
-      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() })
-    }
-  }
+      [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+    },
+  },
 });
 ```
 
@@ -197,11 +197,13 @@ const contract = defineContract({
     path: '/upload',
     contentType: 'multipart/form-data',
     body: z.object({
-      documents: z.array(z.object({
-        file: z.instanceof(File),
-        name: z.string(),
-        tags: z.array(z.string()).optional(),
-      })),
+      documents: z.array(
+        z.object({
+          file: z.instanceof(File),
+          name: z.string(),
+          tags: z.array(z.string()).optional(),
+        }),
+      ),
       category: z.string(),
     }),
     responses: {
@@ -256,9 +258,9 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       [Status.OK]: UserSchema,
-      [Status.NotFound]: ErrorSchema
-    }
-  }
+      [Status.NotFound]: ErrorSchema,
+    },
+  },
 });
 ```
 
@@ -270,6 +272,7 @@ return { status: Status.NotFound, body: { error: 'Not found' } };
 ```
 
 **Available constants:**
+
 - Success: `OK` (200), `Created` (201), `Accepted` (202), `NoContent` (204)
 - Client Errors: `BadRequest` (400), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409), `UnprocessableEntity` (422), `TooManyRequests` (429)
 - Server Errors: `InternalServerError` (500), `BadGateway` (502), `ServiceUnavailable` (503)
@@ -287,8 +290,8 @@ const contract = defineContract({
       [Status.OK]: z.object({ message: z.string() }),
       418: z.object({ message: z.string() }), // I'm a teapot
       451: z.object({ reason: z.string() }), // Unavailable for legal reasons
-    }
-  }
+    },
+  },
 });
 ```
 
@@ -317,4 +320,3 @@ The package exports several utility types for extracting types from endpoint def
 ## License
 
 MIT
-

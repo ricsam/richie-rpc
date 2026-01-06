@@ -50,6 +50,7 @@ bun run restore
 ## Version Strategy
 
 ### Synchronized Versioning (Recommended)
+
 Keep all packages at the same version for simplicity:
 
 ```json
@@ -58,12 +59,14 @@ Keep all packages at the same version for simplicity:
 ```
 
 Update all at once when releasing:
+
 ```bash
 # Update all package.json versions to 0.2.0
 sed -i '' 's/"version": "0.1.0"/"version": "0.2.0"/g' packages/*/package.json
 ```
 
 ### Independent Versioning
+
 Each package can have its own version, but ensure dependency versions match:
 
 ```json
@@ -71,7 +74,7 @@ Each package can have its own version, but ensure dependency versions match:
 {
   "version": "0.2.0",
   "dependencies": {
-    "@richie-rpc/core": "^0.1.5"  // Must match published core version
+    "@richie-rpc/core": "^0.1.5" // Must match published core version
   }
 }
 ```
@@ -126,13 +129,16 @@ Maintain a CHANGELOG.md for each release:
 ## [0.2.0] - 2025-01-15
 
 ### Added
+
 - New feature X
 - Support for Y
 
 ### Changed
+
 - Improved Z performance
 
 ### Fixed
+
 - Bug in validation
 
 ## [0.1.0] - 2025-01-01
@@ -188,7 +194,7 @@ You cannot republish the same version:
 npm version patch  # 0.1.0 → 0.1.1
 # or
 npm version minor  # 0.1.0 → 0.2.0
-# or  
+# or
 npm version major  # 0.1.0 → 1.0.0
 ```
 
@@ -259,4 +265,3 @@ If you encounter issues:
 1. Check [BUILD.md](./BUILD.md) for detailed build information
 2. Review npm publishing documentation
 3. Open an issue in the repository
-

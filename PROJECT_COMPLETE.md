@@ -36,12 +36,14 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 ## 🚀 Features
 
 ### Type Safety
+
 - End-to-end type inference from contract to client
 - Compile-time type checking
 - Runtime validation with Zod v3+
 - Literal status code types
 
 ### Developer Experience
+
 - Object-based contract definition (ts-rest style)
 - Single source of truth
 - Automatic validation everywhere
@@ -49,6 +51,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 - Clear error messages
 
 ### Build System
+
 - Dual module formats (CJS + ESM)
 - TypeScript declarations
 - Metadata injection (author, license, repository)
@@ -56,6 +59,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 - Automatic workspace dependency resolution
 
 ### CI/CD
+
 - GitHub Actions for continuous integration
 - Automated publishing to npm
 - Type checking, linting, testing in CI
@@ -63,6 +67,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 - Automatic git tagging
 
 ### Documentation
+
 - Comprehensive README for each package
 - Interactive API documentation with Scalar
 - Build and publishing guides
@@ -72,6 +77,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 ## 📊 Test Coverage
 
 ### Integration Tests (8/8 passing)
+
 1. ✅ List users with pagination
 2. ✅ Get specific user by ID
 3. ✅ Create new user
@@ -82,6 +88,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 8. ✅ Validate request data (catch errors)
 
 ### E2E Tests (7/7 passing)
+
 1. ✅ Serve OpenAPI spec at /openapi.json
 2. ✅ Serve API documentation at /docs
 3. ✅ Perform full CRUD operations
@@ -105,6 +112,7 @@ A complete TypeScript/Bun/Zod API contract library with 5 packages:
 ## 🛠️ Available Commands
 
 ### Development
+
 ```bash
 bun run demo         # Start demo server
 bun run verify       # Run all integration tests
@@ -115,6 +123,7 @@ bun run format       # Format code
 ```
 
 ### Build & Publish
+
 ```bash
 bun run build        # Build for npm
 bun run publish:all  # Publish to npm
@@ -122,6 +131,7 @@ bun run restore      # Restore dev state
 ```
 
 ### Testing
+
 ```bash
 bun run verify       # Quick verification
 cd packages/demo && bun run test:e2e  # Playwright tests
@@ -148,6 +158,7 @@ open http://localhost:3000/docs
 ## 📦 Package Metadata
 
 All packages include:
+
 - **Author:** Richie <oss@ricsam.dev>
 - **License:** MIT
 - **Repository:** github.com/ricsam/richie-rpc
@@ -183,11 +194,13 @@ All packages include:
 ## 🚢 Deployment
 
 ### GitHub Actions Setup
+
 1. Add `NPM_TOKEN` secret to GitHub repository
 2. Push to main with version bump
 3. Automatic publishing to npm
 
 ### Manual Publishing
+
 ```bash
 bun run build && bun run publish:all && bun run restore
 ```
@@ -206,9 +219,9 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       200: z.object({ id: z.string(), name: z.string() }),
-      404: z.object({ error: z.string() })
-    }
-  }
+      404: z.object({ error: z.string() }),
+    },
+  },
 });
 
 // 2. Implement server
@@ -219,7 +232,7 @@ const router = createRouter(contract, {
     const user = await db.getUser(params.id);
     if (!user) return { status: 404 as const, body: { error: 'Not found' } };
     return { status: 200 as const, body: user };
-  }
+  },
 });
 
 Bun.serve({ port: 3000, fetch: router.fetch });
@@ -285,4 +298,3 @@ The library is production-ready! You can:
 **Date:** October 28, 2025
 
 **Built with:** ❤️ Bun, TypeScript, and Zod
-

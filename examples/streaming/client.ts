@@ -18,7 +18,7 @@ async function main() {
   // Example 1: Basic text generation
   console.log('1. Generating text...\n');
 
-  const result = client.generateText({
+  const result = await client.generateText({
     body: {
       prompt: 'The quick brown fox jumps over the lazy dog',
       maxTokens: 50,
@@ -27,28 +27,31 @@ async function main() {
   });
 
   // Collect all text for display
-  let fullText = '';
+  let _fullText = '';
 
   // Listen for chunks
-  result.on('chunk', (chunk) => {
-    fullText += chunk.text;
+  result.on('chunk', (chunk: { text: string }) => {
+    _fullText += chunk.text;
     process.stdout.write(chunk.text);
   });
 
   // Wait for completion
   await new Promise<void>((resolve, reject) => {
-    result.on('close', (final) => {
-      console.log('\n');
-      if (final) {
-        console.log('--- Generation Complete ---');
-        console.log(`Total tokens: ${final.totalTokens}`);
-        console.log(`Time: ${final.completionTime}ms`);
-        console.log(`Finish reason: ${final.finishReason}`);
-      }
-      resolve();
-    });
+    result.on(
+      'close',
+      (final?: { totalTokens: number; completionTime: number; finishReason: string }) => {
+        console.log('\n');
+        if (final) {
+          console.log('--- Generation Complete ---');
+          console.log(`Total tokens: ${final.totalTokens}`);
+          console.log(`Time: ${final.completionTime}ms`);
+          console.log(`Finish reason: ${final.finishReason}`);
+        }
+        resolve();
+      },
+    );
 
-    result.on('error', (error) => {
+    result.on('error', (error: Error) => {
       console.error('Stream error:', error.message);
       reject(error);
     });
@@ -57,7 +60,7 @@ async function main() {
   // Example 2: Code completion
   console.log('\n2. Code completion...\n');
 
-  const codeResult = client.completeCode({
+  const codeResult = await client.completeCode({
     body: {
       code: 'const greet = ',
       language: 'typescript',
@@ -65,12 +68,12 @@ async function main() {
     },
   });
 
-  codeResult.on('chunk', (chunk) => {
+  codeResult.on('chunk', (chunk: { text: string; confidence: number }) => {
     console.log(`  "${chunk.text}" (confidence: ${(chunk.confidence * 100).toFixed(0)}%)`);
   });
 
   await new Promise<void>((resolve) => {
-    codeResult.on('close', (final) => {
+    codeResult.on('close', (final?: { totalSuggestions: number; completionTime: number }) => {
       if (final) {
         console.log(`\nTotal suggestions: ${final.totalSuggestions}`);
         console.log(`Time: ${final.completionTime}ms`);
@@ -82,12 +85,12 @@ async function main() {
   // Example 3: Aborting a stream
   console.log('\n3. Aborting a stream...\n');
 
-  const abortableResult = client.generateText({
-    body: { prompt: 'This will be interrupted', maxTokens: 100 },
+  const abortableResult = await client.generateText({
+    body: { prompt: 'This will be interrupted', maxTokens: 100, temperature: 0.7 },
   });
 
   let chunkCount = 0;
-  abortableResult.on('chunk', (chunk) => {
+  abortableResult.on('chunk', (chunk: { text: string }) => {
     chunkCount++;
     process.stdout.write(chunk.text);
 

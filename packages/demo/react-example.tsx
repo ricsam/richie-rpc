@@ -459,7 +459,7 @@ function ChatDemo() {
     });
 
     // Connect and join
-    const disconnect = ws.connect();
+    const _disconnect = ws.connect();
 
     // Wait for connection then send join
     const checkAndJoin = setInterval(() => {
@@ -847,7 +847,9 @@ function LogsDemo() {
           logs.map((log, index) => (
             <div key={index} className={`log-entry ${getLevelColor(log.level)}`}>
               <span className="log-time">{formatTime(log.timestamp)}</span>
-              <span className={`log-level ${getLevelColor(log.level)}`}>{log.level.toUpperCase()}</span>
+              <span className={`log-level ${getLevelColor(log.level)}`}>
+                {log.level.toUpperCase()}
+              </span>
               {log.source && <span className="log-source">[{log.source}]</span>}
               <span className="log-message">{log.message}</span>
             </div>
@@ -1015,10 +1017,7 @@ function DownloadDemo() {
         <div className="progress-section">
           <h3>Download Progress</h3>
           <div className="progress-bar-container">
-            <div
-              className="progress-bar"
-              style={{ width: `${downloadState.progress}%` }}
-            />
+            <div className="progress-bar" style={{ width: `${downloadState.progress}%` }} />
           </div>
           <div className="progress-info">
             <span>{downloadState.progress.toFixed(1)}%</span>
@@ -1091,7 +1090,11 @@ const rootRoute = createRootRoute({
             <Link to="/logs" className="nav-link" activeProps={{ className: 'nav-link active' }}>
               Live Logs
             </Link>
-            <Link to="/downloads" className="nav-link" activeProps={{ className: 'nav-link active' }}>
+            <Link
+              to="/downloads"
+              className="nav-link"
+              activeProps={{ className: 'nav-link active' }}
+            >
               Downloads
             </Link>
           </div>
@@ -1134,7 +1137,13 @@ const downloadsRoute = createRoute({
   component: DownloadDemo,
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, chatRoute, aiRoute, logsRoute, downloadsRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  chatRoute,
+  aiRoute,
+  logsRoute,
+  downloadsRoute,
+]);
 
 const router = createRouter({ routeTree });
 

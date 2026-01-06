@@ -20,11 +20,13 @@ main
 ### Rules to Enable
 
 #### ✅ Require a pull request before merging
+
 - **Required approvals:** 1 (optional, set to 0 if you're solo)
 - ✅ **Dismiss stale pull request approvals when new commits are pushed**
 - ✅ **Require approval of the most recent reviewable push**
 
 #### ✅ Require status checks to pass before merging
+
 This is the key setting to require CI!
 
 - ✅ **Require branches to be up to date before merging**
@@ -34,26 +36,32 @@ This is the key setting to require CI!
 **Important:** The status check won't appear in the list until it has run at least once. Push a commit to trigger the CI workflow first, then come back to add it as a required check.
 
 #### ✅ Require conversation resolution before merging
+
 - Ensures all review comments are addressed
 
 #### ✅ Require signed commits (Optional)
+
 - Only if you want to enforce commit signing
 
 #### ✅ Require linear history (Optional)
+
 - Prevents merge commits (requires rebase or squash)
 
 #### ⚠️ Do not allow bypassing the above settings
+
 - Uncheck this if you need admin override capability
 - Or check it for strict enforcement
 
 ### Allow Force Pushes
 
 **Allow specified actors to bypass required pull requests:**
+
 - Add: `github-actions[bot]` (if you want GitHub Actions to push tags)
 
 ## Why This Matters
 
 ### Without Branch Protection
+
 ```
 ❌ Anyone can push directly to main
 ❌ Can merge broken code
@@ -62,6 +70,7 @@ This is the key setting to require CI!
 ```
 
 ### With Branch Protection
+
 ```
 ✅ Must create a pull request
 ✅ CI must pass (typecheck, lint, tests, E2E)
@@ -97,6 +106,7 @@ git push origin test-branch-protection
 ### 3. Verify CI Runs
 
 You should see:
+
 - ✅ CI workflow starts automatically
 - ✅ Status check appears on the PR
 - ✅ Merge button is disabled until CI passes
@@ -134,6 +144,7 @@ The status check won't appear until it has run at least once:
 ### "Merge button still enabled"
 
 Make sure:
+
 - ✅ "Require status checks to pass before merging" is checked
 - ✅ The `ci` status check is selected in the list
 - ✅ Rules are saved
@@ -141,6 +152,7 @@ Make sure:
 ### "CI keeps failing"
 
 Check the workflow run logs:
+
 1. Go to **Actions** tab
 2. Click on the failing workflow
 3. Review the error logs
@@ -154,12 +166,12 @@ Branch protection rule for: main
 
 ✅ Require a pull request before merging
   └─ Required approvals: 1 (or 0 for solo projects)
-  
+
 ✅ Require status checks to pass before merging
   └─ Require branches to be up to date before merging
   └─ Status checks:
      • ci (from .github/workflows/ci.yml)
-     
+
 ✅ Require conversation resolution before merging
 
 ✅ Require linear history (optional)
@@ -177,6 +189,7 @@ GitHub now offers "Rulesets" as an alternative to branch protection rules:
 3. Configure similar rules with more flexibility
 
 Rulesets offer:
+
 - More granular control
 - Better inheritance
 - Organization-wide rules
@@ -212,4 +225,3 @@ Publish workflow runs (if versions bumped)
 2. ✅ Add `ci` as required status check
 3. ✅ Test with a PR
 4. ✅ Enjoy automated code quality enforcement!
-

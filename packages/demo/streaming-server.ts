@@ -1,10 +1,7 @@
-import { createRouter } from "@richie-rpc/server";
-import {
-  createWebSocketRouter,
-  type TypedServerWebSocket,
-} from "@richie-rpc/server/websocket";
-import { streamingContract } from "./streaming-contract";
-import { chatContract } from "./websocket-contract";
+import { createRouter } from '@richie-rpc/server';
+import { createWebSocketRouter, type TypedServerWebSocket } from '@richie-rpc/server/websocket';
+import { streamingContract } from './streaming-contract';
+import { chatContract } from './websocket-contract';
 
 // ===========================================
 // HTTP Streaming Router
@@ -19,7 +16,8 @@ export const streamingRouter = createRouter(
 
       // Simulate AI streaming by sending words with delays
       for (let i = 0; i < words.length; i++) {
-        const word = words[i]!;
+        const word = words[i];
+        if (!word) continue;
         const delay = 100 + Math.random() * 200; // 100-300ms delay
 
         await new Promise((resolve) => setTimeout(resolve, delay));
@@ -44,76 +42,78 @@ export const streamingRouter = createRouter(
     },
 
     logs: ({ query, emitter, signal }) => {
-      const filter = query.level || "all";
+      const filter = query.level || 'all';
 
-      const logSources = ["api", "database", "auth", "scheduler", "worker"];
+      const logSources = ['api', 'database', 'auth', 'scheduler', 'worker'];
       const logMessages = {
         info: [
-          "Request processed successfully",
-          "Cache hit for key",
-          "Connection established",
-          "Task completed",
-          "User authenticated",
+          'Request processed successfully',
+          'Cache hit for key',
+          'Connection established',
+          'Task completed',
+          'User authenticated',
         ],
         warn: [
-          "High memory usage detected",
-          "Slow query detected",
-          "Rate limit approaching",
-          "Deprecated API called",
-          "Connection pool exhausted",
+          'High memory usage detected',
+          'Slow query detected',
+          'Rate limit approaching',
+          'Deprecated API called',
+          'Connection pool exhausted',
         ],
         error: [
-          "Failed to connect to database",
-          "Authentication failed",
-          "Request timeout",
-          "Invalid payload",
-          "Service unavailable",
+          'Failed to connect to database',
+          'Authentication failed',
+          'Request timeout',
+          'Invalid payload',
+          'Service unavailable',
         ],
       };
 
       // Generate random log entries
-      const logInterval = setInterval(() => {
-        if (!emitter.isOpen) return;
+      const logInterval = setInterval(
+        () => {
+          if (!emitter.isOpen) return;
 
-        // Pick random level
-        const levels: Array<"info" | "warn" | "error"> = [
-          "info",
-          "info",
-          "info",
-          "warn",
-          "error",
-        ];
-        const level = levels[Math.floor(Math.random() * levels.length)] as
-          | "info"
-          | "warn"
-          | "error";
+          // Pick random level
+          const levels: Array<'info' | 'warn' | 'error'> = [
+            'info',
+            'info',
+            'info',
+            'warn',
+            'error',
+          ];
+          const level = levels[Math.floor(Math.random() * levels.length)] as
+            | 'info'
+            | 'warn'
+            | 'error';
 
-        // Filter by level
-        if (filter !== "all" && filter !== level) {
-          return;
-        }
+          // Filter by level
+          if (filter !== 'all' && filter !== level) {
+            return;
+          }
 
-        const messages = logMessages[level];
-        const message = messages[Math.floor(Math.random() * messages.length)];
-        const source =
-          logSources[Math.floor(Math.random() * logSources.length)];
+          const messages = logMessages[level];
+          const message = messages[Math.floor(Math.random() * messages.length)];
+          const source = logSources[Math.floor(Math.random() * logSources.length)];
 
-        emitter.send("log", {
-          timestamp: new Date().toISOString(),
-          level,
-          message: message ?? "Unknown message",
-          source,
-        });
-      }, 1000 + Math.random() * 2000); // 1-3s interval
+          emitter.send('log', {
+            timestamp: new Date().toISOString(),
+            level,
+            message: message ?? 'Unknown message',
+            source,
+          });
+        },
+        1000 + Math.random() * 2000,
+      ); // 1-3s interval
 
       // Heartbeat every 30 seconds
       const heartbeatInterval = setInterval(() => {
         if (!emitter.isOpen) return;
-        emitter.send("heartbeat", { timestamp: new Date().toISOString() });
+        emitter.send('heartbeat', { timestamp: new Date().toISOString() });
       }, 30000);
 
       // Cleanup on abort
-      signal.addEventListener("abort", () => {
+      signal.addEventListener('abort', () => {
         clearInterval(logInterval);
         clearInterval(heartbeatInterval);
       });
@@ -125,7 +125,7 @@ export const streamingRouter = createRouter(
       };
     },
   },
-  { basePath: "/streaming" }
+  { basePath: '/streaming' },
 );
 
 // ===========================================
@@ -136,14 +136,10 @@ export const streamingRouter = createRouter(
 const connectedUsers = new Map<WebSocket, string>();
 
 // Get all WebSockets for a given room (we use a single global room)
-function broadcastToAll<
-  K extends keyof (typeof chatContract)["chat"]["serverMessages"]
->(
+function broadcastToAll<K extends keyof (typeof chatContract)['chat']['serverMessages']>(
   type: K,
-  payload: Parameters<
-    TypedServerWebSocket<(typeof chatContract)["chat"]>["send"]
-  >[1],
-  excludeWs?: WebSocket
+  payload: Parameters<TypedServerWebSocket<(typeof chatContract)['chat']>['send']>[1],
+  excludeWs?: WebSocket,
 ) {
   for (const ws of connectedUsers.keys()) {
     if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
@@ -154,20 +150,20 @@ function broadcastToAll<
 
 export const wsRouter = createWebSocketRouter(chatContract, {
   chat: {
-    open(ws) {
+    open(_ws) {
       // User connected but not yet joined
-      console.log("WebSocket connected");
+      console.log('WebSocket connected');
     },
 
     message(ws, message) {
       switch (message.type) {
-        case "join": {
+        case 'join': {
           const { username } = message.payload;
 
           // Check if username is taken
           for (const existingUsername of connectedUsers.values()) {
             if (existingUsername === username) {
-              ws.send("error", { message: "Username already taken" });
+              ws.send('error', { message: 'Username already taken' });
               return;
             }
           }
@@ -176,22 +172,20 @@ export const wsRouter = createWebSocketRouter(chatContract, {
           connectedUsers.set(ws.raw, username);
 
           // Broadcast user joined
-          broadcastToAll("userJoined", {
+          broadcastToAll('userJoined', {
             username,
             userCount: connectedUsers.size,
           });
 
-          console.log(
-            `User "${username}" joined. Total users: ${connectedUsers.size}`
-          );
+          console.log(`User "${username}" joined. Total users: ${connectedUsers.size}`);
           break;
         }
 
-        case "message": {
+        case 'message': {
           const username = connectedUsers.get(ws.raw);
           if (!username) {
-            ws.send("error", {
-              message: "Must join before sending messages",
+            ws.send('error', {
+              message: 'Must join before sending messages',
             });
             return;
           }
@@ -206,26 +200,24 @@ export const wsRouter = createWebSocketRouter(chatContract, {
           // Send to all including self
           for (const clientWs of connectedUsers.keys()) {
             if (clientWs.readyState === WebSocket.OPEN) {
-              clientWs.send(
-                JSON.stringify({ type: "message", payload: messagePayload })
-              );
+              clientWs.send(JSON.stringify({ type: 'message', payload: messagePayload }));
             }
           }
           break;
         }
 
-        case "typing": {
+        case 'typing': {
           const username = connectedUsers.get(ws.raw);
           if (!username) return;
 
           // Broadcast typing status to others (not self)
           broadcastToAll(
-            "typing",
+            'typing',
             {
               username,
               isTyping: message.payload.isTyping,
             },
-            ws.raw
+            ws.raw,
           );
           break;
         }
@@ -238,19 +230,17 @@ export const wsRouter = createWebSocketRouter(chatContract, {
         connectedUsers.delete(ws.raw);
 
         // Broadcast user left
-        broadcastToAll("userLeft", {
+        broadcastToAll('userLeft', {
           username,
           userCount: connectedUsers.size,
         });
 
-        console.log(
-          `User "${username}" left. Total users: ${connectedUsers.size}`
-        );
+        console.log(`User "${username}" left. Total users: ${connectedUsers.size}`);
       }
     },
 
     validationError(ws, error) {
-      ws.send("error", { message: `Validation error: ${error.message}` });
+      ws.send('error', { message: `Validation error: ${error.message}` });
     },
   },
 });

@@ -22,6 +22,7 @@ bun run build
 This builds all 4 publishable packages (`@richie-rpc/core`, `@richie-rpc/server`, `@richie-rpc/openapi`, `@richie-rpc/client`) in order.
 
 **What happens:**
+
 1. Creates `tsconfig.build.json` and `tsconfig.types.json` for each package
 2. Compiles TypeScript declaration files (`.d.ts`)
 3. Builds CommonJS bundle with Bun (`dist/cjs/index.cjs`)
@@ -30,6 +31,7 @@ This builds all 4 publishable packages (`@richie-rpc/core`, `@richie-rpc/server`
 6. Converts `workspace:*` dependencies to actual version numbers
 
 **Output structure per package:**
+
 ```
 packages/{package}/
 ├── dist/
@@ -57,6 +59,7 @@ bun run restore
 After building, the package.json files are modified for publishing. Use restore to return to development state.
 
 **What happens:**
+
 1. Removes all `dist/` directories
 2. Removes temporary `tsconfig.build.json` and `tsconfig.types.json`
 3. Restores package.json files from git (workspace dependencies)
@@ -73,11 +76,13 @@ bun run publish:all
 Publishes all packages to npm in dependency order (core → server/openapi/client).
 
 **Prerequisites:**
+
 1. Packages must be built (`bun run build`)
 2. You must be logged in to npm (`npm login`)
 3. You must have publish rights to @richie-rpc scope
 
 **What happens:**
+
 1. Verifies all packages are built
 2. Publishes `@richie-rpc/core` first
 3. Waits 3 seconds
@@ -133,6 +138,7 @@ bun run restore
 Each package gets a custom build configuration:
 
 ### tsconfig.build.json
+
 ```json
 {
   "compilerOptions": {
@@ -148,6 +154,7 @@ Each package gets a custom build configuration:
 ```
 
 ### Package Exports
+
 ```json
 {
   "main": "./dist/cjs/index.cjs",
@@ -164,8 +171,9 @@ Each package gets a custom build configuration:
 ```
 
 This ensures proper resolution in all environments:
+
 - Node.js with require() → uses CJS
-- Node.js with import → uses MJS  
+- Node.js with import → uses MJS
 - TypeScript → uses .d.ts files
 - Bundlers (Vite, Webpack, etc.) → use MJS
 
@@ -184,6 +192,7 @@ All published packages use **peer dependencies only** (no bundled dependencies):
 ```
 
 **Benefits:**
+
 - Avoids version conflicts
 - Users control exact versions
 - Smaller package sizes
@@ -192,6 +201,7 @@ All published packages use **peer dependencies only** (no bundled dependencies):
 ## Dependency Management
 
 ### Development (workspace peerDependencies)
+
 ```json
 {
   "peerDependencies": {
@@ -202,6 +212,7 @@ All published packages use **peer dependencies only** (no bundled dependencies):
 ```
 
 ### Production (version references in peerDependencies)
+
 ```json
 {
   "peerDependencies": {
@@ -213,6 +224,7 @@ All published packages use **peer dependencies only** (no bundled dependencies):
 ```
 
 The build script:
+
 1. Removes the `dependencies` field entirely
 2. Converts workspace references in `peerDependencies` to version numbers
 3. Users must install peer dependencies manually
@@ -222,6 +234,7 @@ The build script:
 ### Build fails with "module not found"
 
 Make sure all dependencies are installed:
+
 ```bash
 bun install
 ```
@@ -229,6 +242,7 @@ bun install
 ### TypeScript errors during build
 
 The build uses a custom tsconfig optimized for distribution. If you see errors, check:
+
 1. All imports are valid
 2. Types are properly exported
 3. No development-only code in production files
@@ -236,6 +250,7 @@ The build uses a custom tsconfig optimized for distribution. If you see errors, 
 ### Published package doesn't work
 
 Common issues:
+
 1. **Missing files**: Check `package.json` files array includes `dist`
 2. **Wrong imports**: Test the built package locally with `npm pack`
 3. **Version mismatch**: Ensure all @richie-rpc dependencies use the same version
@@ -243,10 +258,11 @@ Common issues:
 ### Can't restore after build
 
 If git restore fails:
+
 ```bash
 # Manually restore package.json files
 git checkout packages/core/package.json
-git checkout packages/server/package.json  
+git checkout packages/server/package.json
 git checkout packages/openapi/package.json
 git checkout packages/client/package.json
 
@@ -272,13 +288,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v1
-      
+
       - name: Install dependencies
         run: bun install
-      
+
       - name: Build packages
         run: bun run build
-      
+
       - name: Publish to npm
         run: bun run publish:all
         env:
@@ -295,6 +311,7 @@ The project uses independent versioning for each package. When bumping versions:
 4. Tag the release
 
 Example for v0.2.0:
+
 ```bash
 # Update versions
 sed -i '' 's/"version": "0.1.0"/"version": "0.2.0"/g' packages/*/package.json
@@ -314,6 +331,7 @@ bun run restore
 ## Performance
 
 Build times (on M1 Mac):
+
 - @richie-rpc/core: ~100ms
 - @richie-rpc/server: ~150ms
 - @richie-rpc/openapi: ~150ms
@@ -321,7 +339,7 @@ Build times (on M1 Mac):
 - **Total**: ~550ms
 
 The build is fast because:
+
 - Bun's native bundler is extremely fast
 - Parallel builds where possible
 - Simple module structure (single index.ts per package)
-
