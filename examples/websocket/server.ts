@@ -6,7 +6,7 @@
  * with typed messages, rooms, and pub/sub.
  */
 
-import { createWebSocketRouter } from '@richie-rpc/server/websocket';
+import { createWebSocketRouter } from '@richie-rpc/server';
 import { chatContract } from './contract';
 
 // Store connected users per room

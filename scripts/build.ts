@@ -32,7 +32,7 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
           declaration: true,
           esModuleInterop: true,
           inlineSourceMap: false,
-          lib: ['ESNext'],
+          lib: ['ESNext', 'DOM'],
           listEmittedFiles: false,
           listFiles: false,
           moduleResolution: 'bundler',
