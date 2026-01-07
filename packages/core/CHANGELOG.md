@@ -1,5 +1,11 @@
 # @richie-rpc/core
 
+## 1.2.4
+
+### Patch Changes
+
+- update build script
+
 ## 1.2.3
 
 ### Patch Changes

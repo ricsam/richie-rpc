@@ -1,5 +1,13 @@
 # @richie-rpc/openapi
 
+## 1.1.5
+
+### Patch Changes
+
+- update build script
+- Updated dependencies
+  - @richie-rpc/core@1.2.4
+
 ## 1.1.4
 
 ### Patch Changes

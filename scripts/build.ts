@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { $ } from 'bun';
+import { $, Glob } from 'bun';
 
 // Packages to build (excluding demo which is not published)
 const PACKAGES = ['core', 'server', 'openapi', 'client', 'react-query'];
@@ -45,8 +45,8 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
           traceResolution: false,
         },
         compileOnSave: false,
-        exclude: ['node_modules', 'dist'],
-        include: ['index.ts'],
+        exclude: ['node_modules', 'dist', '**/*.test.ts'],
+        include: ['**/*.ts'],
       },
       null,
       2,
@@ -109,16 +109,16 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
               let content = await Bun.file(args.path).text();
               const extension = type;
 
-              // Replace relative imports with extension
+              // Replace relative imports with extension (handles both extensionless and .ts/.tsx imports)
               content = content.replace(
-                /(im|ex)port\s[\w{}/*\s,]+from\s['"](?:\.\.?\/)+?[^.'"]+(?=['"];?)/gm,
-                `$&.${extension}`,
+                /((?:im|ex)port\s[\w{}/*\s,]+from\s['"](?:\.\.?\/)+[^'"]+?)(?:\.tsx?)?(?=['"])/gm,
+                `$1.${extension}`,
               );
 
               // Replace dynamic imports
               content = content.replace(
-                /import\(['"](?:\.\.?\/)+?[^.'"]+(?=['"];?)/gm,
-                `$&.${extension}`,
+                /(import\(['"](?:\.\.?\/)+[^'"]+?)(?:\.tsx?)?(?=['"])/gm,
+                `$1.${extension}`,
               );
 
               return {
@@ -142,14 +142,31 @@ const buildPackage = async (packageName: string, rootMetadata: RootMetadata) => 
     return true;
   };
 
+  // Recursive build function for all .ts files
+  const runBunBundleRec = async (type: 'cjs' | 'mjs') => {
+    const tsGlob = new Glob('**/*.ts');
+    for await (const file of tsGlob.scan({
+      cwd: packageDir,
+    })) {
+      // Skip test files, declaration files, and dist folder
+      if (file.endsWith('.test.ts') || file.endsWith('.d.ts') || file.startsWith('dist/')) {
+        continue;
+      }
+      // Get the directory part of the relative path to preserve folder structure
+      const relativeDir = path.dirname(file);
+      await bunBuildFile(path.join(packageDir, file), relativeDir, type);
+    }
+    return true;
+  };
+
   // Clean dist directory
   await $`rm -rf dist`.cwd(packageDir).nothrow();
 
   // Build all formats in parallel
   const success = (
     await Promise.all([
-      bunBuildFile(path.join(packageDir, 'index.ts'), '.', 'mjs'),
-      bunBuildFile(path.join(packageDir, 'index.ts'), '.', 'cjs'),
+      runBunBundleRec('mjs'),
+      runBunBundleRec('cjs'),
       runTsc('tsconfig.types.json'),
     ])
   ).every((s) => s);
