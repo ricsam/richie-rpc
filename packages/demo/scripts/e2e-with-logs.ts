@@ -39,7 +39,7 @@ const logStream = createWriteStream(logFile);
 
 async function pipeStream(
   source: ReadableStream<Uint8Array>,
-  dest: typeof process.stdout
+  dest: NodeJS.WriteStream
 ) {
   const reader = source.getReader();
   try {
