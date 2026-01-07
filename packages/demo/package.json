@@ -7,7 +7,8 @@
     "start": "bun run server.ts",
     "start:dictionary": "bun run dictionary-server.ts",
     "test": "echo 'No unit tests in demo package. Use test:e2e for Playwright tests.' && exit 0",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:logs": "bun scripts/e2e-with-logs.ts"
   },
   "dependencies": {
     "@richie-rpc/core": "workspace:*",

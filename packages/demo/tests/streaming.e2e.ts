@@ -168,6 +168,7 @@ test.describe('SSE Endpoints', () => {
   });
 
   test('should receive heartbeat events', async ({ page }) => {
+    test.setTimeout(45000); // Heartbeat is every 30s, wait up to 35s
     await page.goto('/');
 
     const result = await page.evaluate(async () => {
@@ -226,7 +227,8 @@ test.describe('WebSocket Chat', () => {
 
     const result = await page.evaluate(async () => {
       return new Promise<{ connected: boolean }>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.close();
           resolve({ connected: true });
@@ -248,7 +250,8 @@ test.describe('WebSocket Chat', () => {
 
     const result = await page.evaluate(async () => {
       return new Promise<any>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'TestUser' } }));
         };
@@ -281,7 +284,8 @@ test.describe('WebSocket Chat', () => {
     // Set up client 2 to listen for messages
     const client2Promise = page2.evaluate(async () => {
       return new Promise<any>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User2' } }));
         };
@@ -306,7 +310,8 @@ test.describe('WebSocket Chat', () => {
     // Client 1 joins and sends message
     await page1.evaluate(async () => {
       return new Promise<void>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User1' } }));
         };
@@ -339,7 +344,8 @@ test.describe('WebSocket Chat', () => {
     // Set up client 2 to listen for typing
     const client2Promise = page2.evaluate(async () => {
       return new Promise<any>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User2' } }));
         };
@@ -363,7 +369,8 @@ test.describe('WebSocket Chat', () => {
     // Client 1 joins and sends typing indicator
     await page1.evaluate(async () => {
       return new Promise<void>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User1' } }));
         };
@@ -395,7 +402,8 @@ test.describe('WebSocket Chat', () => {
     // Set up client 2 to listen for userLeft
     const client2Promise = page2.evaluate(async () => {
       return new Promise<any>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User2' } }));
         };
@@ -419,7 +427,8 @@ test.describe('WebSocket Chat', () => {
     // Client 1 joins and then disconnects
     await page1.evaluate(async () => {
       return new Promise<void>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           ws.send(JSON.stringify({ type: 'join', payload: { username: 'User1' } }));
         };
@@ -446,7 +455,8 @@ test.describe('WebSocket Chat', () => {
 
     const result = await page.evaluate(async () => {
       return new Promise<any>((resolve) => {
-        const ws = new WebSocket('ws://localhost:3000/ws/chat');
+        const wsUrl = `ws://${window.location.host}/ws/chat`;
+        const ws = new WebSocket(wsUrl);
         ws.onopen = () => {
           // Send invalid message (missing required fields)
           ws.send(JSON.stringify({ type: 'message', payload: {} }));

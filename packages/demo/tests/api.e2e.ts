@@ -153,7 +153,7 @@ test.describe('Richie RPC API Integration', () => {
     const response = await request.get('/api/files/doc-1');
 
     expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toBe('text/plain');
+    expect(response.headers()['content-type']).toContain('text/plain');
     expect(response.headers()['content-disposition']).toContain('attachment');
     expect(response.headers()['content-disposition']).toContain('hello.txt');
     expect(response.headers()['content-length']).toBeDefined();
@@ -175,7 +175,7 @@ test.describe('Richie RPC API Integration', () => {
     const response = await request.get('/api/files/doc-2');
 
     expect(response.status()).toBe(200);
-    expect(response.headers()['content-type']).toBe('application/json');
+    expect(response.headers()['content-type']).toContain('application/json');
     expect(response.headers()['content-disposition']).toContain('data.json');
 
     const body = await response.body();

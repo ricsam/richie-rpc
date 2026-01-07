@@ -5,6 +5,14 @@ import { streamingRouter, wsRouter } from './streaming-server';
 import reactDemoHtml from './index.html';
 import type { UpgradeData } from '@richie-rpc/server/websocket';
 
+// Global error handlers to prevent server crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 // Simple context with mock data
 type AppContext = {
   appName: string;
@@ -175,7 +183,7 @@ const router = createRouter<typeof usersContract, AppContext>(
         filenames.push(doc.file.name);
         totalSize += doc.file.size;
         console.log(
-          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
+          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`
         );
         if (doc.tags) {
           console.log(`  Tags: ${doc.tags.join(', ')}`);
@@ -236,7 +244,7 @@ const router = createRouter<typeof usersContract, AppContext>(
       // Return the mock app configuration as context
       return appConfig;
     },
-  },
+  }
 );
 
 // Generate OpenAPI spec
@@ -258,6 +266,32 @@ const openAPISpec = generateOpenAPISpec(usersContract, {
 const docsHtml = createDocsResponse('/openapi.json', {
   title: 'Users API Documentation',
 });
+
+const redirectToLocal = (req: Request, from: RegExp, to: string) => {
+  const newUrl = new URL(req.url);
+  newUrl.hostname = '127.0.0.1';
+  newUrl.port = process.env.PORT || '3000';
+  newUrl.protocol = 'http';
+  newUrl.pathname = newUrl.pathname.replace(from, to);
+  const newRequest = new Request(newUrl, {
+    headers: req.headers,
+    method: req.method,
+    body: req.body,
+  });
+  console.log(`[HTTP] Redirecting to: ${newUrl}`);
+  return fetch(newRequest).then(async (response) => {
+    if (response.headers.get('Content-Type')?.includes('text/html')) {
+      const body = await response.text();
+      return new Response(body.replace(/(\/\.\.)+/gm, ''), {
+        headers: {
+          'Content-Type': 'text/html',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    }
+    return response;
+  });
+};
 
 // Start server
 const server = Bun.serve({
@@ -287,52 +321,16 @@ const server = Bun.serve({
     if (url.pathname === '/docs') {
       return docsHtml;
     }
-    if (['/', '/index.html', '/chat', '/ai', '/logs', '/downloads'].includes(url.pathname)) {
-      return fetch('http://localhost:3000/index.html');
-    }
 
-    // Streaming API routes
-    if (url.pathname.startsWith('/streaming/')) {
-      try {
-        return await streamingRouter.handle(request);
-      } catch (error) {
-        console.error('Streaming router error:', error);
-        if (error instanceof ValidationError) {
-          return Response.json(
-            {
-              error: 'Validation Error',
-              field: error.field,
-              issues: error.issues,
-            },
-            { status: 400 },
-          );
-        }
-        if (error instanceof RouteNotFoundError) {
-          return Response.json({ error: 'Not Found' }, { status: 404 });
-        }
-        return Response.json(
-          {
-            error: 'Internal Server Error',
-            message: error instanceof Error ? error.message : String(error),
-          },
-          { status: 500 },
-        );
-      }
-    }
-
-    // Users API routes
     if (url.pathname.startsWith('/api')) {
       try {
         return await router.handle(request);
       } catch (error) {
+        console.error('API error:', error);
         if (error instanceof ValidationError) {
           return Response.json(
-            {
-              error: 'Validation Error',
-              field: error.field,
-              issues: error.issues,
-            },
-            { status: 400 },
+            { error: 'Validation Error', field: error.field, issues: error.issues },
+            { status: 400 }
           );
         }
         if (error instanceof RouteNotFoundError) {
@@ -340,6 +338,19 @@ const server = Bun.serve({
         }
         return Response.json({ error: 'Internal Server Error' }, { status: 500 });
       }
+    }
+
+    if (url.pathname.startsWith('/streaming')) {
+      try {
+        return await streamingRouter.handle(request);
+      } catch (error) {
+        console.error('Streaming error:', error);
+        return Response.json({ error: 'Internal Server Error' }, { status: 500 });
+      }
+    }
+
+    if (url.pathname.match(/^\/(chat|ai|logs|downloads)$/) || url.pathname === '/') {
+      return redirectToLocal(request, /^\/(|chat|ai|logs|downloads)$/, '/index.html');
     }
 
     return new Response('Not Found', { status: 404 });

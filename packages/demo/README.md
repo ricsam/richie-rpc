@@ -77,6 +77,40 @@ This will run Playwright tests that:
 - Test error responses
 - Verify all endpoints defined in spec have proper structure
 
+### Run E2E tests with server logs visible
+
+```bash
+bun run test:e2e:logs
+```
+
+This starts the server manually and pipes all server output to both the console and `.e2e-logs/server.log`. Useful for debugging server-side issues during e2e tests.
+
+**Options:**
+
+```bash
+# Run specific test file
+bun run test:e2e:logs api
+
+# Run in headed mode (see browser)
+bun run test:e2e:logs --headed
+
+# Combine options
+bun run test:e2e:logs api --headed
+
+# Run with Playwright UI
+bun run test:e2e:logs --ui
+```
+
+**Log file location:** `.e2e-logs/server.log`
+
+After tests complete, you can review the full server logs in this file.
+
+**Note:** The HTML report browser is disabled by default when using `test:e2e:logs`. To view the report manually:
+
+```bash
+bunx playwright show-report
+```
+
 ## API Endpoints
 
 ### GET /users

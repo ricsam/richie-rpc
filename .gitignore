@@ -10,6 +10,7 @@ tsconfig.types.json
 # Test artifacts
 packages/demo/test-results/
 packages/demo/playwright-report/
+packages/demo/.e2e-logs/
 test-results/
 playwright-report/
 

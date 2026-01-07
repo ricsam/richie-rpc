@@ -1,5 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { defineContract, Status } from '@richie-rpc/core';
 import { z } from 'zod';
+
+// Polyfill File for Node.js environments (e.g., Playwright tests)
+if (typeof globalThis.File === 'undefined') {
+  (globalThis as any).File = class File {
+    name: string;
+    size: number;
+    type: string;
+    constructor(bits: any[], name: string, options?: { type?: string }) {
+      this.name = name;
+      this.size = bits.reduce((acc: number, b: any) => acc + (b?.length || 0), 0);
+      this.type = options?.type || '';
+    }
+  };
+}
 
 // Define schemas
 const UserSchema = z.object({
