@@ -1,5 +1,11 @@
 # @richie-rpc/client
 
+## 1.2.6
+
+### Patch Changes
+
+- expose ws exports in npm package
+
 ## 1.2.5
 
 ### Patch Changes

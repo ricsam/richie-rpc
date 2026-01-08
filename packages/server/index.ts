@@ -793,4 +793,4 @@ export function createRouter<T extends Contract, C = unknown>(
   return new Router(contract, handlers, options);
 }
 
-export { createWebSocketRouter } from './websocket';
+export * from './websocket';

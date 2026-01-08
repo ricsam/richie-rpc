@@ -1008,3 +1008,5 @@ export function createTypedClient<T extends Contract>(_config: ClientConfig): Cl
     },
   });
 }
+
+export * from './websocket';
