@@ -8,39 +8,36 @@
  *   bun scripts/e2e-with-logs.ts api       # Run specific test file
  */
 
-import { $ } from "bun";
-import { existsSync, mkdirSync, createWriteStream } from "node:fs";
-import { join } from "node:path";
+import { $ } from 'bun';
+import { existsSync, mkdirSync, createWriteStream } from 'node:fs';
+import { join } from 'node:path';
 
 // Use demo directory as base (parent of scripts/)
-const demoDir = join(import.meta.dir, "..");
-const logDir = join(demoDir, ".e2e-logs");
-const logFile = join(logDir, "server.log");
+const demoDir = join(import.meta.dir, '..');
+const logDir = join(demoDir, '.e2e-logs');
+const logFile = join(logDir, 'server.log');
 
 // Ensure log directory exists
 if (!existsSync(logDir)) {
   mkdirSync(logDir, { recursive: true });
 }
 
-console.log("Starting server with logs...");
+console.log('Starting server with logs...');
 console.log(`Server logs: ${logFile}`);
-console.log("---");
+console.log('---');
 
 // Start server with output piped to both console and log file
-const serverProc = Bun.spawn(["bun", "run", "server.ts"], {
+const serverProc = Bun.spawn(['bun', 'run', 'server.ts'], {
   cwd: demoDir,
-  stdout: "pipe",
-  stderr: "pipe",
-  env: { ...process.env, PORT: "14232" },
+  stdout: 'pipe',
+  stderr: 'pipe',
+  env: { ...process.env, PORT: '14232' },
 });
 
 // Pipe output to console and file
 const logStream = createWriteStream(logFile);
 
-async function pipeStream(
-  source: ReadableStream<Uint8Array>,
-  dest: NodeJS.WriteStream
-) {
+async function pipeStream(source: ReadableStream<Uint8Array>, dest: NodeJS.WriteStream) {
   const reader = source.getReader();
   try {
     while (true) {
@@ -64,8 +61,8 @@ let serverReady = false;
 
 while (Date.now() - startTime < maxWait) {
   try {
-    const res = await fetch("http://localhost:14232", {
-      signal: AbortSignal.timeout(1000)
+    const res = await fetch('http://localhost:14232', {
+      signal: AbortSignal.timeout(1000),
     });
     if (res.ok) {
       serverReady = true;
@@ -78,13 +75,13 @@ while (Date.now() - startTime < maxWait) {
 }
 
 if (!serverReady) {
-  console.error("Server failed to start within 30 seconds");
+  console.error('Server failed to start within 30 seconds');
   serverProc.kill();
   logStream.end();
   process.exit(1);
 }
 
-console.log("\n--- Server ready, running Playwright tests ---\n");
+console.log('\n--- Server ready, running Playwright tests ---\n');
 
 // Pass through any additional arguments to playwright
 const playwrightArgs = process.argv.slice(2);
@@ -93,10 +90,10 @@ try {
   // Run playwright tests from demo directory
   // PLAYWRIGHT_HTML_OPEN=never prevents the HTML report from auto-opening in browser
   $.cwd(demoDir);
-  $.env({ ...process.env, PLAYWRIGHT_HTML_OPEN: "never" });
+  $.env({ ...process.env, PLAYWRIGHT_HTML_OPEN: 'never' });
   const result = await $`bunx playwright test ${playwrightArgs}`.nothrow();
 
-  console.log("\n--- Tests complete ---");
+  console.log('\n--- Tests complete ---');
   console.log(`Server logs saved to: ${logFile}`);
 
   // Cleanup

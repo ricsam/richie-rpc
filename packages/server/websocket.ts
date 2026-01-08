@@ -13,130 +13,145 @@ import type { z } from 'zod';
  * Validation error for WebSocket messages
  */
 export class WebSocketValidationError extends Error {
-  constructor(
-    public messageType: string,
-    public issues: z.ZodIssue[],
-  ) {
+  constructor(public messageType: string, public issues: z.ZodIssue[]) {
     super(`Validation failed for WebSocket message type: ${messageType}`);
     this.name = 'WebSocketValidationError';
   }
 }
 
 /**
- * Data attached to WebSocket connections for routing
- */
-export interface WebSocketData<
-  T extends WebSocketContractDefinition = WebSocketContractDefinition,
-  S = unknown,
-> {
-  endpointName: string;
-  endpoint: T;
-  params: ExtractWSParams<T>;
-  query: ExtractWSQuery<T>;
-  headers: ExtractWSHeaders<T>;
-  context: unknown;
-  state: S;
-}
-
-/**
  * Typed WebSocket wrapper for sending messages
  */
-export interface TypedServerWebSocket<T extends WebSocketContractDefinition, S = unknown> {
+export interface TypedServerWebSocket<
+  T extends WebSocketContractDefinition,
+  WS extends GenericWebSocket
+> {
   /** The underlying Bun WebSocket */
-  readonly raw: WebSocket;
+  readonly raw: WS;
   /** Send a typed message to the client */
   send<K extends keyof T['serverMessages']>(
     type: K,
-    payload: z.infer<T['serverMessages'][K]['payload']>,
-  ): void;
-  /** Subscribe to a topic for pub/sub */
-  subscribe(topic: string): void;
-  /** Unsubscribe from a topic */
-  unsubscribe(topic: string): void;
-  /** Publish a message to a topic */
-  publish<K extends keyof T['serverMessages']>(
-    topic: string,
-    type: K,
-    payload: z.infer<T['serverMessages'][K]['payload']>,
+    payload: z.infer<T['serverMessages'][K]['payload']>
   ): void;
   /** Close the connection */
   close(code?: number, reason?: string): void;
-  /** Connection data */
-  readonly data: WebSocketData<T, S>;
+}
+
+export type GenericWebSocket = {
+  send: (message: string) => void;
+  close: (code?: number, reason?: string) => void;
+};
+
+/**
+ * Arguments passed to handler functions
+ */
+export interface HandlerArgs<T extends WebSocketContractDefinition, WS extends GenericWebSocket, D = unknown> {
+  ws: TypedServerWebSocket<T, WS>;
+  params: ExtractWSParams<T>;
+  query: ExtractWSQuery<T>;
+  headers: ExtractWSHeaders<T>;
+  data: D;
 }
 
 /**
  * Handler functions for a WebSocket endpoint
  */
-export interface WebSocketEndpointHandlers<
-  T extends WebSocketContractDefinition,
-  C = unknown,
-  S = unknown,
-> {
+export interface WebSocketEndpointHandlers<T extends WebSocketContractDefinition, WS extends GenericWebSocket, D = unknown> {
   /** Called when connection opens */
-  open?(ws: TypedServerWebSocket<T, S>, ctx: C): void | Promise<void>;
+  open?(args: HandlerArgs<T, WS, D>): void | Promise<void>;
   /** Called for each validated message */
-  message(
-    ws: TypedServerWebSocket<T, S>,
-    message: ExtractClientMessage<T>,
-    ctx: C,
-  ): void | Promise<void>;
+  message(args: HandlerArgs<T, WS, D> & { message: ExtractClientMessage<T> }): void | Promise<void>;
   /** Called when connection closes */
-  close?(ws: TypedServerWebSocket<T, S>, ctx: C): void;
+  close?(args: HandlerArgs<T, WS, D>): void;
+  /** Called on backpressure drain */
+  drain?(args: HandlerArgs<T, WS, D>): void;
   /** Called when message validation fails */
-  validationError?(ws: TypedServerWebSocket<T, S>, error: WebSocketValidationError, ctx: C): void;
+  validationError?(args: {
+    ws: TypedServerWebSocket<T, WS>;
+    error: WebSocketValidationError;
+    data: D;
+  }): void;
 }
 
 /**
  * Contract handlers mapping for WebSocket endpoints
  */
-export type WebSocketContractHandlers<T extends WebSocketContract, C = unknown, S = unknown> = {
-  [K in keyof T]: WebSocketEndpointHandlers<T[K], C, S>;
+export type WebSocketContractHandlers<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown> = {
+  [K in keyof T]: WebSocketEndpointHandlers<T[K], WS, D>;
 };
 
 /**
  * Upgrade data returned by matchAndPrepareUpgrade
  */
-export interface UpgradeData<S = unknown> {
+export interface UpgradeData {
   endpointName: string;
   endpoint: WebSocketContractDefinition;
   params: Record<string, string>;
   query: Record<string, string | string[]>;
   headers: Record<string, string>;
-  context: unknown;
-  state: S;
 }
 
 /**
  * Options for WebSocket router
  */
-export interface WebSocketRouterOptions<C = unknown, S = unknown> {
+export interface WebSocketRouterOptions<WS extends GenericWebSocket, D = unknown> {
   basePath?: string;
-  context?: (
-    request: Request,
-    endpointName: string,
-    endpoint: WebSocketContractDefinition,
-  ) => C | Promise<C>;
-  /** Type hint for per-connection state. Use `{} as YourStateType` */
-  state?: S;
+  dataSchema?: z.ZodSchema<D>;
+  rawWebSocket?: WS;
 }
 
+type WithData<T, D> = T &
+  (D extends object | string | number | boolean
+    ? {
+        data: D;
+      }
+    : {
+        data?: never;
+      });
+
 /**
- * Bun WebSocket handler type (subset of Bun's types)
+ * WebSocket handler interface with context parameter
  */
-export interface BunWebSocketHandler<T = unknown> {
-  open(ws: Bun.ServerWebSocket<T>): void | Promise<void>;
-  message(ws: Bun.ServerWebSocket<T>, message: string | Buffer<ArrayBuffer>): void | Promise<void>;
-  close(ws: Bun.ServerWebSocket<T>, code: number, reason: string): void;
-  drain(ws: Bun.ServerWebSocket<T>): void;
+export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
+  open(
+    args: WithData<
+      {
+        ws: WS;
+        upgradeData: UpgradeData;
+      },
+      D
+    >
+  ): void | Promise<void>;
+  message(
+    args: WithData<
+      {
+        ws: WS;
+        rawMessage: string | Buffer<ArrayBuffer>;
+        upgradeData: UpgradeData;
+      },
+      D
+    >
+  ): void | Promise<void>;
+  close(
+    args: WithData<
+      {
+        ws: WS;
+        code: number;
+        reason: string;
+        upgradeData: UpgradeData;
+      },
+      D
+    >
+  ): void;
+  drain(args: WithData<{ ws: WS; upgradeData: UpgradeData }, D>): void;
 }
 
 /**
  * Create a typed WebSocket wrapper
  */
-function createTypedWebSocket<T extends WebSocketContractDefinition, S = unknown>(
-  ws: WebSocket & { data: WebSocketData<T, S> },
-): TypedServerWebSocket<T, S> {
+function createTypedWebSocket<T extends WebSocketContractDefinition, WS extends GenericWebSocket>(
+  ws: WS
+): TypedServerWebSocket<T, WS> {
   return {
     get raw() {
       return ws;
@@ -144,20 +159,8 @@ function createTypedWebSocket<T extends WebSocketContractDefinition, S = unknown
     send(type, payload) {
       ws.send(JSON.stringify({ type, payload }));
     },
-    subscribe(topic) {
-      (ws as any).subscribe(topic);
-    },
-    unsubscribe(topic) {
-      (ws as any).unsubscribe(topic);
-    },
-    publish(topic, type, payload) {
-      (ws as any).publish(topic, JSON.stringify({ type, payload }));
-    },
     close(code, reason) {
       ws.close(code, reason);
-    },
-    get data() {
-      return ws.data;
     },
   };
 }
@@ -165,18 +168,14 @@ function createTypedWebSocket<T extends WebSocketContractDefinition, S = unknown
 /**
  * WebSocket router for managing WebSocket contract endpoints
  */
-export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unknown> {
+export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown> {
   private basePath: string;
-  private contextFactory?: (
-    request: Request,
-    endpointName: string,
-    endpoint: WebSocketContractDefinition,
-  ) => C | Promise<C>;
+  private dataSchema?: z.ZodSchema<D>;
 
   constructor(
     private contract: T,
-    private handlers: WebSocketContractHandlers<T, C, S>,
-    options?: WebSocketRouterOptions<C, S>,
+    private handlers: WebSocketContractHandlers<T, WS, D>,
+    options?: WebSocketRouterOptions<WS, D>
   ) {
     // Normalize basePath
     const bp = options?.basePath || '';
@@ -186,7 +185,7 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
     } else {
       this.basePath = '';
     }
-    this.contextFactory = options?.context;
+    this.dataSchema = options?.dataSchema;
   }
 
   /**
@@ -216,7 +215,7 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
   private parseUpgradeParams(
     request: Request,
     endpoint: WebSocketContractDefinition,
-    pathParams: Record<string, string>,
+    pathParams: Record<string, string>
   ): { params: any; query: any; headers: any } {
     const url = new URL(request.url);
 
@@ -262,7 +261,7 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
    * Match a request and prepare upgrade data
    * Returns null if no match, or UpgradeData for server.upgrade()
    */
-  async matchAndPrepareUpgrade(request: Request): Promise<UpgradeData<S> | null> {
+  async matchAndPrepareUpgrade(request: Request): Promise<UpgradeData | null> {
     const url = new URL(request.url);
     let path = url.pathname;
 
@@ -281,19 +280,12 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
     try {
       const { params, query, headers } = this.parseUpgradeParams(request, endpoint, rawParams);
 
-      // Create context if factory provided
-      const context = this.contextFactory
-        ? await this.contextFactory(request, String(name), endpoint)
-        : (undefined as C);
-
       return {
         endpointName: String(name),
         endpoint,
         params,
         query,
         headers,
-        context,
-        state: {} as S,
       };
     } catch (err) {
       // Validation failed during upgrade
@@ -303,11 +295,25 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
   }
 
   /**
+   * Validate data against dataSchema if provided
+   */
+  private validateData(data: unknown): D {
+    if (this.dataSchema) {
+      const result = this.dataSchema.safeParse(data);
+      if (!result.success) {
+        throw new WebSocketValidationError('data', result.error.issues);
+      }
+      return result.data;
+    }
+    return data as D;
+  }
+
+  /**
    * Validate an incoming client message
    */
   private validateMessage(
     endpoint: WebSocketContractDefinition,
-    rawMessage: string | ArrayBuffer,
+    rawMessage: string | ArrayBuffer
   ): ExtractClientMessage<typeof endpoint> {
     // Parse message
     const messageStr =
@@ -338,56 +344,62 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
   }
 
   /**
-   * Get Bun-compatible WebSocket handler
+   * Get WebSocket handler that accepts context as parameter
    */
-  get websocketHandler(): BunWebSocketHandler<UpgradeData<S>> {
+  get websocketHandler(): WebSocketHandler<WS, D> {
     return {
-      open: async (ws) => {
-        const data = ws.data;
-        const endpointHandlers = this.handlers[data.endpointName as keyof T];
+      open: async ({ ws, upgradeData, data }) => {
+        const endpointHandlers = this.handlers[upgradeData.endpointName as keyof T];
         if (!endpointHandlers) return;
 
-        // Create typed wrapper with properly typed data
-        const typedWs = createTypedWebSocket(
-          ws as unknown as WebSocket & {
-            data: WebSocketData<WebSocketContractDefinition, S>;
-          },
-        );
+        // Validate data if schema provided
+        const validatedData = this.validateData(data);
+
+        const typedWs = createTypedWebSocket<WebSocketContractDefinition, WS>(ws);
 
         if (endpointHandlers.open) {
-          await endpointHandlers.open(typedWs as any, data.context as C);
+          await endpointHandlers.open({
+            ws: typedWs,
+            params: upgradeData.params as any,
+            query: upgradeData.query as any,
+            headers: upgradeData.headers as any,
+            data: validatedData,
+          });
         }
       },
 
-      message: async (ws, message) => {
-        const data = ws.data;
-        const endpointHandlers = this.handlers[data.endpointName as keyof T];
+      message: async ({ ws, rawMessage, upgradeData, data }) => {
+        const endpointHandlers = this.handlers[upgradeData.endpointName as keyof T];
         if (!endpointHandlers) return;
 
-        const typedWs = createTypedWebSocket(
-          ws as unknown as WebSocket & {
-            data: WebSocketData<WebSocketContractDefinition, S>;
-          },
-        );
+        const validatedData = this.validateData(data);
+        const typedWs = createTypedWebSocket<WebSocketContractDefinition, WS>(ws);
 
         try {
           // Validate the message
           const validatedMessage = this.validateMessage(
-            data.endpoint,
-            typeof message === 'string' ? message : message.buffer,
+            upgradeData.endpoint,
+            typeof rawMessage === 'string' ? rawMessage : rawMessage.buffer
           );
 
           // Call handler with validated message
-          await endpointHandlers.message(
-            typedWs as any,
-            validatedMessage as any,
-            data.context as C,
-          );
+          await endpointHandlers.message({
+            ws: typedWs as any,
+            message: validatedMessage as any,
+            params: upgradeData.params as any,
+            query: upgradeData.query as any,
+            headers: upgradeData.headers as any,
+            data: validatedData,
+          });
         } catch (err) {
           if (err instanceof WebSocketValidationError) {
             // Call validation error handler if provided
             if (endpointHandlers.validationError) {
-              endpointHandlers.validationError(typedWs as any, err, data.context as C);
+              endpointHandlers.validationError({
+                ws: typedWs as any,
+                error: err,
+                data: validatedData,
+              });
             } else {
               // Default: send error message back
               typedWs.send(
@@ -396,7 +408,7 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
                   code: 'VALIDATION_ERROR',
                   message: err.message,
                   issues: err.issues,
-                } as any,
+                } as any
               );
             }
           } else {
@@ -405,23 +417,40 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
         }
       },
 
-      close: (ws, _code, _reason) => {
-        const data = ws.data;
-        const endpointHandlers = this.handlers[data.endpointName as keyof T];
+      close: ({ ws, upgradeData, data }) => {
+        const endpointHandlers = this.handlers[upgradeData.endpointName as keyof T];
         if (!endpointHandlers) return;
 
-        const typedWs = createTypedWebSocket(
-          ws as unknown as WebSocket & {
-            data: WebSocketData<WebSocketContractDefinition, S>;
-          },
-        );
+        const validatedData = this.validateData(data);
+        const typedWs = createTypedWebSocket<WebSocketContractDefinition, WS>(ws);
 
         if (endpointHandlers.close) {
-          endpointHandlers.close(typedWs as any, data.context as C);
+          endpointHandlers.close({
+            ws: typedWs as any,
+            params: upgradeData.params as any,
+            query: upgradeData.query as any,
+            headers: upgradeData.headers as any,
+            data: validatedData,
+          });
         }
       },
-      drain: () => {
-        // not used
+
+      drain: ({ ws, upgradeData, data }) => {
+        const endpointHandlers = this.handlers[upgradeData.endpointName as keyof T];
+        if (!endpointHandlers) return;
+
+        const validatedData = this.validateData(data);
+        const typedWs = createTypedWebSocket<WebSocketContractDefinition, WS>(ws);
+
+        if (endpointHandlers.drain) {
+          endpointHandlers.drain({
+            ws: typedWs as any,
+            params: upgradeData.params as any,
+            query: upgradeData.query as any,
+            headers: upgradeData.headers as any,
+            data: validatedData,
+          });
+        }
       },
     };
   }
@@ -430,10 +459,10 @@ export class WebSocketRouter<T extends WebSocketContract, C = unknown, S = unkno
 /**
  * Create a WebSocket router from a contract and handlers
  */
-export function createWebSocketRouter<T extends WebSocketContract, C = unknown, S = unknown>(
+export function createWebSocketRouter<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown>(
   contract: T,
-  handlers: WebSocketContractHandlers<T, C, S>,
-  options?: WebSocketRouterOptions<C, S>,
-): WebSocketRouter<T, C, S> {
+  handlers: WebSocketContractHandlers<T, WS, D>,
+  options?: WebSocketRouterOptions<WS, D>
+): WebSocketRouter<T, WS, D> {
   return new WebSocketRouter(contract, handlers, options);
 }

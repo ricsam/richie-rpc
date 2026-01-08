@@ -1,9 +1,9 @@
 import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
 import { createRouter, RouteNotFoundError, Status, ValidationError } from '@richie-rpc/server';
-import { type User, usersContract } from './contract';
-import { streamingRouter, wsRouter } from './streaming-server';
-import reactDemoHtml from './index.html';
 import type { UpgradeData } from '@richie-rpc/server/websocket';
+import { type User, usersContract } from './contract';
+import reactDemoHtml from './index.html';
+import { streamingRouter, wsRouter } from './streaming-server';
 
 // Global error handlers to prevent server crashes
 process.on('uncaughtException', (error) => {
@@ -358,16 +358,35 @@ const server = Bun.serve({
   websocket: {
     data: {} as UpgradeData,
     open(ws) {
-      return wsRouter.websocketHandler.open(ws);
+      wsRouter.websocketHandler.open({
+        ws,
+        upgradeData: ws.data,
+        data: { test: 'test' },
+      });
     },
-    message(ws, message) {
-      return wsRouter.websocketHandler.message(ws, message);
+    message(ws, rawMessage) {
+      wsRouter.websocketHandler.message({
+        ws: ws,
+        rawMessage,
+        upgradeData: ws.data,
+        data: { test: 'test' },
+      });
     },
     close(ws, code, reason) {
-      return wsRouter.websocketHandler.close(ws, code, reason);
+      wsRouter.websocketHandler.close({
+        ws,
+        code,
+        reason,
+        upgradeData: ws.data,
+        data: { test: 'test' },
+      });
     },
     drain(ws) {
-      return wsRouter.websocketHandler.drain(ws);
+      wsRouter.websocketHandler.drain({
+        ws,
+        upgradeData: ws.data,
+        data: { test: 'test' },
+      });
     },
   },
 });

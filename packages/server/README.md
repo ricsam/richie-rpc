@@ -96,7 +96,7 @@ Bun.serve({
 - ✅ Type-safe status codes with `Status` const object
 - ✅ HTTP Streaming with `StreamEmitter`
 - ✅ Server-Sent Events with `SSEEmitter`
-- ✅ WebSocket router with pub/sub support
+- ✅ WebSocket router with typed messages and custom data validation
 - ✅ Path parameter matching
 - ✅ Query parameter parsing
 - ✅ JSON body parsing
@@ -332,10 +332,10 @@ const router = createRouter(contract, {
 
 ## WebSocket Router
 
-For bidirectional real-time communication, use `createWebSocketRouter`:
+For bidirectional real-time communication, use `createWebSocketRouter`. The router is generic over the WebSocket type, making it portable across different runtimes (Bun, Node.js with `ws`, Deno, etc.).
 
 ```typescript
-import { createWebSocketRouter } from '@richie-rpc/server';
+import { createWebSocketRouter, type UpgradeData } from '@richie-rpc/server';
 import { defineWebSocketContract } from '@richie-rpc/core';
 
 const wsContract = defineWebSocketContract({
@@ -352,119 +352,172 @@ const wsContract = defineWebSocketContract({
   },
 });
 
-const wsRouter = createWebSocketRouter(wsContract, {
-  chat: {
-    open(ws) {
-      // Called when connection opens
-      ws.subscribe(`room:${ws.data.params.roomId}`);
-      console.log('User joined room:', ws.data.params.roomId);
-    },
-
-    message(ws, msg) {
-      // Called for each validated client message
-      if (msg.type === 'sendMessage') {
-        ws.publish(`room:${ws.data.params.roomId}`, 'message', {
-          userId: 'user1',
-          text: msg.payload.text,
-        });
-      }
-    },
-
-    close(ws) {
-      // Called when connection closes
-      console.log('User left room:', ws.data.params.roomId);
-    },
-
-    validationError(ws, error) {
-      // Called when client message validation fails
-      ws.send('error', { code: 'VALIDATION_ERROR', message: error.message });
-    },
-  },
-});
-```
-
-### Typed Per-Connection State
-
-You can store typed per-connection state by defining a state interface and passing it as an option. This follows the same pattern as Bun's WebSocket data:
-
-```typescript
-// Define your per-connection state type
-interface ChatConnectionState {
-  connectionId: string;
-  userId?: string;
-  username?: string;
-}
+// Define your WebSocket type (Bun example)
+type BunWS = Bun.ServerWebSocket<UpgradeData>;
 
 const wsRouter = createWebSocketRouter(
   wsContract,
   {
     chat: {
-      open(ws) {
-        // Initialize typed state - fully typed, no casts needed
-        ws.data.state.connectionId = generateId();
-        ws.subscribe(`room:${ws.data.params.roomId}`);
+      open({ ws, params }) {
+        // Called when connection opens
+        // ws.raw is typed as BunWS, so you get Bun-specific methods
+        ws.raw.subscribe(`room:${params.roomId}`);
+        console.log('User joined room:', params.roomId);
       },
 
-      message(ws, msg) {
-        // Access typed state
-        const { connectionId, username } = ws.data.state;
-
-        if (msg.type === 'join') {
-          // Update state
-          ws.data.state.username = msg.payload.username;
-          ws.data.state.userId = connectionId;
-        }
-
-        if (msg.type === 'sendMessage' && username) {
-          ws.publish(`room:${ws.data.params.roomId}`, 'message', {
-            userId: connectionId,
-            text: msg.payload.text,
-          });
+      message({ ws, message: msg, params }) {
+        // Called for each validated client message
+        if (msg.type === 'sendMessage') {
+          ws.raw.publish(
+            `room:${params.roomId}`,
+            JSON.stringify({
+              type: 'message',
+              payload: { userId: 'user1', text: msg.payload.text },
+            })
+          );
         }
       },
 
-      close(ws) {
-        // State is available throughout connection lifecycle
-        console.log(`User ${ws.data.state.username} disconnected`);
+      close({ params }) {
+        // Called when connection closes
+        console.log('User left room:', params.roomId);
+      },
+
+      validationError({ ws, error }) {
+        // Called when client message validation fails
+        ws.send('error', { code: 'VALIDATION_ERROR', message: error.message });
       },
     },
   },
-  // Pass state type hint as third argument
-  { state: {} as ChatConnectionState },
+  {
+    // Pass rawWebSocket for type inference - ws.raw will be typed as BunWS
+    rawWebSocket: {} as BunWS,
+  }
 );
 ```
 
-The state object is initialized as an empty object for each connection and is available via `ws.data.state` in all handlers (`open`, `message`, `close`, `validationError`).
+### Handler Arguments
+
+All handlers receive a destructured object with:
+
+- `ws` - TypedServerWebSocket for sending typed messages
+- `params` - Path parameters (typed from contract)
+- `query` - Query parameters (typed from contract)
+- `headers` - Request headers (typed from contract)
+- `data` - Custom user data (when `dataSchema` is provided)
+- `message` - The validated client message (only in `message` handler)
 
 ### TypedServerWebSocket Interface
 
 - `send(type, payload)` - Send a typed message to the client
-- `subscribe(topic)` - Subscribe to a pub/sub topic
-- `unsubscribe(topic)` - Unsubscribe from a topic
-- `publish(topic, type, payload)` - Broadcast to all subscribers
 - `close(code?, reason?)` - Close the connection
-- `data.params` - Access path parameters from the connection
-- `data.query` - Access query parameters from the connection
-- `data.headers` - Access headers from the connection
-- `data.state` - Access typed per-connection state (see above)
+- `raw` - Access the underlying WebSocket (typed based on `rawWebSocket` option)
+
+### Generic WebSocket Type
+
+The router uses a `GenericWebSocket` interface that any WebSocket implementation can satisfy:
+
+```typescript
+type GenericWebSocket = {
+  send: (message: string) => void;
+  close: (code?: number, reason?: string) => void;
+};
+```
+
+Use the `rawWebSocket` option to provide type hints for your specific WebSocket implementation. This enables full type inference for `ws.raw` in your handlers.
+
+### Using Custom Data with dataSchema
+
+You can pass custom data during WebSocket upgrade and have it validated:
+
+```typescript
+const wsRouter = createWebSocketRouter(
+  wsContract,
+  {
+    chat: {
+      message({ ws, message, data }) {
+        // data is typed and validated
+        console.log('User ID:', data.userId);
+      },
+    },
+  },
+  {
+    rawWebSocket: {} as BunWS,
+    dataSchema: z.object({
+      userId: z.string(),
+      sessionId: z.string(),
+    }),
+  }
+);
+```
 
 ### Integrating with Bun.serve
 
 ```typescript
-Bun.serve({
+Bun.serve<UpgradeData>({
   port: 3000,
 
-  websocket: wsRouter.websocketHandler,
+  websocket: {
+    open(ws) {
+      wsRouter.websocketHandler.open({ ws, upgradeData: ws.data });
+    },
+    message(ws, rawMessage) {
+      wsRouter.websocketHandler.message({ ws, rawMessage, upgradeData: ws.data });
+    },
+    close(ws, code, reason) {
+      wsRouter.websocketHandler.close({ ws, code, reason, upgradeData: ws.data });
+    },
+    drain(ws) {
+      wsRouter.websocketHandler.drain({ ws, upgradeData: ws.data });
+    },
+  },
 
   async fetch(request, server) {
     // Try WebSocket upgrade
-    const wsMatch = await wsRouter.matchAndPrepareUpgrade(request);
-    if (wsMatch && request.headers.get('upgrade') === 'websocket') {
-      if (server.upgrade(request, { data: wsMatch })) return;
+    const upgradeData = await wsRouter.matchAndPrepareUpgrade(request);
+    if (upgradeData && request.headers.get('upgrade') === 'websocket') {
+      if (server.upgrade(request, { data: upgradeData })) return;
     }
 
     // Handle regular HTTP requests
     return router.fetch(request);
+  },
+});
+```
+
+### With Custom Data
+
+When using `dataSchema`, pass the data to each handler:
+
+```typescript
+Bun.serve<UpgradeData>({
+  websocket: {
+    open(ws) {
+      wsRouter.websocketHandler.open({
+        ws,
+        upgradeData: ws.data,
+        data: { userId: 'user123', sessionId: 'sess456' },
+      });
+    },
+    message(ws, rawMessage) {
+      wsRouter.websocketHandler.message({
+        ws,
+        rawMessage,
+        upgradeData: ws.data,
+        data: { userId: 'user123', sessionId: 'sess456' },
+      });
+    },
+    // ... other handlers also receive data
+  },
+
+  async fetch(request, server) {
+    const upgradeData = await wsRouter.matchAndPrepareUpgrade(request);
+    if (upgradeData && request.headers.get('upgrade') === 'websocket') {
+      server.upgrade(request, { data: upgradeData });
+      return;
+    }
+    return new Response('Not found', { status: 404 });
   },
 });
 ```

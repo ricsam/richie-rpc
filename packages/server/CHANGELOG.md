@@ -1,5 +1,11 @@
 # @richie-rpc/server
 
+## 1.2.7
+
+### Patch Changes
+
+- update typechecking
+
 ## 1.2.6
 
 ### Patch Changes

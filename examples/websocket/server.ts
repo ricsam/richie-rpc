@@ -6,7 +6,7 @@
  * with typed messages, rooms, and pub/sub.
  */
 
-import { createWebSocketRouter } from '@richie-rpc/server';
+import { createWebSocketRouter, type UpgradeData } from '@richie-rpc/server';
 import { chatContract } from './contract';
 
 // Store connected users per room
@@ -29,6 +29,12 @@ interface Room {
 
 const rooms = new Map<string, Room>();
 
+// Define the WebSocket type for this server
+type BunWS = Bun.ServerWebSocket<UpgradeData>;
+
+// Track connection IDs per WebSocket
+const connectionIds = new WeakMap<BunWS, string>();
+
 function getOrCreateRoom(roomId: string): Room {
   if (!rooms.has(roomId)) {
     rooms.set(roomId, { users: new Map(), messages: [] });
@@ -40,32 +46,27 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 15);
 }
 
-// Define the per-connection state type
-interface ChatConnectionState {
-  connectionId: string;
-}
-
-// Create the WebSocket router with typed state
+// Create the WebSocket router with rawWebSocket for type inference
 export const wsRouter = createWebSocketRouter(
   chatContract,
   {
     chat: {
-      open(ws) {
-        const roomId = ws.data.params.roomId;
+      open({ ws, params }) {
+        const roomId = params.roomId;
         const connectionId = generateId();
 
-        // Store connection ID in typed state
-        ws.data.state.connectionId = connectionId;
+        // Store connection ID in WeakMap
+        connectionIds.set(ws.raw, connectionId);
 
         console.log(`[WS] Connection opened for room ${roomId}`);
 
-        // Subscribe to the room topic for broadcasts
-        ws.subscribe(`room:${roomId}`);
+        // Subscribe to the room topic for broadcasts (Bun-specific)
+        ws.raw.subscribe(`room:${roomId}`);
       },
 
-      message(ws, msg) {
-        const roomId = ws.data.params.roomId;
-        const connectionId = ws.data.state.connectionId;
+      message({ ws, message: msg, params }) {
+        const roomId = params.roomId;
+        const connectionId = connectionIds.get(ws.raw)!;
         const room = getOrCreateRoom(roomId);
 
         switch (msg.type) {
@@ -104,13 +105,19 @@ export const wsRouter = createWebSocketRouter(
               recentMessages: room.messages.slice(-50), // Last 50 messages
             });
 
-            // Notify others that user joined
-            ws.publish(`room:${roomId}`, 'userJoined', {
-              userId: user.id,
-              username: user.username,
-              avatar: user.avatar,
-              userCount: room.users.size,
-            });
+            // Notify others that user joined (Bun-specific pub/sub)
+            ws.raw.publish(
+              `room:${roomId}`,
+              JSON.stringify({
+                type: 'userJoined',
+                payload: {
+                  userId: user.id,
+                  username: user.username,
+                  avatar: user.avatar,
+                  userCount: room.users.size,
+                },
+              }),
+            );
             break;
           }
 
@@ -142,8 +149,8 @@ export const wsRouter = createWebSocketRouter(
 
             console.log(`[WS] ${user.username}: ${msg.payload.text}`);
 
-            // Broadcast to all users in room (including sender)
-            ws.publish(`room:${roomId}`, 'message', message);
+            // Broadcast to all users in room (Bun-specific pub/sub)
+            ws.raw.publish(`room:${roomId}`, JSON.stringify({ type: 'message', payload: message }));
             // Also send to self (publish doesn't send to the sender)
             ws.send('message', message);
             break;
@@ -153,12 +160,18 @@ export const wsRouter = createWebSocketRouter(
             const user = room.users.get(connectionId);
             if (!user) return;
 
-            // Broadcast typing indicator to others
-            ws.publish(`room:${roomId}`, 'typing', {
-              userId: user.id,
-              username: user.username,
-              isTyping: msg.payload.isTyping,
-            });
+            // Broadcast typing indicator to others (Bun-specific pub/sub)
+            ws.raw.publish(
+              `room:${roomId}`,
+              JSON.stringify({
+                type: 'typing',
+                payload: {
+                  userId: user.id,
+                  username: user.username,
+                  isTyping: msg.payload.isTyping,
+                },
+              }),
+            );
             break;
           }
 
@@ -168,11 +181,17 @@ export const wsRouter = createWebSocketRouter(
               room.users.delete(connectionId);
               console.log(`[WS] ${user.username} left room ${roomId}`);
 
-              ws.publish(`room:${roomId}`, 'userLeft', {
-                userId: user.id,
-                username: user.username,
-                userCount: room.users.size,
-              });
+              ws.raw.publish(
+                `room:${roomId}`,
+                JSON.stringify({
+                  type: 'userLeft',
+                  payload: {
+                    userId: user.id,
+                    username: user.username,
+                    userCount: room.users.size,
+                  },
+                }),
+              );
             }
             ws.close();
             break;
@@ -180,9 +199,9 @@ export const wsRouter = createWebSocketRouter(
         }
       },
 
-      close(ws) {
-        const roomId = ws.data.params.roomId;
-        const connectionId = ws.data.state.connectionId;
+      close({ ws, params }) {
+        const roomId = params.roomId;
+        const connectionId = connectionIds.get(ws.raw)!;
         const room = rooms.get(roomId);
 
         if (room) {
@@ -191,12 +210,18 @@ export const wsRouter = createWebSocketRouter(
             room.users.delete(connectionId);
             console.log(`[WS] ${user.username} disconnected from room ${roomId}`);
 
-            // Notify others
-            ws.publish(`room:${roomId}`, 'userLeft', {
-              userId: user.id,
-              username: user.username,
-              userCount: room.users.size,
-            });
+            // Notify others (Bun-specific pub/sub)
+            ws.raw.publish(
+              `room:${roomId}`,
+              JSON.stringify({
+                type: 'userLeft',
+                payload: {
+                  userId: user.id,
+                  username: user.username,
+                  userCount: room.users.size,
+                },
+              }),
+            );
           }
 
           // Clean up empty rooms
@@ -207,7 +232,7 @@ export const wsRouter = createWebSocketRouter(
         }
       },
 
-      validationError(ws, error) {
+      validationError({ ws, error }) {
         console.error('[WS] Validation error:', error.message);
         ws.send('error', {
           code: 'INVALID_MESSAGE',
@@ -216,21 +241,52 @@ export const wsRouter = createWebSocketRouter(
       },
     },
   },
-  { state: {} as ChatConnectionState },
+  {
+    // Pass rawWebSocket for type inference - handlers get typed ws.raw
+    rawWebSocket: {} as BunWS,
+  }
 );
 
 // Start the server
 if (import.meta.main) {
-  Bun.serve({
+  Bun.serve<UpgradeData>({
     port: 3000,
 
-    websocket: wsRouter.websocketHandler,
+    websocket: {
+      open(ws) {
+        wsRouter.websocketHandler.open({
+          ws,
+          upgradeData: ws.data,
+        });
+      },
+      message(ws, rawMessage) {
+        wsRouter.websocketHandler.message({
+          ws,
+          rawMessage,
+          upgradeData: ws.data,
+        });
+      },
+      close(ws, code, reason) {
+        wsRouter.websocketHandler.close({
+          ws,
+          code,
+          reason,
+          upgradeData: ws.data,
+        });
+      },
+      drain(ws) {
+        wsRouter.websocketHandler.drain({
+          ws,
+          upgradeData: ws.data,
+        });
+      },
+    },
 
     async fetch(request, server) {
       // Try WebSocket upgrade
-      const wsMatch = await wsRouter.matchAndPrepareUpgrade(request);
-      if (wsMatch && request.headers.get('upgrade') === 'websocket') {
-        if (server.upgrade(request, { data: wsMatch })) {
+      const upgradeData = await wsRouter.matchAndPrepareUpgrade(request);
+      if (upgradeData && request.headers.get('upgrade') === 'websocket') {
+        if (server.upgrade(request, { data: upgradeData })) {
           return; // Upgrade successful
         }
         return new Response('WebSocket upgrade failed', { status: 500 });
