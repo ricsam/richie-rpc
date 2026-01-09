@@ -1,5 +1,11 @@
 # @richie-rpc/react-query
 
+## 1.0.8
+
+### Patch Changes
+
+- expand react query API and fix a streaming bug
+
 ## 1.0.7
 
 ### Patch Changes

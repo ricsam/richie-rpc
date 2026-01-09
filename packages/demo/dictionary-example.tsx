@@ -10,7 +10,7 @@
  */
 
 import { createClient } from '@richie-rpc/client';
-import { createHooks } from '@richie-rpc/react-query';
+import { createTanstackQueryApi } from '@richie-rpc/react-query';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import React, { type FormEvent, Suspense, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -21,8 +21,8 @@ const client = createClient(dictionaryContract, {
   baseUrl: '/api',
 });
 
-// Create hooks from the client and contract
-const hooks = createHooks(client, dictionaryContract);
+// Create TanStack Query API from the client and contract
+const api = createTanstackQueryApi(client, dictionaryContract);
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -47,12 +47,14 @@ function DictionaryApp() {
   const [newExample, setNewExample] = useState('');
   const queryClient = useQueryClient();
 
-  const response = hooks.getDictionaryEntries.useSuspenseQuery({
-    query: { search: React.useDeferredValue(searchQuery) || undefined },
+  const deferredSearch = React.useDeferredValue(searchQuery);
+  const response = api.getDictionaryEntries.useSuspenseQuery({
+    queryKey: ['getDictionaryEntries', deferredSearch],
+    queryData: { query: { search: deferredSearch || undefined } },
   });
   const entries = response.data.data.entries;
 
-  const createEntry = hooks.createDictionaryEntry.useMutation({
+  const createEntry = api.createDictionaryEntry.useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getDictionaryEntries'] });
       setNewWord('');
@@ -63,7 +65,7 @@ function DictionaryApp() {
     },
   });
 
-  const deleteEntry = hooks.deleteDictionaryEntry.useMutation({
+  const deleteEntry = api.deleteDictionaryEntry.useMutation({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['getDictionaryEntries'] });
     },
@@ -128,7 +130,7 @@ function DictionaryApp() {
               </p>
             </div>
           ) : (
-            entries.map((entry) => (
+            entries.map((entry: { id: string; word: string; definition: string; partOfSpeech?: string; example?: string }) => (
               <div key={entry.id} className="entry-card">
                 <div className="entry-content">
                   <div className="entry-header">

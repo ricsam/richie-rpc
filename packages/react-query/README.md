@@ -1,6 +1,6 @@
 # @richie-rpc/react-query
 
-React hooks integration for Richie RPC using TanStack Query (React Query). Provides type-safe hooks with automatic caching, background refetching, and React Suspense support.
+React hooks integration for Richie RPC using TanStack Query (React Query v5). Provides type-safe hooks with automatic caching, background refetching, React Suspense support, and streaming integration.
 
 ## Installation
 
@@ -14,48 +14,31 @@ bun add @richie-rpc/react-query @richie-rpc/client @richie-rpc/core @tanstack/re
 - 🔄 **Automatic Method Detection**: GET/HEAD → queries, POST/PUT/PATCH/DELETE → mutations
 - ⚡ **React Suspense**: Built-in support with `useSuspenseQuery`
 - 💾 **Smart Caching**: Powered by TanStack Query
-- 🔥 **Zero Config**: Works out of the box with sensible defaults
-- 🎨 **Customizable**: Pass through all TanStack Query options
+- 🎨 **Unified Options**: ts-rest-style `queryKey`/`queryData` pattern
+- 📖 **Infinite Queries**: Built-in pagination support
+- 🌊 **Streaming Integration**: TanStack Query integration via `useStreamQuery`
+- 🔧 **Typed QueryClient**: Per-endpoint cache operations via `createTypedQueryClient`
 
 ## Quick Start
 
-### 1. Setup Provider
-
-Wrap your app with `QueryClientProvider`:
+### 1. Create API
 
 ```tsx
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createClient } from '@richie-rpc/client';
-import { createHooks } from '@richie-rpc/react-query';
-import { contract } from './contract';
+import { createTanstackQueryApi } from '@richie-rpc/react-query';
+import { client, contract } from './api'; // your client setup
 
-// Create client and hooks
-const client = createClient(contract, {
-  baseUrl: 'http://localhost:3000',
-});
-
-const hooks = createHooks(client, contract);
-
-// Create query client
-const queryClient = new QueryClient();
-
-function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <YourApp />
-    </QueryClientProvider>
-  );
-}
+const api = createTanstackQueryApi(client, contract);
 ```
 
 ### 2. Use Query Hooks (GET requests)
 
-Query hooks automatically fetch data when the component mounts:
+Query hooks use the unified `queryKey`/`queryData` pattern:
 
 ```tsx
 function UserList() {
-  const { data, isLoading, error, refetch } = hooks.listUsers.useQuery({
-    query: { limit: '10', offset: '0' },
+  const { data, isLoading, error, refetch } = api.listUsers.useQuery({
+    queryKey: ['users', { limit: '10', offset: '0' }],
+    queryData: { query: { limit: '10', offset: '0' } },
   });
 
   if (isLoading) return <div>Loading...</div>;
@@ -78,9 +61,9 @@ For React Suspense integration:
 
 ```tsx
 function UserListSuspense() {
-  // This will suspend the component until data is loaded
-  const { data } = hooks.listUsers.useSuspenseQuery({
-    query: { limit: '10' },
+  const { data } = api.listUsers.useSuspenseQuery({
+    queryKey: ['users'],
+    queryData: { query: { limit: '10' } },
   });
 
   return (
@@ -104,38 +87,25 @@ function App() {
 
 ### 4. Use Mutation Hooks (POST/PUT/PATCH/DELETE)
 
-Mutation hooks don't auto-fetch; they return a function to trigger the request:
+Mutation hooks return a function to trigger the request:
 
 ```tsx
 function CreateUserForm() {
-  const mutation = hooks.createUser.useMutation({
+  const mutation = api.createUser.useMutation({
     onSuccess: (data) => {
       console.log('User created:', data);
-      // Invalidate and refetch
-      queryClient.invalidateQueries({ queryKey: ['listUsers'] });
-    },
-    onError: (error) => {
-      console.error('Failed to create user:', error);
+      queryClient.invalidateQueries({ queryKey: ['users'] });
     },
   });
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    mutation.mutate({
-      body: {
-        name: 'Alice',
-        email: 'alice@example.com',
-        age: 25,
-      },
-    });
-  };
-
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      mutation.mutate({ body: { name: 'Alice', email: 'alice@example.com' } });
+    }}>
       <button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? 'Creating...' : 'Create User'}
       </button>
-      {mutation.error && <div>Error: {mutation.error.message}</div>}
     </form>
   );
 }
@@ -143,127 +113,243 @@ function CreateUserForm() {
 
 ## API Reference
 
-### `createHooks(client, contract)`
+### `createTanstackQueryApi(client, contract)`
 
-Creates a typed hooks object from a client and contract.
+Creates a typed API object from a client and contract.
 
 **Parameters:**
 
 - `client`: Client created with `createClient()`
 - `contract`: Your API contract definition
 
-**Returns:** Hooks object with methods for each endpoint
+**Returns:** API object with per-endpoint hooks and methods
 
-### Query Hooks (GET/HEAD methods)
+### Query Endpoint API (GET/HEAD)
 
-#### `hooks.endpointName.useQuery(options, queryOptions?)`
+#### `api.endpoint.useQuery(options)`
 
-Standard query hook for read operations.
+Standard query hook.
 
-**Parameters:**
+```tsx
+const { data, isLoading, error } = api.listUsers.useQuery({
+  queryKey: ['users'],
+  queryData: { query: { limit: '10' } },
+  staleTime: 5000,
+  // ...other TanStack Query options
+});
+```
 
-- `options`: Request options (params, query, headers, body)
-- `queryOptions`: Optional TanStack Query options (staleTime, cacheTime, etc.)
-
-**Returns:** `UseQueryResult` with data, isLoading, error, refetch, etc.
-
-#### `hooks.endpointName.useSuspenseQuery(options, queryOptions?)`
+#### `api.endpoint.useSuspenseQuery(options)`
 
 Suspense-enabled query hook.
 
-**Parameters:**
+```tsx
+const { data } = api.listUsers.useSuspenseQuery({
+  queryKey: ['users'],
+  queryData: { query: { limit: '10' } },
+});
+```
 
-- `options`: Request options (params, query, headers, body)
-- `queryOptions`: Optional TanStack Query options
+#### `api.endpoint.useInfiniteQuery(options)`
 
-**Returns:** `UseSuspenseQueryResult` with data (always defined when rendered)
+Infinite query for pagination.
 
-### Mutation Hooks (POST/PUT/PATCH/DELETE methods)
+```tsx
+const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = api.listUsers.useInfiniteQuery({
+  queryKey: ['users'],
+  queryData: ({ pageParam }) => ({
+    query: { limit: '10', offset: String(pageParam) },
+  }),
+  initialPageParam: 0,
+  getNextPageParam: (lastPage, allPages) => {
+    const nextOffset = allPages.length * 10;
+    return lastPage.data.users.length === 10 ? nextOffset : undefined;
+  },
+});
+```
 
-#### `hooks.endpointName.useMutation(mutationOptions?)`
+#### `api.endpoint.useSuspenseInfiniteQuery(options)`
 
-Mutation hook for write operations.
+Suspense-enabled infinite query.
 
-**Parameters:**
+#### `api.endpoint.query(options)`
 
-- `mutationOptions`: Optional TanStack Query mutation options (onSuccess, onError, etc.)
+Direct fetch without React Query.
 
-**Returns:** `UseMutationResult` with mutate, isPending, error, data, etc.
+```tsx
+const result = await api.listUsers.query({ query: { limit: '10' } });
+```
+
+### Mutation Endpoint API (POST/PUT/PATCH/DELETE)
+
+#### `api.endpoint.useMutation(options?)`
+
+Mutation hook.
+
+```tsx
+const mutation = api.createUser.useMutation({
+  onSuccess: (data) => console.log('Created:', data),
+  onError: (error) => console.error('Failed:', error),
+});
+
+mutation.mutate({ body: { name: 'Alice', email: 'alice@example.com' } });
+```
+
+#### `api.endpoint.mutate(options)`
+
+Direct mutate without React Query.
+
+```tsx
+const result = await api.createUser.mutate({
+  body: { name: 'Alice', email: 'alice@example.com' },
+});
+```
+
+### Streaming Endpoint API
+
+#### `api.endpoint.stream(options)`
+
+Direct stream access with event-based API:
+
+```tsx
+const result = await api.streamChat.stream({ body: { prompt: 'Hello' } });
+
+result.on('chunk', (chunk) => {
+  console.log(chunk.text);
+});
+
+result.on('close', (finalResponse) => {
+  console.log('Done:', finalResponse);
+});
+```
+
+#### `api.endpoint.useStreamQuery(options)`
+
+TanStack Query integration using `experimental_streamedQuery`:
+
+```tsx
+const { data: chunks, isFetching } = api.streamChat.useStreamQuery({
+  queryKey: ['chat', prompt],
+  queryData: { body: { prompt } },
+  refetchMode: 'reset', // 'reset' | 'append' | 'replace'
+});
+
+// chunks = accumulated array of chunk objects
+// isFetching = true while streaming
+```
+
+### SSE Endpoint API
+
+#### `api.endpoint.connect(options)`
+
+Direct SSE connection:
+
+```tsx
+const connection = api.notifications.connect({ params: { id: '123' } });
+
+connection.on('message', (data) => {
+  console.log('Message:', data.text);
+});
+
+connection.on('heartbeat', (data) => {
+  console.log('Heartbeat:', data.timestamp);
+});
+```
+
+### Download Endpoint API
+
+#### `api.endpoint.download(options)`
+
+Direct file download:
+
+```tsx
+const response = await api.downloadFile.download({ params: { id: 'file123' } });
+```
+
+### `createTypedQueryClient(queryClient, client, contract)`
+
+Create a typed QueryClient wrapper with per-endpoint cache methods. This is useful for type-safe cache operations like prefetching, getting/setting query data, etc.
+
+```tsx
+import { createTypedQueryClient } from '@richie-rpc/react-query';
+
+// Create at module level alongside your api
+const typedClient = createTypedQueryClient(queryClient, client, contract);
+
+// Type-safe cache operations
+typedClient.listUsers.getQueryData(['users']);
+typedClient.listUsers.setQueryData(['users'], (old) => ({
+  ...old,
+  data: { ...old.data, users: [...old.data.users, newUser] },
+}));
+
+// Prefetching
+await typedClient.listUsers.prefetchQuery({
+  queryKey: ['users'],
+  queryData: { query: { limit: '10' } },
+});
+```
+
+**Available methods per query endpoint:**
+
+- `getQueryData(queryKey)` - Get cached data
+- `setQueryData(queryKey, updater)` - Update cached data
+- `getQueryState(queryKey)` - Get query state
+- `fetchQuery(options)` - Fetch and cache data
+- `prefetchQuery(options)` - Prefetch data in background
+- `ensureQueryData(options)` - Get cached data or fetch if missing
+
+## Error Handling
+
+The package includes error handling utilities:
+
+```tsx
+import { isFetchError, isUnknownErrorResponse } from '@richie-rpc/react-query';
+
+const { error, contractEndpoint } = api.getUser.useQuery({
+  queryKey: ['user', id],
+  queryData: { params: { id } },
+});
+
+if (error) {
+  if (isFetchError(error)) {
+    console.log('Network error:', error.message);
+  } else if (isUnknownErrorResponse(error, contractEndpoint)) {
+    console.log('Unknown status:', error.status);
+  }
+}
+```
+
+### `isFetchError(error)`
+
+Returns `true` if the error is a network/fetch error (not a response).
+
+### `isUnknownErrorResponse(error, endpoint)`
+
+Returns `true` if the error is a response with a status code not defined in the contract.
+
+### `isNotKnownResponseError(error, endpoint)`
+
+Returns `true` if the error is either a fetch error or an unknown response error.
+
+### `exhaustiveGuard(value)`
+
+For compile-time exhaustiveness checking in switch statements.
 
 ## Advanced Usage
 
 ### Custom Query Options
 
-Pass TanStack Query options for fine-grained control:
+Pass TanStack Query options alongside queryKey and queryData:
 
 ```tsx
-const { data } = hooks.listUsers.useQuery(
-  { query: { limit: '10' } },
-  {
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
-    refetchInterval: 30000, // Refetch every 30 seconds
-    refetchOnWindowFocus: false,
-  },
-);
-```
-
-### Invalidating Queries
-
-After a mutation, invalidate related queries to trigger refetch:
-
-```tsx
-import { useQueryClient } from '@tanstack/react-query';
-
-function DeleteUserButton({ userId }: { userId: string }) {
-  const queryClient = useQueryClient();
-
-  const mutation = hooks.deleteUser.useMutation({
-    onSuccess: () => {
-      // Invalidate all queries that start with 'listUsers'
-      queryClient.invalidateQueries({ queryKey: ['listUsers'] });
-
-      // Or invalidate specific query
-      queryClient.invalidateQueries({
-        queryKey: ['getUser', { params: { id: userId } }],
-      });
-    },
-  });
-
-  return <button onClick={() => mutation.mutate({ params: { id: userId } })}>Delete User</button>;
-}
-```
-
-### Optimistic Updates
-
-Update the UI immediately before the server responds:
-
-```tsx
-const mutation = hooks.updateUser.useMutation({
-  onMutate: async (variables) => {
-    // Cancel outgoing refetches
-    await queryClient.cancelQueries({ queryKey: ['getUser'] });
-
-    // Snapshot previous value
-    const previousUser = queryClient.getQueryData(['getUser', { params: { id: userId } }]);
-
-    // Optimistically update
-    queryClient.setQueryData(['getUser', { params: { id: userId } }], (old) => ({
-      ...old,
-      data: { ...old.data, ...variables.body },
-    }));
-
-    return { previousUser };
-  },
-  onError: (err, variables, context) => {
-    // Rollback on error
-    if (context?.previousUser) {
-      queryClient.setQueryData(['getUser', { params: { id: userId } }], context.previousUser);
-    }
-  },
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: ['getUser'] });
-  },
+const { data } = api.listUsers.useQuery({
+  queryKey: ['users'],
+  queryData: { query: { limit: '10' } },
+  staleTime: 5 * 60 * 1000, // 5 minutes
+  gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+  refetchInterval: 30000, // Refetch every 30 seconds
+  refetchOnWindowFocus: false,
 });
 ```
 
@@ -273,78 +359,100 @@ Enable queries only when conditions are met:
 
 ```tsx
 function UserPosts({ userId }: { userId: string | null }) {
-  const { data } = hooks.getUserPosts.useQuery(
-    { params: { userId: userId! } },
-    {
-      enabled: !!userId, // Only fetch when userId is available
-    },
-  );
-
-  // ...
+  const { data } = api.getUserPosts.useQuery({
+    queryKey: ['posts', userId],
+    queryData: { params: { userId: userId! } },
+    enabled: !!userId, // Only fetch when userId is available
+  });
 }
 ```
 
-### Parallel Queries
+### Optimistic Updates
 
-Fetch multiple queries at once:
+Update the UI immediately before the server responds:
 
 ```tsx
-function Dashboard() {
-  const users = hooks.listUsers.useQuery({ query: {} });
-  const stats = hooks.getStats.useQuery({});
-  const settings = hooks.getSettings.useQuery({});
+// Module level - create once
+const typedClient = createTypedQueryClient(queryClient, client, contract);
 
-  if (users.isLoading || stats.isLoading || settings.isLoading) {
-    return <div>Loading...</div>;
-  }
+function UpdateUserForm({ userId }: { userId: string }) {
+  const mutation = api.updateUser.useMutation({
+    onMutate: async (variables) => {
+      await queryClient.cancelQueries({ queryKey: ['user', userId] });
+      const previousUser = typedClient.getUser.getQueryData(['user', userId]);
 
-  // All queries are fetched in parallel
-  return <div>Dashboard with {users.data.data.total} users</div>;
+      typedClient.getUser.setQueryData(['user', userId], (old) => ({
+        ...old,
+        data: { ...old.data, ...variables.body },
+      }));
+
+      return { previousUser };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousUser) {
+        typedClient.getUser.setQueryData(['user', userId], context.previousUser);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', userId] });
+    },
+  });
 }
 ```
 
-## TypeScript Tips
+## TypeScript Types
 
-### Inferring Types
+### Exported Types
 
-Extract types from your hooks:
+```tsx
+import type {
+  TsrQueryOptions,
+  TsrSuspenseQueryOptions,
+  TsrInfiniteQueryOptions,
+  TsrSuspenseInfiniteQueryOptions,
+  TsrMutationOptions,
+  TsrStreamQueryOptions,
+  TsrResponse,
+  TsrError,
+  TypedQueryClient,
+  TanstackQueryApi,
+} from '@richie-rpc/react-query';
+```
+
+### Type Inference
+
+Extract types from your API:
 
 ```tsx
 import type { EndpointResponse } from '@richie-rpc/client';
-import type { contract } from './contract';
 
 // Get the response type for an endpoint
 type UserListResponse = EndpointResponse<typeof contract.listUsers>;
-
-// Or extract from hook result
-type UserData = Awaited<ReturnType<typeof hooks.listUsers.useQuery>>['data'];
 ```
 
-### Type-Safe Query Keys
+## TanStack Query Re-exports
 
-Create a helper for consistent query keys:
+For version consistency, you can import TanStack Query from this package:
 
 ```tsx
-const queryKeys = {
-  listUsers: (query: { limit?: string; offset?: string }) => ['listUsers', { query }] as const,
-  getUser: (id: string) => ['getUser', { params: { id } }] as const,
-};
-
-// Use in invalidation
-queryClient.invalidateQueries({ queryKey: queryKeys.listUsers({}) });
+import { QueryClient, QueryClientProvider } from '@richie-rpc/react-query/tanstack';
 ```
 
 ## Best Practices
 
-1. **Create hooks once**: Create the hooks object at the module level, not inside components
-2. **Use Suspense for loading states**: Cleaner than manual loading state management
-3. **Invalidate related queries**: After mutations, invalidate queries that may be affected
-4. **Set appropriate staleTime**: Reduce unnecessary refetches by setting staleTime
-5. **Handle errors with Error Boundaries**: Use React Error Boundaries with Suspense queries
+1. **Create API once**: Create the API object at the module level, not inside components
+2. **Use meaningful queryKeys**: Include relevant parameters in queryKey for proper cache separation
+3. **Use Suspense for loading states**: Cleaner than manual loading state management
+4. **Invalidate related queries**: After mutations, invalidate queries that may be affected
+5. **Use createTypedQueryClient**: For type-safe cache operations like prefetching and setQueryData
+6. **Handle errors exhaustively**: Use the error utilities for proper error handling
 
 ## Examples
 
-See the `packages/demo` directory for complete working examples.
+See the `packages/demo` directory for complete working examples:
+
+- [react-example.tsx](../demo/react-example.tsx) - Query and mutation hooks
+- [dictionary-example.tsx](../demo/dictionary-example.tsx) - Complex data structures
 
 ## License
 

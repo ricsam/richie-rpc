@@ -1,5 +1,11 @@
 # @richie-rpc/server
 
+## 1.2.8
+
+### Patch Changes
+
+- expand react query API and fix a streaming bug
+
 ## 1.2.7
 
 ### Patch Changes

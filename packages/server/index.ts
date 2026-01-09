@@ -540,16 +540,30 @@ function createStreamingResponse<T extends StreamingEndpointDefinition>(
   const stream: StreamEmitter<T> = {
     send(chunk) {
       if (!closed) {
-        writer.write(encoder.encode(`${JSON.stringify(chunk)}\n`));
+        writer.write(encoder.encode(`${JSON.stringify(chunk)}\n`)).catch(() => {
+          // Stream was closed by client disconnect - ignore
+          closed = true;
+        });
       }
     },
     close(final) {
       if (!closed) {
         closed = true;
+        const closeWriter = () => {
+          writer.close().catch(() => {
+            // Stream was already closed or errored - ignore
+          });
+        };
         if (final !== undefined) {
-          writer.write(encoder.encode(`${JSON.stringify({ __final__: true, data: final })}\n`));
+          writer
+            .write(encoder.encode(`${JSON.stringify({ __final__: true, data: final })}\n`))
+            .catch(() => {
+              // Stream was closed by client disconnect - ignore
+            })
+            .finally(closeWriter);
+        } else {
+          closeWriter();
         }
-        writer.close();
       }
     },
     get isOpen() {
@@ -597,14 +611,19 @@ function createSSEResponse<T extends SSEEndpointDefinition>(
         }
         message += `event: ${String(event)}\n`;
         message += `data: ${JSON.stringify(data)}\n\n`;
-        writer.write(encoder.encode(message));
+        writer.write(encoder.encode(message)).catch(() => {
+          // Stream was closed by client disconnect - ignore
+          closed = true;
+        });
       }
     },
     close() {
       if (!closed) {
         closed = true;
         if (cleanup) cleanup();
-        writer.close();
+        writer.close().catch(() => {
+          // Stream was already closed or errored - ignore
+        });
       }
     },
     get isOpen() {

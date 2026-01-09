@@ -1,11 +1,8 @@
 {
   "name": "@richie-rpc/react-query",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "type": "module",
   "main": "index.ts",
-  "exports": {
-    ".": "./index.ts"
-  },
   "peerDependencies": {
     "@richie-rpc/client": "workspace:*",
     "@richie-rpc/core": "workspace:*",

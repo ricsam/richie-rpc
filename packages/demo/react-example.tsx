@@ -7,7 +7,7 @@
 
 import { createClient } from '@richie-rpc/client';
 import { createWebSocketClient } from '@richie-rpc/client/websocket';
-import { createHooks } from '@richie-rpc/react-query';
+import { createTanstackQueryApi } from '@richie-rpc/react-query';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   createRootRoute,
@@ -42,8 +42,8 @@ const wsClient = createWebSocketClient(chatContract, {
   baseUrl: '/',
 });
 
-// Create hooks from the client and contract
-const hooks = createHooks(client, usersContract);
+// Create TanStack Query API from the client and contract
+const api = createTanstackQueryApi(client, usersContract);
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -60,8 +60,9 @@ const queryClient = new QueryClient({
 // ===========================================
 
 function UserList() {
-  const { data, isLoading, error, refetch } = hooks.listUsers.useQuery({
-    query: { limit: '10', offset: '0' },
+  const { data, isLoading, error, refetch } = api.listUsers.useQuery({
+    queryKey: ['listUsers', { limit: '10', offset: '0' }],
+    queryData: { query: { limit: '10', offset: '0' } },
   });
 
   if (isLoading) {
@@ -82,7 +83,7 @@ function UserList() {
         Refresh
       </button>
       <ul>
-        {users.map((user) => (
+        {users.map((user: { id: string; name: string; email: string; age?: number }) => (
           <li key={user.id}>
             {user.name} - {user.email}
             {user.age && ` (${user.age} years old)`}
@@ -94,8 +95,9 @@ function UserList() {
 }
 
 function UserListSuspense() {
-  const { data } = hooks.listUsers.useSuspenseQuery({
-    query: { limit: '10', offset: '0' },
+  const { data } = api.listUsers.useSuspenseQuery({
+    queryKey: ['listUsers', 'suspense'],
+    queryData: { query: { limit: '10', offset: '0' } },
   });
 
   const users = data.data.users;
@@ -104,7 +106,7 @@ function UserListSuspense() {
     <div className="user-list">
       <h2>Users (Suspense) - {data.data.total} total</h2>
       <ul>
-        {users.map((user) => (
+        {users.map((user: { id: string; name: string; email: string }) => (
           <li key={user.id}>
             {user.name} - {user.email}
           </li>
@@ -115,8 +117,9 @@ function UserListSuspense() {
 }
 
 function UserDetail({ userId }: { userId: string }) {
-  const { data, isLoading, error } = hooks.getUser.useQuery({
-    params: { id: userId },
+  const { data, isLoading, error } = api.getUser.useQuery({
+    queryKey: ['getUser', userId],
+    queryData: { params: { id: userId } },
   });
 
   if (isLoading) return <div>Loading user...</div>;
@@ -144,15 +147,15 @@ function CreateUserForm() {
   const [email, setEmail] = useState('');
   const [age, setAge] = useState('');
 
-  const createMutation = hooks.createUser.useMutation({
-    onSuccess: (data) => {
+  const createMutation = api.createUser.useMutation({
+    onSuccess: (data: { status: number; data: unknown }) => {
       console.log('User created:', data);
       queryClient.invalidateQueries({ queryKey: ['listUsers'] });
       setName('');
       setEmail('');
       setAge('');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Failed to create user:', error);
     },
   });
@@ -217,12 +220,12 @@ function FileUploadForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [category, setCategory] = useState('documents');
 
-  const uploadMutation = hooks.uploadDocuments.useMutation({
-    onSuccess: (data) => {
+  const uploadMutation = api.uploadDocuments.useMutation({
+    onSuccess: (data: { status: number; data: { uploadedCount: number; totalSize: number } }) => {
       console.log('Upload successful:', data);
       setFiles([]);
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('Upload failed:', error);
     },
   });
@@ -295,8 +298,14 @@ function FileUploadForm() {
 }
 
 function Dashboard() {
-  const usersQuery = hooks.listUsers.useQuery({ query: {} });
-  const teapotQuery = hooks.teapot.useQuery({});
+  const usersQuery = api.listUsers.useQuery({
+    queryKey: ['listUsers', 'dashboard'],
+    queryData: { query: {} },
+  });
+  const teapotQuery = api.teapot.useQuery({
+    queryKey: ['teapot'],
+    queryData: {},
+  });
 
   if (usersQuery.isLoading || teapotQuery.isLoading) {
     return <div>Loading dashboard...</div>;

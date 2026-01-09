@@ -11,12 +11,13 @@ A TypeScript-first, type-safe API contract library for Bun with Zod validation.
 
 ## Overview
 
-Richie RPC is a monorepo containing 4 packages that work together to provide end-to-end type safety for your API:
+Richie RPC is a monorepo containing 5 packages that work together to provide end-to-end type safety for your API:
 
 1. **@richie-rpc/core** - Define API contracts with Zod schemas
 2. **@richie-rpc/server** - Implement servers with automatic validation
 3. **@richie-rpc/openapi** - Generate OpenAPI specs from contracts
 4. **@richie-rpc/client** - Make type-safe API calls with fetch
+5. **@richie-rpc/react-query** - React hooks with TanStack Query integration
 
 ```
 bun add @richie-rpc/core @richie-rpc/server @richie-rpc/openapi @richie-rpc/client
@@ -262,6 +263,7 @@ bun add @richie-rpc/core zod@^4                    # For contracts
 bun add @richie-rpc/server @richie-rpc/core zod@^4 # For servers
 bun add @richie-rpc/client @richie-rpc/core zod@^4 # For clients
 bun add @richie-rpc/openapi @richie-rpc/core zod@^4 # For OpenAPI
+bun add @richie-rpc/react-query @richie-rpc/client @tanstack/react-query zod@^4 # For React
 ```
 
 **npm Packages:**
@@ -270,6 +272,7 @@ bun add @richie-rpc/openapi @richie-rpc/core zod@^4 # For OpenAPI
 - [@richie-rpc/server](https://www.npmjs.com/package/@richie-rpc/server)
 - [@richie-rpc/openapi](https://www.npmjs.com/package/@richie-rpc/openapi)
 - [@richie-rpc/client](https://www.npmjs.com/package/@richie-rpc/client)
+- [@richie-rpc/react-query](https://www.npmjs.com/package/@richie-rpc/react-query)
 
 ## Packages
 
@@ -318,6 +321,19 @@ Type-safe fetch client for consuming APIs.
 - Automatic validation
 
 [Read more →](./packages/client/README.md)
+
+### [@richie-rpc/react-query](./packages/react-query)
+
+React hooks integration using TanStack Query v5.
+
+- ts-rest-style `queryKey`/`queryData` unified options
+- Type-safe hooks for queries and mutations
+- Suspense support with `useSuspenseQuery`
+- Infinite query support for pagination
+- Streaming integration via `useStreamQuery`
+- Typed QueryClient via `createTypedQueryClient`
+
+[Read more →](./packages/react-query/README.md)
 
 ## Demo
 
@@ -395,13 +411,15 @@ See [TESTING.md](./TESTING.md) for detailed testing instructions.
      │  - Streaming    │       │  - Stream parser │
      │  - SSE emitter  │       │  - SSE client    │
      │  - WebSocket    │       │  - WS client     │
-     └────────┬────────┘       └──────────────────┘
-              │
-     ┌────────▼────────┐
-     │  OpenAPI        │
-     │  - Spec gen     │
-     │  - Docs UI      │
-     └─────────────────┘
+     └────────┬────────┘       └────────┬─────────┘
+              │                         │
+     ┌────────▼────────┐       ┌────────▼─────────┐
+     │  OpenAPI        │       │  React Query     │
+     │  - Spec gen     │       │  - useQuery      │
+     │  - Docs UI      │       │  - useMutation   │
+     └─────────────────┘       │  - Streaming     │
+                               │  - Typed client  │
+                               └──────────────────┘
 ```
 
 ## Project Structure
@@ -413,6 +431,7 @@ richie-rpc/
 │   ├── server/       - Server implementation
 │   ├── openapi/      - OpenAPI spec generator
 │   ├── client/       - Type-safe client
+│   ├── react-query/  - TanStack Query integration
 │   └── demo/         - Integration tests and examples
 ├── package.json      - Workspace configuration
 └── tsconfig.json     - Shared TypeScript config
