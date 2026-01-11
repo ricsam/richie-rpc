@@ -244,7 +244,7 @@ export const wsRouter = createWebSocketRouter(
   {
     // Pass rawWebSocket for type inference - handlers get typed ws.raw
     rawWebSocket: {} as BunWS,
-  }
+  },
 );
 
 // Start the server

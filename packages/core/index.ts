@@ -196,12 +196,23 @@ export interface DownloadProgressEvent {
 }
 
 // Path parameter extraction utilities
-export type ExtractPathParams<T extends string> =
+// Extract regular path params (:param)
+type ExtractRegularParams<T extends string> =
   T extends `${infer _Start}:${infer Param}/${infer Rest}`
-    ? Param | ExtractPathParams<`/${Rest}`>
+    ? Param | ExtractRegularParams<`/${Rest}`>
     : T extends `${infer _Start}:${infer Param}`
       ? Param
       : never;
+
+// Extract wildcard params (*param) - must be at end of path
+type ExtractWildcardParams<T extends string> = T extends `${infer _Start}*${infer Param}`
+  ? Param
+  : never;
+
+// Combined extraction of all path params
+export type ExtractPathParams<T extends string> =
+  | ExtractRegularParams<T>
+  | ExtractWildcardParams<T>;
 
 // Convert path params to object type
 export type PathParamsObject<T extends string> = {
@@ -209,24 +220,62 @@ export type PathParamsObject<T extends string> = {
 };
 
 /**
+ * Detailed path parameter info distinguishing regular vs wildcard params
+ */
+export interface ParsedPathParams {
+  regular: string[];
+  wildcard: string | null;
+}
+
+/**
+ * Parse path parameters with detailed type information
+ * e.g., "/users/:id/*path" => { regular: ["id"], wildcard: "path" }
+ */
+export function parsePathParamsDetailed(path: string): ParsedPathParams {
+  const regular: string[] = [];
+
+  // Extract regular params (:param)
+  const regularMatches = path.match(/:([^/]+)/g);
+  if (regularMatches) {
+    regular.push(...regularMatches.map((match) => match.slice(1)));
+  }
+
+  // Extract wildcard param (*param) - must be at end
+  const wildcardMatch = path.match(/\*([^/]+)$/);
+
+  return {
+    regular,
+    wildcard: wildcardMatch?.[1] ?? null,
+  };
+}
+
+/**
  * Parse path parameters from a URL path pattern
  * e.g., "/users/:id/posts/:postId" => ["id", "postId"]
+ * e.g., "/files/*path" => ["path"]
  */
 export function parsePathParams(path: string): string[] {
-  const matches = path.match(/:([^/]+)/g);
-  if (!matches) return [];
-  return matches.map((match) => match.slice(1));
+  const { regular, wildcard } = parsePathParamsDetailed(path);
+  return wildcard ? [...regular, wildcard] : regular;
 }
 
 /**
  * Match a URL path against a pattern and extract parameters
  * e.g., matchPath("/users/:id", "/users/123") => { id: "123" }
+ * e.g., matchPath("/files/*path", "/files/a/b/c.txt") => { path: "a/b/c.txt" }
  */
 export function matchPath(pattern: string, path: string): Record<string, string> | null {
-  const paramNames = parsePathParams(pattern);
+  const { regular, wildcard } = parsePathParamsDetailed(pattern);
 
-  // Convert pattern to regex
-  const regexPattern = pattern.replace(/:[^/]+/g, '([^/]+)').replace(/\//g, '\\/');
+  // Convert pattern to regex:
+  // 1. Replace :param with capturing group for single segment
+  // 2. Replace *param with capturing group for remaining path (including slashes)
+  let regexPattern = pattern.replace(/:[^/]+/g, '([^/]+)').replace(/\//g, '\\/');
+
+  // Handle wildcard at the end - replace *paramName with (.+)
+  if (wildcard) {
+    regexPattern = regexPattern.replace(/\*[^/]+$/, '(.+)');
+  }
 
   const regex = new RegExp(`^${regexPattern}$`);
   const match = path.match(regex);
@@ -234,9 +283,16 @@ export function matchPath(pattern: string, path: string): Record<string, string>
   if (!match) return null;
 
   const params: Record<string, string> = {};
-  paramNames.forEach((name, index) => {
+
+  // Extract regular params first
+  regular.forEach((name, index) => {
     params[name] = match[index + 1] ?? '';
   });
+
+  // Extract wildcard param if present (always last capture group)
+  if (wildcard) {
+    params[wildcard] = match[regular.length + 1] ?? '';
+  }
 
   return params;
 }
@@ -244,13 +300,51 @@ export function matchPath(pattern: string, path: string): Record<string, string>
 /**
  * Interpolate path parameters into a URL pattern
  * e.g., interpolatePath("/users/:id", { id: "123" }) => "/users/123"
+ * e.g., interpolatePath("/files/*path", { path: "a/b/c.txt" }) => "/files/a/b/c.txt"
  */
 export function interpolatePath(pattern: string, params: Record<string, string | number>): string {
   let result = pattern;
   for (const [key, value] of Object.entries(params)) {
-    result = result.replace(`:${key}`, String(value));
+    // Try replacing :param first, then *param
+    if (result.includes(`:${key}`)) {
+      result = result.replace(`:${key}`, String(value));
+    } else if (result.includes(`*${key}`)) {
+      result = result.replace(`*${key}`, String(value));
+    }
   }
   return result;
+}
+
+/**
+ * Validate a path pattern for correct syntax
+ * @throws Error if pattern is invalid
+ */
+export function validatePathPattern(pattern: string): void {
+  // Check for wildcard not at the end
+  const wildcardIndex = pattern.indexOf('*');
+  if (wildcardIndex !== -1) {
+    const afterWildcard = pattern.slice(wildcardIndex + 1);
+
+    // Wildcard param name should go to end of string (no more slashes)
+    if (afterWildcard.includes('/')) {
+      throw new Error(
+        `Invalid path pattern "${pattern}": Wildcard parameter must be the last segment`,
+      );
+    }
+
+    // Ensure wildcard has a valid name (like Express 5 requires)
+    if (!/^\*[a-zA-Z_][a-zA-Z0-9_]*$/.test(pattern.slice(wildcardIndex))) {
+      throw new Error(
+        `Invalid path pattern "${pattern}": Wildcard parameter must have a valid name (e.g., *filePath)`,
+      );
+    }
+  }
+
+  // Check for multiple wildcards
+  const wildcardCount = (pattern.match(/\*/g) || []).length;
+  if (wildcardCount > 1) {
+    throw new Error(`Invalid path pattern "${pattern}": Only one wildcard parameter is allowed`);
+  }
 }
 
 /**

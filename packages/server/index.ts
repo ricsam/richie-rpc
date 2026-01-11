@@ -13,7 +13,13 @@ import type {
   StandardEndpointDefinition,
   StreamingEndpointDefinition,
 } from '@richie-rpc/core';
-import { formDataToObject, matchPath, parseQuery, Status } from '@richie-rpc/core';
+import {
+  formDataToObject,
+  matchPath,
+  parseQuery,
+  Status,
+  validatePathPattern,
+} from '@richie-rpc/core';
 import type { z } from 'zod';
 
 // Re-export Status for convenience
@@ -685,6 +691,15 @@ export class Router<T extends Contract, C = unknown> {
     private handlers: ContractHandlers<T, C>,
     options?: RouterOptions<C>,
   ) {
+    // Validate all path patterns
+    for (const [name, endpoint] of Object.entries(contract)) {
+      try {
+        validatePathPattern(endpoint.path);
+      } catch (error) {
+        throw new Error(`Invalid path in endpoint "${name}": ${(error as Error).message}`);
+      }
+    }
+
     // Normalize basePath: ensure it starts with / and doesn't end with /
     const bp = options?.basePath || '';
     if (bp) {

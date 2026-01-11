@@ -1,5 +1,13 @@
 # @richie-rpc/server
 
+## 1.2.9
+
+### Patch Changes
+
+- add support for wildcard parameter
+- Updated dependencies
+  - @richie-rpc/core@1.2.5
+
 ## 1.2.8
 
 ### Patch Changes

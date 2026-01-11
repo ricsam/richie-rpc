@@ -13,7 +13,10 @@ import type { z } from 'zod';
  * Validation error for WebSocket messages
  */
 export class WebSocketValidationError extends Error {
-  constructor(public messageType: string, public issues: z.ZodIssue[]) {
+  constructor(
+    public messageType: string,
+    public issues: z.ZodIssue[],
+  ) {
     super(`Validation failed for WebSocket message type: ${messageType}`);
     this.name = 'WebSocketValidationError';
   }
@@ -24,14 +27,14 @@ export class WebSocketValidationError extends Error {
  */
 export interface TypedServerWebSocket<
   T extends WebSocketContractDefinition,
-  WS extends GenericWebSocket
+  WS extends GenericWebSocket,
 > {
   /** The underlying Bun WebSocket */
   readonly raw: WS;
   /** Send a typed message to the client */
   send<K extends keyof T['serverMessages']>(
     type: K,
-    payload: z.infer<T['serverMessages'][K]['payload']>
+    payload: z.infer<T['serverMessages'][K]['payload']>,
   ): void;
   /** Close the connection */
   close(code?: number, reason?: string): void;
@@ -45,7 +48,11 @@ export type GenericWebSocket = {
 /**
  * Arguments passed to handler functions
  */
-export interface HandlerArgs<T extends WebSocketContractDefinition, WS extends GenericWebSocket, D = unknown> {
+export interface HandlerArgs<
+  T extends WebSocketContractDefinition,
+  WS extends GenericWebSocket,
+  D = unknown,
+> {
   ws: TypedServerWebSocket<T, WS>;
   params: ExtractWSParams<T>;
   query: ExtractWSQuery<T>;
@@ -56,7 +63,11 @@ export interface HandlerArgs<T extends WebSocketContractDefinition, WS extends G
 /**
  * Handler functions for a WebSocket endpoint
  */
-export interface WebSocketEndpointHandlers<T extends WebSocketContractDefinition, WS extends GenericWebSocket, D = unknown> {
+export interface WebSocketEndpointHandlers<
+  T extends WebSocketContractDefinition,
+  WS extends GenericWebSocket,
+  D = unknown,
+> {
   /** Called when connection opens */
   open?(args: HandlerArgs<T, WS, D>): void | Promise<void>;
   /** Called for each validated message */
@@ -76,7 +87,11 @@ export interface WebSocketEndpointHandlers<T extends WebSocketContractDefinition
 /**
  * Contract handlers mapping for WebSocket endpoints
  */
-export type WebSocketContractHandlers<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown> = {
+export type WebSocketContractHandlers<
+  T extends WebSocketContract,
+  WS extends GenericWebSocket,
+  D = unknown,
+> = {
   [K in keyof T]: WebSocketEndpointHandlers<T[K], WS, D>;
 };
 
@@ -120,7 +135,7 @@ export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
         upgradeData: UpgradeData;
       },
       D
-    >
+    >,
   ): void | Promise<void>;
   message(
     args: WithData<
@@ -130,7 +145,7 @@ export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
         upgradeData: UpgradeData;
       },
       D
-    >
+    >,
   ): void | Promise<void>;
   close(
     args: WithData<
@@ -141,7 +156,7 @@ export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
         upgradeData: UpgradeData;
       },
       D
-    >
+    >,
   ): void;
   drain(args: WithData<{ ws: WS; upgradeData: UpgradeData }, D>): void;
 }
@@ -150,7 +165,7 @@ export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
  * Create a typed WebSocket wrapper
  */
 function createTypedWebSocket<T extends WebSocketContractDefinition, WS extends GenericWebSocket>(
-  ws: WS
+  ws: WS,
 ): TypedServerWebSocket<T, WS> {
   return {
     get raw() {
@@ -168,14 +183,18 @@ function createTypedWebSocket<T extends WebSocketContractDefinition, WS extends 
 /**
  * WebSocket router for managing WebSocket contract endpoints
  */
-export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown> {
+export class WebSocketRouter<
+  T extends WebSocketContract,
+  WS extends GenericWebSocket,
+  D = unknown,
+> {
   private basePath: string;
   private dataSchema?: z.ZodSchema<D>;
 
   constructor(
     private contract: T,
     private handlers: WebSocketContractHandlers<T, WS, D>,
-    options?: WebSocketRouterOptions<WS, D>
+    options?: WebSocketRouterOptions<WS, D>,
   ) {
     // Normalize basePath
     const bp = options?.basePath || '';
@@ -215,7 +234,7 @@ export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebS
   private parseUpgradeParams(
     request: Request,
     endpoint: WebSocketContractDefinition,
-    pathParams: Record<string, string>
+    pathParams: Record<string, string>,
   ): { params: any; query: any; headers: any } {
     const url = new URL(request.url);
 
@@ -313,7 +332,7 @@ export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebS
    */
   private validateMessage(
     endpoint: WebSocketContractDefinition,
-    rawMessage: string | ArrayBuffer
+    rawMessage: string | ArrayBuffer,
   ): ExtractClientMessage<typeof endpoint> {
     // Parse message
     const messageStr =
@@ -379,7 +398,7 @@ export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebS
           // Validate the message
           const validatedMessage = this.validateMessage(
             upgradeData.endpoint,
-            typeof rawMessage === 'string' ? rawMessage : rawMessage.buffer
+            typeof rawMessage === 'string' ? rawMessage : rawMessage.buffer,
           );
 
           // Call handler with validated message
@@ -408,7 +427,7 @@ export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebS
                   code: 'VALIDATION_ERROR',
                   message: err.message,
                   issues: err.issues,
-                } as any
+                } as any,
               );
             }
           } else {
@@ -459,10 +478,14 @@ export class WebSocketRouter<T extends WebSocketContract, WS extends GenericWebS
 /**
  * Create a WebSocket router from a contract and handlers
  */
-export function createWebSocketRouter<T extends WebSocketContract, WS extends GenericWebSocket, D = unknown>(
+export function createWebSocketRouter<
+  T extends WebSocketContract,
+  WS extends GenericWebSocket,
+  D = unknown,
+>(
   contract: T,
   handlers: WebSocketContractHandlers<T, WS, D>,
-  options?: WebSocketRouterOptions<WS, D>
+  options?: WebSocketRouterOptions<WS, D>,
 ): WebSocketRouter<T, WS, D> {
   return new WebSocketRouter(contract, handlers, options);
 }

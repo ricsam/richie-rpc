@@ -183,6 +183,50 @@ test.describe('Richie RPC API Integration', () => {
   });
 });
 
+test.describe('Wildcard Path Parameters', () => {
+  test('should match single segment wildcard path', async ({ request }) => {
+    const response = await request.get('/api/static/file.txt');
+    expect(response.ok()).toBeTruthy();
+
+    const data = await response.json();
+    expect(data.requestedPath).toBe('file.txt');
+    expect(data.segments).toEqual(['file.txt']);
+  });
+
+  test('should match multi-segment wildcard path', async ({ request }) => {
+    const response = await request.get('/api/static/images/2024/photo.jpg');
+    expect(response.ok()).toBeTruthy();
+
+    const data = await response.json();
+    expect(data.requestedPath).toBe('images/2024/photo.jpg');
+    expect(data.segments).toEqual(['images', '2024', 'photo.jpg']);
+  });
+
+  test('should match deeply nested wildcard path', async ({ request }) => {
+    const response = await request.get('/api/static/a/b/c/d/e/f/file.txt');
+    expect(response.ok()).toBeTruthy();
+
+    const data = await response.json();
+    expect(data.requestedPath).toBe('a/b/c/d/e/f/file.txt');
+    expect(data.segments).toHaveLength(7);
+  });
+
+  test('should include wildcard path in OpenAPI spec', async ({ request }) => {
+    const response = await request.get('/openapi.json');
+    expect(response.ok()).toBeTruthy();
+
+    const spec = await response.json();
+    // OpenAPI uses {filePath} syntax - check for path with includes since basePath may vary
+    const pathKeys = Object.keys(spec.paths);
+    const staticPath = pathKeys.find((p) => p.includes('/static/{filePath}'));
+    expect(staticPath).toBeDefined();
+    if (staticPath) {
+      expect(spec.paths[staticPath].get).toBeDefined();
+      expect(spec.paths[staticPath].get.operationId).toBe('getStaticFile');
+    }
+  });
+});
+
 test.describe('OpenAPI Spec Validation', () => {
   test('should match OpenAPI spec with actual endpoint behavior', async ({ request }) => {
     // Fetch the OpenAPI spec

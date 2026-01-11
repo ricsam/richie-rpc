@@ -91,9 +91,10 @@ function zodSchemaToJsonSchema(schema: z.ZodTypeAny, params?: ZodToJSONSchemaPar
 /**
  * Convert path parameters to OpenAPI format
  * e.g., "/users/:id" => "/users/{id}"
+ * e.g., "/files/*path" => "/files/{path}"
  */
 function convertPathToOpenAPI(path: string): string {
-  return path.replace(/:([^/]+)/g, '{$1}');
+  return path.replace(/:([^/]+)/g, '{$1}').replace(/\*([^/]+)/g, '{$1}');
 }
 
 /**

@@ -227,7 +227,10 @@ export type QueryEndpointApi<T extends StandardEndpointDefinition> = {
     contractEndpoint: T;
   };
   /** Suspense query hook */
-  useSuspenseQuery: (options: TsrSuspenseQueryOptions<T>) => UseSuspenseQueryResult<EndpointResponse<T>, Error> & {
+  useSuspenseQuery: (options: TsrSuspenseQueryOptions<T>) => UseSuspenseQueryResult<
+    EndpointResponse<T>,
+    Error
+  > & {
     contractEndpoint: T;
   };
   /** Infinite query hook */
@@ -251,9 +254,11 @@ export type QueryEndpointApi<T extends StandardEndpointDefinition> = {
  */
 export type MutationEndpointApi<T extends StandardEndpointDefinition> = {
   /** Mutation hook */
-  useMutation: (
-    options?: TsrMutationOptions<T>,
-  ) => UseMutationResult<EndpointResponse<T>, Error, EndpointRequestOptions<T>> & {
+  useMutation: (options?: TsrMutationOptions<T>) => UseMutationResult<
+    EndpointResponse<T>,
+    Error,
+    EndpointRequestOptions<T>
+  > & {
     contractEndpoint: T;
   };
   /** Direct mutate without React Query */
@@ -267,7 +272,10 @@ export type StreamingEndpointApi<T extends StreamingEndpointDefinition> = {
   /** Direct stream access (event-based) */
   stream: StreamingClientMethod<T>;
   /** Query hook using experimental streamedQuery */
-  useStreamQuery: (options: TsrStreamQueryOptions<T>) => UseQueryResult<ExtractChunk<T>[], Error> & {
+  useStreamQuery: (options: TsrStreamQueryOptions<T>) => UseQueryResult<
+    ExtractChunk<T>[],
+    Error
+  > & {
     contractEndpoint: T;
   };
 };
@@ -315,7 +323,6 @@ export type EndpointApi<T> = T extends StandardEndpointDefinition
 export type TanstackQueryApi<T extends Contract> = {
   [K in keyof T]: EndpointApi<T[K]>;
 };
-
 
 // ============================================
 // Async Iterator Adapter for Streaming
@@ -374,6 +381,7 @@ function streamToAsyncIterable<T extends StreamingEndpointDefinition>(
               return Promise.reject(error);
             }
             if (queue.length > 0) {
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               return Promise.resolve({ value: queue.shift()!, done: false });
             }
             if (done) {
@@ -425,27 +433,42 @@ export function createTypedQueryClient<T extends Contract>(
   for (const [name, endpoint] of Object.entries(contract)) {
     if (endpoint.type !== 'standard') continue;
 
-    const clientMethod = client[name as keyof T] as unknown as ClientMethod<StandardEndpointDefinition>;
+    const clientMethod = client[
+      name as keyof T
+    ] as unknown as ClientMethod<StandardEndpointDefinition>;
     const typedEndpoint = endpoint as StandardEndpointDefinition;
 
     if (typedEndpoint.method === 'GET' || typedEndpoint.method === 'HEAD') {
       (typed as any)[name] = {
         getQueryData: (queryKey: QueryKey) => queryClient.getQueryData(queryKey),
-        setQueryData: (queryKey: QueryKey, updater: any) => queryClient.setQueryData(queryKey, updater),
+        setQueryData: (queryKey: QueryKey, updater: any) =>
+          queryClient.setQueryData(queryKey, updater),
         getQueryState: (queryKey: QueryKey) => queryClient.getQueryState(queryKey),
-        fetchQuery: ({ queryKey, queryData, ...rest }: TsrQueryOptions<StandardEndpointDefinition>) =>
+        fetchQuery: ({
+          queryKey,
+          queryData,
+          ...rest
+        }: TsrQueryOptions<StandardEndpointDefinition>) =>
           queryClient.fetchQuery({
             queryKey,
             queryFn: () => clientMethod(queryData),
             ...rest,
           }),
-        prefetchQuery: ({ queryKey, queryData, ...rest }: TsrQueryOptions<StandardEndpointDefinition>) =>
+        prefetchQuery: ({
+          queryKey,
+          queryData,
+          ...rest
+        }: TsrQueryOptions<StandardEndpointDefinition>) =>
           queryClient.prefetchQuery({
             queryKey,
             queryFn: () => clientMethod(queryData),
             ...rest,
           }),
-        ensureQueryData: ({ queryKey, queryData, ...rest }: TsrQueryOptions<StandardEndpointDefinition>) =>
+        ensureQueryData: ({
+          queryKey,
+          queryData,
+          ...rest
+        }: TsrQueryOptions<StandardEndpointDefinition>) =>
           queryClient.ensureQueryData({
             queryKey,
             queryFn: () => clientMethod(queryData),
@@ -514,11 +537,18 @@ export function createTanstackQueryApi<T extends Contract>(
   for (const [name, endpoint] of Object.entries(contract)) {
     // Handle streaming endpoints
     if (endpoint.type === 'streaming') {
-      const streamMethod = client[name as keyof T] as unknown as StreamingClientMethod<StreamingEndpointDefinition>;
+      const streamMethod = client[
+        name as keyof T
+      ] as unknown as StreamingClientMethod<StreamingEndpointDefinition>;
 
       endpoints[name] = {
         stream: streamMethod,
-        useStreamQuery: ({ queryKey, queryData, refetchMode, ...rest }: TsrStreamQueryOptions<StreamingEndpointDefinition>) => {
+        useStreamQuery: ({
+          queryKey,
+          queryData,
+          refetchMode,
+          ...rest
+        }: TsrStreamQueryOptions<StreamingEndpointDefinition>) => {
           const result = useQuery({
             queryKey,
             queryFn: streamedQuery({
@@ -538,7 +568,9 @@ export function createTanstackQueryApi<T extends Contract>(
 
     // Handle SSE endpoints
     if (endpoint.type === 'sse') {
-      const connectMethod = client[name as keyof T] as unknown as SSEClientMethod<SSEEndpointDefinition>;
+      const connectMethod = client[
+        name as keyof T
+      ] as unknown as SSEClientMethod<SSEEndpointDefinition>;
       endpoints[name] = {
         connect: connectMethod,
       } as SSEEndpointApi<SSEEndpointDefinition>;
@@ -547,7 +579,9 @@ export function createTanstackQueryApi<T extends Contract>(
 
     // Handle download endpoints
     if (endpoint.type === 'download') {
-      const downloadMethod = client[name as keyof T] as unknown as DownloadClientMethod<DownloadEndpointDefinition>;
+      const downloadMethod = client[
+        name as keyof T
+      ] as unknown as DownloadClientMethod<DownloadEndpointDefinition>;
       endpoints[name] = {
         download: downloadMethod,
       } as DownloadEndpointApi<DownloadEndpointDefinition>;
@@ -556,12 +590,18 @@ export function createTanstackQueryApi<T extends Contract>(
 
     // Handle standard endpoints
     const method = endpoint.method;
-    const clientMethod = client[name as keyof T] as unknown as ClientMethod<StandardEndpointDefinition>;
+    const clientMethod = client[
+      name as keyof T
+    ] as unknown as ClientMethod<StandardEndpointDefinition>;
 
     if (method === 'GET' || method === 'HEAD') {
       // Query endpoint
       endpoints[name] = {
-        useQuery: ({ queryKey, queryData, ...rest }: TsrQueryOptions<StandardEndpointDefinition>) => {
+        useQuery: ({
+          queryKey,
+          queryData,
+          ...rest
+        }: TsrQueryOptions<StandardEndpointDefinition>) => {
           const result = useQuery({
             queryKey,
             queryFn: () => clientMethod(queryData),
@@ -572,7 +612,11 @@ export function createTanstackQueryApi<T extends Contract>(
             contractEndpoint: endpoint,
           };
         },
-        useSuspenseQuery: ({ queryKey, queryData, ...rest }: TsrSuspenseQueryOptions<StandardEndpointDefinition>) => {
+        useSuspenseQuery: ({
+          queryKey,
+          queryData,
+          ...rest
+        }: TsrSuspenseQueryOptions<StandardEndpointDefinition>) => {
           const result = useSuspenseQuery({
             queryKey,
             queryFn: () => clientMethod(queryData),
@@ -615,14 +659,16 @@ export function createTanstackQueryApi<T extends Contract>(
             contractEndpoint: endpoint,
           };
         },
-        query: (options: EndpointRequestOptions<StandardEndpointDefinition>) => clientMethod(options),
+        query: (options: EndpointRequestOptions<StandardEndpointDefinition>) =>
+          clientMethod(options),
       } as QueryEndpointApi<StandardEndpointDefinition>;
     } else {
       // Mutation endpoint
       endpoints[name] = {
         useMutation: (options?: TsrMutationOptions<StandardEndpointDefinition>) => {
           const result = useMutation({
-            mutationFn: (data: EndpointRequestOptions<StandardEndpointDefinition>) => clientMethod(data),
+            mutationFn: (data: EndpointRequestOptions<StandardEndpointDefinition>) =>
+              clientMethod(data),
             ...options,
           });
           return {
@@ -630,7 +676,8 @@ export function createTanstackQueryApi<T extends Contract>(
             contractEndpoint: endpoint,
           };
         },
-        mutate: (options: EndpointRequestOptions<StandardEndpointDefinition>) => clientMethod(options),
+        mutate: (options: EndpointRequestOptions<StandardEndpointDefinition>) =>
+          clientMethod(options),
       } as MutationEndpointApi<StandardEndpointDefinition>;
     }
   }

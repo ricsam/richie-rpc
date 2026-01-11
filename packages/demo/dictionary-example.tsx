@@ -130,31 +130,39 @@ function DictionaryApp() {
               </p>
             </div>
           ) : (
-            entries.map((entry: { id: string; word: string; definition: string; partOfSpeech?: string; example?: string }) => (
-              <div key={entry.id} className="entry-card">
-                <div className="entry-content">
-                  <div className="entry-header">
-                    <h3 className="entry-word">{entry.word}</h3>
-                    {entry.partOfSpeech && <span className="badge">{entry.partOfSpeech}</span>}
-                  </div>
-                  <p className="entry-definition">{entry.definition}</p>
-                  {entry.example && (
-                    <div className="entry-example">
-                      <p className="example-text">"{entry.example}"</p>
+            entries.map(
+              (entry: {
+                id: string;
+                word: string;
+                definition: string;
+                partOfSpeech?: string;
+                example?: string;
+              }) => (
+                <div key={entry.id} className="entry-card">
+                  <div className="entry-content">
+                    <div className="entry-header">
+                      <h3 className="entry-word">{entry.word}</h3>
+                      {entry.partOfSpeech && <span className="badge">{entry.partOfSpeech}</span>}
                     </div>
-                  )}
+                    <p className="entry-definition">{entry.definition}</p>
+                    {entry.example && (
+                      <div className="entry-example">
+                        <p className="example-text">"{entry.example}"</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-delete"
+                    onClick={() => handleDelete(entry.id)}
+                    disabled={deleteEntry.isPending}
+                    title="Delete entry"
+                  >
+                    🗑️
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className="btn-delete"
-                  onClick={() => handleDelete(entry.id)}
-                  disabled={deleteEntry.isPending}
-                  title="Delete entry"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))
+              ),
+            )
           )}
         </div>
       </div>

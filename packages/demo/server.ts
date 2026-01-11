@@ -183,7 +183,7 @@ const router = createRouter<typeof usersContract, AppContext>(
         filenames.push(doc.file.name);
         totalSize += doc.file.size;
         console.log(
-          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`
+          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
         );
         if (doc.tags) {
           console.log(`  Tags: ${doc.tags.join(', ')}`);
@@ -237,6 +237,22 @@ const router = createRouter<typeof usersContract, AppContext>(
         body: file,
       };
     },
+
+    // Wildcard path parameter - serves static files from nested paths
+    getStaticFile: async ({ params }) => {
+      const filePath = params.filePath;
+      const segments = filePath.split('/');
+
+      // For demo purposes, just echo back the path info
+      // In a real app, this would serve actual static files
+      return {
+        status: Status.OK,
+        body: {
+          requestedPath: filePath,
+          segments,
+        },
+      };
+    },
   },
   {
     basePath: '/api',
@@ -244,7 +260,7 @@ const router = createRouter<typeof usersContract, AppContext>(
       // Return the mock app configuration as context
       return appConfig;
     },
-  }
+  },
 );
 
 // Generate OpenAPI spec
@@ -330,7 +346,7 @@ const server = Bun.serve({
         if (error instanceof ValidationError) {
           return Response.json(
             { error: 'Validation Error', field: error.field, issues: error.issues },
-            { status: 400 }
+            { status: 400 },
           );
         }
         if (error instanceof RouteNotFoundError) {

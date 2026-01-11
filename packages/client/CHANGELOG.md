@@ -1,5 +1,12 @@
 # @richie-rpc/client
 
+## 1.2.7
+
+### Patch Changes
+
+- Updated dependencies
+  - @richie-rpc/core@1.2.5
+
 ## 1.2.6
 
 ### Patch Changes

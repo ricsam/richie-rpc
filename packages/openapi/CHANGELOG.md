@@ -1,5 +1,13 @@
 # @richie-rpc/openapi
 
+## 1.1.6
+
+### Patch Changes
+
+- add support for wildcard parameter
+- Updated dependencies
+  - @richie-rpc/core@1.2.5
+
 ## 1.1.5
 
 ### Patch Changes

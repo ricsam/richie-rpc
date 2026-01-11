@@ -75,32 +75,41 @@ export const streamingRouter = createRouter(
       };
 
       // Generate random log entries
-      const logInterval = setInterval(() => {
-        if (!emitter.isOpen) return;
+      const logInterval = setInterval(
+        () => {
+          if (!emitter.isOpen) return;
 
-        // Pick random level
-        const levels: Array<'info' | 'warn' | 'error'> = ['info', 'info', 'info', 'warn', 'error'];
-        const level = levels[Math.floor(Math.random() * levels.length)] as
-          | 'info'
-          | 'warn'
-          | 'error';
+          // Pick random level
+          const levels: Array<'info' | 'warn' | 'error'> = [
+            'info',
+            'info',
+            'info',
+            'warn',
+            'error',
+          ];
+          const level = levels[Math.floor(Math.random() * levels.length)] as
+            | 'info'
+            | 'warn'
+            | 'error';
 
-        // Filter by level
-        if (filter !== 'all' && filter !== level) {
-          return;
-        }
+          // Filter by level
+          if (filter !== 'all' && filter !== level) {
+            return;
+          }
 
-        const messages = logMessages[level];
-        const message = messages[Math.floor(Math.random() * messages.length)];
-        const source = logSources[Math.floor(Math.random() * logSources.length)];
+          const messages = logMessages[level];
+          const message = messages[Math.floor(Math.random() * messages.length)];
+          const source = logSources[Math.floor(Math.random() * logSources.length)];
 
-        emitter.send('log', {
-          timestamp: new Date().toISOString(),
-          level,
-          message: message ?? 'Unknown message',
-          source,
-        });
-      }, 1000 + Math.random() * 2000); // 1-3s interval
+          emitter.send('log', {
+            timestamp: new Date().toISOString(),
+            level,
+            message: message ?? 'Unknown message',
+            source,
+          });
+        },
+        1000 + Math.random() * 2000,
+      ); // 1-3s interval
 
       // Heartbeat every 30 seconds
       const heartbeatInterval = setInterval(() => {
@@ -121,7 +130,7 @@ export const streamingRouter = createRouter(
       };
     },
   },
-  { basePath: '/streaming' }
+  { basePath: '/streaming' },
 );
 
 // ===========================================
@@ -137,7 +146,7 @@ function broadcastToAll<K extends keyof (typeof chatContract)['chat']['serverMes
   payload: Parameters<
     TypedServerWebSocket<(typeof chatContract)['chat'], Bun.ServerWebSocket<UpgradeData>>['send']
   >[1],
-  excludeWs?: Bun.ServerWebSocket<UpgradeData>
+  excludeWs?: Bun.ServerWebSocket<UpgradeData>,
 ) {
   for (const ws of connectedUsers.keys()) {
     if (ws !== excludeWs && ws.readyState === WebSocket.OPEN) {
@@ -218,7 +227,7 @@ export const wsRouter = createWebSocketRouter(
                 username,
                 isTyping: message.payload.isTyping,
               },
-              ws.raw
+              ws.raw,
             );
             break;
           }
@@ -250,5 +259,5 @@ export const wsRouter = createWebSocketRouter(
       test: z.string(),
     }),
     rawWebSocket: {} as Bun.ServerWebSocket<UpgradeData>,
-  }
+  },
 );

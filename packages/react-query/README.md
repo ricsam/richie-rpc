@@ -99,10 +99,12 @@ function CreateUserForm() {
   });
 
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      mutation.mutate({ body: { name: 'Alice', email: 'alice@example.com' } });
-    }}>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        mutation.mutate({ body: { name: 'Alice', email: 'alice@example.com' } });
+      }}
+    >
       <button type="submit" disabled={mutation.isPending}>
         {mutation.isPending ? 'Creating...' : 'Create User'}
       </button>

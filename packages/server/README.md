@@ -374,7 +374,7 @@ const wsRouter = createWebSocketRouter(
             JSON.stringify({
               type: 'message',
               payload: { userId: 'user1', text: msg.payload.text },
-            })
+            }),
           );
         }
       },
@@ -393,7 +393,7 @@ const wsRouter = createWebSocketRouter(
   {
     // Pass rawWebSocket for type inference - ws.raw will be typed as BunWS
     rawWebSocket: {} as BunWS,
-  }
+  },
 );
 ```
 
@@ -448,7 +448,7 @@ const wsRouter = createWebSocketRouter(
       userId: z.string(),
       sessionId: z.string(),
     }),
-  }
+  },
 );
 ```
 

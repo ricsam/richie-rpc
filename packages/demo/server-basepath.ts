@@ -183,6 +183,19 @@ const router = createRouter(
         body: file,
       };
     },
+
+    // Wildcard path parameter
+    getStaticFile: async ({ params }) => {
+      const filePath = params.filePath;
+      const segments = filePath.split('/');
+      return {
+        status: Status.OK,
+        body: {
+          requestedPath: filePath,
+          segments,
+        },
+      };
+    },
   },
   {
     basePath: '/api',

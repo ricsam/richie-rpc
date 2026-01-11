@@ -1,5 +1,14 @@
 # @richie-rpc/react-query
 
+## 1.0.9
+
+### Patch Changes
+
+- add support for wildcard parameter
+- Updated dependencies
+  - @richie-rpc/core@1.2.5
+  - @richie-rpc/client@1.2.7
+
 ## 1.0.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @richie-rpc/core
 
+## 1.2.5
+
+### Patch Changes
+
+- add support for wildcard parameter
+
 ## 1.2.4
 
 ### Patch Changes

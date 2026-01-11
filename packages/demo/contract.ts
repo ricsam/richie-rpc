@@ -173,6 +173,23 @@ export const usersContract = defineContract({
       [Status.NotFound]: ErrorSchema,
     },
   },
+
+  // Wildcard path parameter - serves static files from nested paths
+  getStaticFile: {
+    type: 'standard',
+    method: 'GET',
+    path: '/static/*filePath',
+    params: z.object({
+      filePath: z.string(),
+    }),
+    responses: {
+      [Status.OK]: z.object({
+        requestedPath: z.string(),
+        segments: z.array(z.string()),
+      }),
+      [Status.NotFound]: ErrorSchema,
+    },
+  },
 });
 
 export type User = z.infer<typeof UserSchema>;
