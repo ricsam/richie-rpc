@@ -202,6 +202,17 @@ const router = createRouter<typeof usersContract, AppContext>(
 
     // File download
     downloadFile: async ({ params }) => {
+      // Test case for binary file using Bun.file()
+      if (params.fileId === 'test-image') {
+        const bunFile = Bun.file('./tests/fixtures/test-image.png');
+        const buffer = await bunFile.arrayBuffer();
+        const file = new File([buffer], 'test-image.png', { type: bunFile.type });
+        return {
+          status: 200 as const,
+          body: file,
+        };
+      }
+
       // Mock file storage - in real app, this would fetch from disk/S3/etc
       const mockFiles: Record<string, { content: string; name: string; type: string }> = {
         'doc-1': {

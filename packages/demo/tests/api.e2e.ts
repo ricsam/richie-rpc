@@ -181,6 +181,21 @@ test.describe('Richie RPC API Integration', () => {
     const body = await response.body();
     expect(body.toString()).toBe('{"message": "JSON content"}');
   });
+
+  test('should download PNG file with correct content-type', async ({ request }) => {
+    const response = await request.get('/api/files/test-image');
+
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('image/png');
+    expect(response.headers()['content-disposition']).toContain('test-image.png');
+
+    // Verify PNG magic bytes (89 50 4E 47 = \x89PNG)
+    const body = await response.body();
+    expect(body[0]).toBe(0x89);
+    expect(body[1]).toBe(0x50); // P
+    expect(body[2]).toBe(0x4e); // N
+    expect(body[3]).toBe(0x47); // G
+  });
 });
 
 test.describe('Wildcard Path Parameters', () => {
