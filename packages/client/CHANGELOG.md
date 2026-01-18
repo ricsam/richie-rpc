@@ -1,5 +1,11 @@
 # @richie-rpc/client
 
+## 1.2.8
+
+### Patch Changes
+
+- allow transforms on the client
+
 ## 1.2.7
 
 ### Patch Changes

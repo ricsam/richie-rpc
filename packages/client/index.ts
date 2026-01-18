@@ -28,7 +28,7 @@ export interface ClientConfig {
   baseUrl: string;
   headers?: Record<string, string>;
   validateRequest?: boolean;
-  validateResponse?: boolean;
+  parseResponse?: boolean;
 }
 
 // Request options for an endpoint
@@ -227,20 +227,22 @@ function validateRequest<T extends StandardEndpointDefinition>(
 }
 
 /**
- * Validate response data after receiving
+ * Parse and transform response data using Zod schema
  */
-function validateResponse<T extends StandardEndpointDefinition>(
+function parseResponse<T extends StandardEndpointDefinition>(
   endpoint: T,
   status: number,
   data: unknown,
-): void {
+): unknown {
   const responseSchema = endpoint.responses[status];
   if (responseSchema) {
     const result = responseSchema.safeParse(data);
     if (!result.success) {
       throw new ClientValidationError(`response[${status}]`, result.error.issues);
     }
+    return result.data;
   }
+  return data;
 }
 
 /**
@@ -294,13 +296,13 @@ function validateDownloadRequest<T extends DownloadEndpointDefinition>(
 }
 
 /**
- * Validate download error response data
+ * Parse and transform download error response data using Zod schema
  */
-function validateDownloadErrorResponse<T extends DownloadEndpointDefinition>(
+function parseDownloadErrorResponse<T extends DownloadEndpointDefinition>(
   endpoint: T,
   status: number,
   data: unknown,
-): void {
+): unknown {
   if (endpoint.errorResponses) {
     const responseSchema = endpoint.errorResponses[status];
     if (responseSchema) {
@@ -308,8 +310,10 @@ function validateDownloadErrorResponse<T extends DownloadEndpointDefinition>(
       if (!result.success) {
         throw new ClientValidationError(`response[${status}]`, result.error.issues);
       }
+      return result.data;
     }
   }
+  return data;
 }
 
 /**
@@ -418,14 +422,15 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
     throw new HTTPError(response.status, response.statusText, data);
   }
 
-  // Validate error response if enabled
-  if (config.validateResponse !== false) {
-    validateDownloadErrorResponse(endpoint, response.status, data);
-  }
+  // Parse error response if enabled
+  const parsedData =
+    config.parseResponse !== false
+      ? parseDownloadErrorResponse(endpoint, response.status, data)
+      : data;
 
   return {
     status: response.status,
-    data,
+    data: parsedData,
   } as DownloadResponse<T>;
 }
 
@@ -506,10 +511,11 @@ function makeRequestWithXHR<T extends StandardEndpointDefinition>(
         return;
       }
 
-      // Validate response if enabled
-      if (config.validateResponse !== false) {
+      // Parse response if enabled
+      let parsedData = data;
+      if (config.parseResponse !== false) {
         try {
-          validateResponse(endpoint, xhr.status, data);
+          parsedData = parseResponse(endpoint, xhr.status, data);
         } catch (err) {
           reject(err);
           return;
@@ -518,7 +524,7 @@ function makeRequestWithXHR<T extends StandardEndpointDefinition>(
 
       resolve({
         status: xhr.status,
-        data,
+        data: parsedData,
       } as EndpointResponse<T>);
     };
 
@@ -635,14 +641,13 @@ async function makeRequest<T extends StandardEndpointDefinition>(
     throw new HTTPError(response.status, response.statusText, data);
   }
 
-  // Validate response if enabled
-  if (config.validateResponse !== false) {
-    validateResponse(endpoint, response.status, data);
-  }
+  // Parse response if enabled
+  const parsedData =
+    config.parseResponse !== false ? parseResponse(endpoint, response.status, data) : data;
 
   return {
     status: response.status,
-    data,
+    data: parsedData,
   } as EndpointResponse<T>;
 }
 
@@ -652,6 +657,8 @@ async function makeRequest<T extends StandardEndpointDefinition>(
 function createStreamingResult<T extends StreamingEndpointDefinition>(
   response: Response,
   controller: AbortController,
+  endpoint: T,
+  config: ClientConfig,
 ): StreamingResult<T> {
   type ChunkHandler = (chunk: ExtractChunk<T>) => void;
   type CloseHandler = (final?: ExtractFinalResponse<T>) => void;
@@ -661,6 +668,30 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
     chunk: new Set<ChunkHandler>(),
     close: new Set<CloseHandler>(),
     error: new Set<ErrorHandler>(),
+  };
+
+  // Helper to parse chunk data
+  const parseChunk = (data: unknown): unknown => {
+    if (config.parseResponse !== false && endpoint.chunk) {
+      const result = endpoint.chunk.safeParse(data);
+      if (!result.success) {
+        throw new ClientValidationError('chunk', result.error.issues);
+      }
+      return result.data;
+    }
+    return data;
+  };
+
+  // Helper to parse final response data
+  const parseFinalResponse = (data: unknown): unknown => {
+    if (config.parseResponse !== false && endpoint.finalResponse) {
+      const result = endpoint.finalResponse.safeParse(data);
+      if (!result.success) {
+        throw new ClientValidationError('finalResponse', result.error.issues);
+      }
+      return result.data;
+    }
+    return data;
   };
 
   // Start reading in background
@@ -683,9 +714,11 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
           try {
             const parsed = JSON.parse(line);
             if (parsed.__final__) {
-              listeners.close.forEach((h) => h(parsed.data));
+              const finalData = parseFinalResponse(parsed.data);
+              listeners.close.forEach((h) => h(finalData as ExtractFinalResponse<T>));
             } else {
-              listeners.chunk.forEach((h) => h(parsed as ExtractChunk<T>));
+              const chunkData = parseChunk(parsed);
+              listeners.chunk.forEach((h) => h(chunkData as ExtractChunk<T>));
             }
           } catch (parseErr) {
             listeners.error.forEach((h) => h(parseErr as Error));
@@ -698,9 +731,11 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
         try {
           const parsed = JSON.parse(buffer);
           if (parsed.__final__) {
-            listeners.close.forEach((h) => h(parsed.data));
+            const finalData = parseFinalResponse(parsed.data);
+            listeners.close.forEach((h) => h(finalData as ExtractFinalResponse<T>));
           } else {
-            listeners.chunk.forEach((h) => h(parsed as ExtractChunk<T>));
+            const chunkData = parseChunk(parsed);
+            listeners.chunk.forEach((h) => h(chunkData as ExtractChunk<T>));
           }
         } catch {
           // Ignore incomplete JSON at end
@@ -851,7 +886,7 @@ async function makeStreamingRequest<T extends StreamingEndpointDefinition>(
   }
 
   // Return streaming result
-  return createStreamingResult<T>(response, controller);
+  return createStreamingResult<T>(response, controller, endpoint, config);
 }
 
 /**
@@ -894,9 +929,26 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
     eventSource.addEventListener(eventName, (e) => {
       const messageEvent = e as MessageEvent;
       try {
-        const data = JSON.parse(messageEvent.data);
+        const rawData = JSON.parse(messageEvent.data);
+
+        // Parse event data using Zod schema if enabled
+        let parsedData = rawData;
+        if (config.parseResponse !== false) {
+          const eventSchema = endpoint.events[eventName];
+          if (eventSchema) {
+            const result = eventSchema.safeParse(rawData);
+            if (!result.success) {
+              (listeners.error as Set<ErrorHandler>).forEach((h) =>
+                h(new ClientValidationError(`event[${eventName}]`, result.error.issues)),
+              );
+              return;
+            }
+            parsedData = result.data;
+          }
+        }
+
         (listeners[eventName] as Set<EventHandler>).forEach((h) =>
-          h(data, messageEvent.lastEventId || undefined),
+          h(parsedData, messageEvent.lastEventId || undefined),
         );
       } catch (err) {
         (listeners.error as Set<ErrorHandler>).forEach((h) =>

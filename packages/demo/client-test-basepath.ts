@@ -5,7 +5,7 @@ import { usersContract } from './contract';
 const client = createClient(usersContract, {
   baseUrl: 'http://localhost:3001/api',
   validateRequest: true,
-  validateResponse: true,
+  parseResponse: true,
 });
 
 async function testBasePath() {
