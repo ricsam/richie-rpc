@@ -147,7 +147,7 @@ const server = Bun.serve({
             {
               error: 'Validation Error',
               field: error.field,
-              issues: error.issues,
+              issues: error.zodError.issues,
             },
             { status: 400 },
           );

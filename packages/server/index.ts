@@ -20,7 +20,7 @@ import {
   Status,
   validatePathPattern,
 } from '@richie-rpc/core';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 // Re-export Status for convenience
 export { Status };
@@ -190,10 +190,10 @@ export type ContractHandlers<T extends Contract, C = unknown> = {
 export class ValidationError extends Error {
   constructor(
     public field: string,
-    public issues: z.ZodIssue[],
-    message?: string,
+    public zodError: z.ZodError<unknown>,
   ) {
-    super(message || `Validation failed for ${field}`);
+    const pretty = z.prettifyError(zodError);
+    super(`Validation failed for ${field}:\n${pretty}`);
     this.name = 'ValidationError';
   }
 }
@@ -224,7 +224,7 @@ async function parseRequest<T extends StandardEndpointDefinition, C = unknown>(
   if (endpoint.params) {
     const result = endpoint.params.safeParse(pathParams);
     if (!result.success) {
-      throw new ValidationError('params', result.error.issues);
+      throw new ValidationError('params', result.error);
     }
     params = result.data;
   }
@@ -235,7 +235,7 @@ async function parseRequest<T extends StandardEndpointDefinition, C = unknown>(
     const queryData = parseQuery(url.searchParams);
     const result = endpoint.query.safeParse(queryData);
     if (!result.success) {
-      throw new ValidationError('query', result.error.issues);
+      throw new ValidationError('query', result.error);
     }
     query = result.data;
   }
@@ -249,7 +249,7 @@ async function parseRequest<T extends StandardEndpointDefinition, C = unknown>(
     });
     const result = endpoint.headers.safeParse(headersObj);
     if (!result.success) {
-      throw new ValidationError('headers', result.error.issues);
+      throw new ValidationError('headers', result.error);
     }
     headers = result.data;
   }
@@ -271,7 +271,7 @@ async function parseRequest<T extends StandardEndpointDefinition, C = unknown>(
 
     const result = endpoint.body.safeParse(bodyData);
     if (!result.success) {
-      throw new ValidationError('body', result.error.issues);
+      throw new ValidationError('body', result.error);
     }
     body = result.data;
   }
@@ -295,7 +295,7 @@ async function parseStreamingRequest<T extends StreamingEndpointDefinition, C = 
   if (endpoint.params) {
     const result = endpoint.params.safeParse(pathParams);
     if (!result.success) {
-      throw new ValidationError('params', result.error.issues);
+      throw new ValidationError('params', result.error);
     }
     params = result.data;
   }
@@ -306,7 +306,7 @@ async function parseStreamingRequest<T extends StreamingEndpointDefinition, C = 
     const queryData = parseQuery(url.searchParams);
     const result = endpoint.query.safeParse(queryData);
     if (!result.success) {
-      throw new ValidationError('query', result.error.issues);
+      throw new ValidationError('query', result.error);
     }
     query = result.data;
   }
@@ -320,7 +320,7 @@ async function parseStreamingRequest<T extends StreamingEndpointDefinition, C = 
     });
     const result = endpoint.headers.safeParse(headersObj);
     if (!result.success) {
-      throw new ValidationError('headers', result.error.issues);
+      throw new ValidationError('headers', result.error);
     }
     headers = result.data;
   }
@@ -342,7 +342,7 @@ async function parseStreamingRequest<T extends StreamingEndpointDefinition, C = 
 
     const result = endpoint.body.safeParse(bodyData);
     if (!result.success) {
-      throw new ValidationError('body', result.error.issues);
+      throw new ValidationError('body', result.error);
     }
     body = result.data;
   }
@@ -369,7 +369,7 @@ async function parseSSERequest<T extends SSEEndpointDefinition, C = unknown>(
   if (endpoint.params) {
     const result = endpoint.params.safeParse(pathParams);
     if (!result.success) {
-      throw new ValidationError('params', result.error.issues);
+      throw new ValidationError('params', result.error);
     }
     params = result.data;
   }
@@ -380,7 +380,7 @@ async function parseSSERequest<T extends SSEEndpointDefinition, C = unknown>(
     const queryData = parseQuery(url.searchParams);
     const result = endpoint.query.safeParse(queryData);
     if (!result.success) {
-      throw new ValidationError('query', result.error.issues);
+      throw new ValidationError('query', result.error);
     }
     query = result.data;
   }
@@ -394,7 +394,7 @@ async function parseSSERequest<T extends SSEEndpointDefinition, C = unknown>(
     });
     const result = endpoint.headers.safeParse(headersObj);
     if (!result.success) {
-      throw new ValidationError('headers', result.error.issues);
+      throw new ValidationError('headers', result.error);
     }
     headers = result.data;
   }
@@ -422,7 +422,7 @@ async function parseDownloadRequest<T extends DownloadEndpointDefinition, C = un
   if (endpoint.params) {
     const result = endpoint.params.safeParse(pathParams);
     if (!result.success) {
-      throw new ValidationError('params', result.error.issues);
+      throw new ValidationError('params', result.error);
     }
     params = result.data;
   }
@@ -433,7 +433,7 @@ async function parseDownloadRequest<T extends DownloadEndpointDefinition, C = un
     const queryData = parseQuery(url.searchParams);
     const result = endpoint.query.safeParse(queryData);
     if (!result.success) {
-      throw new ValidationError('query', result.error.issues);
+      throw new ValidationError('query', result.error);
     }
     query = result.data;
   }
@@ -447,7 +447,7 @@ async function parseDownloadRequest<T extends DownloadEndpointDefinition, C = un
     });
     const result = endpoint.headers.safeParse(headersObj);
     if (!result.success) {
-      throw new ValidationError('headers', result.error.issues);
+      throw new ValidationError('headers', result.error);
     }
     headers = result.data;
   }
@@ -470,7 +470,7 @@ function createResponse<T extends StandardEndpointDefinition>(
   if (responseSchema) {
     const result = responseSchema.safeParse(body);
     if (!result.success) {
-      throw new ValidationError(`response[${String(status)}]`, result.error.issues);
+      throw new ValidationError(`response[${String(status)}]`, result.error);
     }
   }
 

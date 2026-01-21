@@ -7,7 +7,7 @@ import type {
   WebSocketContractDefinition,
 } from '@richie-rpc/core';
 import { matchPath, parseQuery } from '@richie-rpc/core';
-import type { z } from 'zod';
+import { z } from 'zod';
 
 /**
  * Validation error for WebSocket messages
@@ -15,9 +15,10 @@ import type { z } from 'zod';
 export class WebSocketValidationError extends Error {
   constructor(
     public messageType: string,
-    public issues: z.ZodIssue[],
+    public zodError: z.ZodError<unknown>,
   ) {
-    super(`Validation failed for WebSocket message type: ${messageType}`);
+    const pretty = z.prettifyError(zodError);
+    super(`Validation failed for WebSocket message type: ${messageType}:\n${pretty}`);
     this.name = 'WebSocketValidationError';
   }
 }
@@ -320,7 +321,7 @@ export class WebSocketRouter<
     if (this.dataSchema) {
       const result = this.dataSchema.safeParse(data);
       if (!result.success) {
-        throw new WebSocketValidationError('data', result.error.issues);
+        throw new WebSocketValidationError('data', result.error);
       }
       return result.data;
     }
@@ -344,19 +345,22 @@ export class WebSocketRouter<
     // Find the schema for this message type
     const messageDef = endpoint.clientMessages[type];
     if (!messageDef) {
-      throw new WebSocketValidationError(type, [
-        {
-          code: 'custom',
-          path: ['type'],
-          message: `Unknown message type: ${type}`,
-        },
-      ]);
+      throw new WebSocketValidationError(
+        type,
+        new z.ZodError([
+          {
+            code: 'custom',
+            path: ['type'],
+            message: `Unknown message type: ${type}`,
+          },
+        ]),
+      );
     }
 
     // Validate payload
     const result = messageDef.payload.safeParse(payload);
     if (!result.success) {
-      throw new WebSocketValidationError(type, result.error.issues);
+      throw new WebSocketValidationError(type, result.error);
     }
 
     return { type, payload: result.data } as ExtractClientMessage<typeof endpoint>;
@@ -426,7 +430,7 @@ export class WebSocketRouter<
                 {
                   code: 'VALIDATION_ERROR',
                   message: err.message,
-                  issues: err.issues,
+                  issues: err.zodError.issues,
                 } as any,
               );
             }

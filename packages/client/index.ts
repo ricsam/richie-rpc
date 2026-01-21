@@ -21,7 +21,7 @@ import { buildUrl, interpolatePath, objectToFormData } from '@richie-rpc/core';
 
 // Re-export for convenience
 export type { UploadProgressEvent, DownloadProgressEvent };
-import type { z } from 'zod';
+import { z } from 'zod';
 
 // Client configuration
 export interface ClientConfig {
@@ -167,9 +167,10 @@ export type Client<T extends Contract> = {
 export class ClientValidationError extends Error {
   constructor(
     public field: string,
-    public issues: z.ZodIssue[],
+    public zodError: z.ZodError<unknown>,
   ) {
-    super(`Validation failed for ${field}`);
+    const pretty = z.prettifyError(zodError);
+    super(`Validation failed for ${field}:\n${pretty}`);
     this.name = 'ClientValidationError';
   }
 }
@@ -197,7 +198,7 @@ function validateRequest<T extends StandardEndpointDefinition>(
   if (endpoint.params && options.params) {
     const result = endpoint.params.safeParse(options.params);
     if (!result.success) {
-      throw new ClientValidationError('params', result.error.issues);
+      throw new ClientValidationError('params', result.error);
     }
   }
 
@@ -205,7 +206,7 @@ function validateRequest<T extends StandardEndpointDefinition>(
   if (endpoint.query && options.query) {
     const result = endpoint.query.safeParse(options.query);
     if (!result.success) {
-      throw new ClientValidationError('query', result.error.issues);
+      throw new ClientValidationError('query', result.error);
     }
   }
 
@@ -213,7 +214,7 @@ function validateRequest<T extends StandardEndpointDefinition>(
   if (endpoint.headers && options.headers) {
     const result = endpoint.headers.safeParse(options.headers);
     if (!result.success) {
-      throw new ClientValidationError('headers', result.error.issues);
+      throw new ClientValidationError('headers', result.error);
     }
   }
 
@@ -221,7 +222,7 @@ function validateRequest<T extends StandardEndpointDefinition>(
   if (endpoint.body && options.body) {
     const result = endpoint.body.safeParse(options.body);
     if (!result.success) {
-      throw new ClientValidationError('body', result.error.issues);
+      throw new ClientValidationError('body', result.error);
     }
   }
 }
@@ -238,7 +239,7 @@ function parseResponse<T extends StandardEndpointDefinition>(
   if (responseSchema) {
     const result = responseSchema.safeParse(data);
     if (!result.success) {
-      throw new ClientValidationError(`response[${status}]`, result.error.issues);
+      throw new ClientValidationError(`response[${status}]`, result.error);
     }
     return result.data;
   }
@@ -274,7 +275,7 @@ function validateDownloadRequest<T extends DownloadEndpointDefinition>(
   if (endpoint.params && options.params) {
     const result = endpoint.params.safeParse(options.params);
     if (!result.success) {
-      throw new ClientValidationError('params', result.error.issues);
+      throw new ClientValidationError('params', result.error);
     }
   }
 
@@ -282,7 +283,7 @@ function validateDownloadRequest<T extends DownloadEndpointDefinition>(
   if (endpoint.query && options.query) {
     const result = endpoint.query.safeParse(options.query);
     if (!result.success) {
-      throw new ClientValidationError('query', result.error.issues);
+      throw new ClientValidationError('query', result.error);
     }
   }
 
@@ -290,7 +291,7 @@ function validateDownloadRequest<T extends DownloadEndpointDefinition>(
   if (endpoint.headers && options.headers) {
     const result = endpoint.headers.safeParse(options.headers);
     if (!result.success) {
-      throw new ClientValidationError('headers', result.error.issues);
+      throw new ClientValidationError('headers', result.error);
     }
   }
 }
@@ -308,7 +309,7 @@ function parseDownloadErrorResponse<T extends DownloadEndpointDefinition>(
     if (responseSchema) {
       const result = responseSchema.safeParse(data);
       if (!result.success) {
-        throw new ClientValidationError(`response[${status}]`, result.error.issues);
+        throw new ClientValidationError(`response[${status}]`, result.error);
       }
       return result.data;
     }
@@ -675,7 +676,7 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
     if (config.parseResponse !== false && endpoint.chunk) {
       const result = endpoint.chunk.safeParse(data);
       if (!result.success) {
-        throw new ClientValidationError('chunk', result.error.issues);
+        throw new ClientValidationError('chunk', result.error);
       }
       return result.data;
     }
@@ -687,7 +688,7 @@ function createStreamingResult<T extends StreamingEndpointDefinition>(
     if (config.parseResponse !== false && endpoint.finalResponse) {
       const result = endpoint.finalResponse.safeParse(data);
       if (!result.success) {
-        throw new ClientValidationError('finalResponse', result.error.issues);
+        throw new ClientValidationError('finalResponse', result.error);
       }
       return result.data;
     }
@@ -776,7 +777,7 @@ function validateStreamingRequest<T extends StreamingEndpointDefinition>(
   if (endpoint.params && options.params) {
     const result = endpoint.params.safeParse(options.params);
     if (!result.success) {
-      throw new ClientValidationError('params', result.error.issues);
+      throw new ClientValidationError('params', result.error);
     }
   }
 
@@ -784,7 +785,7 @@ function validateStreamingRequest<T extends StreamingEndpointDefinition>(
   if (endpoint.query && options.query) {
     const result = endpoint.query.safeParse(options.query);
     if (!result.success) {
-      throw new ClientValidationError('query', result.error.issues);
+      throw new ClientValidationError('query', result.error);
     }
   }
 
@@ -792,7 +793,7 @@ function validateStreamingRequest<T extends StreamingEndpointDefinition>(
   if (endpoint.headers && options.headers) {
     const result = endpoint.headers.safeParse(options.headers);
     if (!result.success) {
-      throw new ClientValidationError('headers', result.error.issues);
+      throw new ClientValidationError('headers', result.error);
     }
   }
 
@@ -800,7 +801,7 @@ function validateStreamingRequest<T extends StreamingEndpointDefinition>(
   if (endpoint.body && options.body) {
     const result = endpoint.body.safeParse(options.body);
     if (!result.success) {
-      throw new ClientValidationError('body', result.error.issues);
+      throw new ClientValidationError('body', result.error);
     }
   }
 }
@@ -939,7 +940,7 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
             const result = eventSchema.safeParse(rawData);
             if (!result.success) {
               (listeners.error as Set<ErrorHandler>).forEach((h) =>
-                h(new ClientValidationError(`event[${eventName}]`, result.error.issues)),
+                h(new ClientValidationError(`event[${eventName}]`, result.error)),
               );
               return;
             }

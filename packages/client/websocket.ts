@@ -10,6 +10,7 @@ import type {
   WebSocketContractDefinition,
 } from '@richie-rpc/core';
 import { buildUrl, interpolatePath } from '@richie-rpc/core';
+import { z } from 'zod';
 
 /**
  * Validation error for WebSocket messages
@@ -17,9 +18,10 @@ import { buildUrl, interpolatePath } from '@richie-rpc/core';
 export class WebSocketClientValidationError extends Error {
   constructor(
     public messageType: string,
-    public issues: unknown[],
+    public zodError: z.ZodError<unknown>,
   ) {
-    super(`Validation failed for WebSocket message type: ${messageType}`);
+    const pretty = z.prettifyError(zodError);
+    super(`Validation failed for WebSocket message type: ${messageType}:\n${pretty}`);
     this.name = 'WebSocketClientValidationError';
   }
 }
@@ -177,7 +179,7 @@ function createTypedWebSocket<T extends WebSocketContractDefinition>(
       if (messageDef && messageDef.payload) {
         const result = messageDef.payload.safeParse(payload);
         if (!result.success) {
-          throw new WebSocketClientValidationError(type as string, result.error.issues);
+          throw new WebSocketClientValidationError(type as string, result.error);
         }
       }
 

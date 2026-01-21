@@ -356,7 +356,7 @@ const server = Bun.serve({
         console.error('API error:', error);
         if (error instanceof ValidationError) {
           return Response.json(
-            { error: 'Validation Error', field: error.field, issues: error.issues },
+            { error: 'Validation Error', field: error.field, issues: error.zodError.issues },
             { status: 400 },
           );
         }
