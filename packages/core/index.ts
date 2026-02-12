@@ -52,6 +52,7 @@ export interface StandardEndpointDefinition extends BaseEndpointFields {
   body?: z.ZodTypeAny;
   contentType?: ContentType;
   responses: Record<number, z.ZodTypeAny>;
+  errorResponses?: Record<number, z.ZodTypeAny>;
 }
 
 // Streaming response endpoint (NDJSON)
@@ -140,6 +141,25 @@ export type ExtractResponse<T extends EndpointDefinition, Status extends number>
   ? Status extends keyof T['responses']
     ? T['responses'][Status] extends z.ZodTypeAny
       ? InferZodType<T['responses'][Status]>
+      : never
+    : never
+  : never;
+
+// Extract error response types for all status codes
+export type ExtractErrorResponses<T extends EndpointDefinition> = T extends {
+  errorResponses: Record<number, z.ZodTypeAny>;
+} ? {
+    [K in keyof T['errorResponses']]: T['errorResponses'][K] extends z.ZodTypeAny
+      ? InferZodType<T['errorResponses'][K]>
+      : never;
+  } : never;
+
+// Extract a specific error response type by status code
+export type ExtractErrorResponse<T extends EndpointDefinition, Status extends number> = T extends {
+  errorResponses: Record<number, z.ZodTypeAny>;
+} ? Status extends keyof T['errorResponses']
+    ? T['errorResponses'][Status] extends z.ZodTypeAny
+      ? InferZodType<T['errorResponses'][Status]>
       : never
     : never
   : never;

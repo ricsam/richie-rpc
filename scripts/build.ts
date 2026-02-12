@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { $, Glob } from 'bun';
 
+if (!process.env.CI) {
+  throw new Error('This script is only meant to be run in CI');
+}
+
 // Packages to build (excluding demo which is not published)
 const PACKAGES = ['core', 'server', 'openapi', 'client', 'react-query'];
 

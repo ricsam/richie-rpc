@@ -16,17 +16,15 @@ async function testBasePath() {
     console.log('📋 Listing users...');
     const listResponse = await client.listUsers({});
     console.log(`   Status: ${listResponse.status}`);
-    console.log(`   Found ${listResponse.data.total} users`);
-    console.log(`   Users:`, listResponse.data.users);
+    console.log(`   Found ${listResponse.payload.total} users`);
+    console.log(`   Users:`, listResponse.payload.users);
     console.log();
 
     // Test 2: Get a specific user
     console.log('👤 Getting user with ID "1"...');
     const getResponse = await client.getUser({ params: { id: '1' } });
     console.log(`   Status: ${getResponse.status}`);
-    if (getResponse.status === 200) {
-      console.log(`   User:`, getResponse.data);
-    }
+    console.log(`   User:`, getResponse.payload);
     console.log();
 
     // Test 3: Create a new user
@@ -40,10 +38,10 @@ async function testBasePath() {
     });
     console.log(`   Status: ${createResponse.status}`);
     if (createResponse.status === 201) {
-      console.log(`   Created user:`, createResponse.data);
+      console.log(`   Created user:`, createResponse.payload);
 
       // Test 4: Update the user
-      const userId = createResponse.data.id;
+      const userId = createResponse.payload.id;
       console.log();
       console.log(`✏️  Updating user ${userId}...`);
       const updateResponse = await client.updateUser({
@@ -52,7 +50,7 @@ async function testBasePath() {
       });
       console.log(`   Status: ${updateResponse.status}`);
       if (updateResponse.status === 200) {
-        console.log(`   Updated user:`, updateResponse.data);
+        console.log(`   Updated user:`, updateResponse.payload);
       }
 
       // Test 5: Delete the user
@@ -79,9 +77,9 @@ async function testBasePath() {
     });
     console.log(`   Status: ${uploadResponse.status}`);
     if (uploadResponse.status === 201) {
-      console.log(`   Uploaded: ${uploadResponse.data.uploadedCount} files`);
-      console.log(`   Total size: ${uploadResponse.data.totalSize} bytes`);
-      console.log(`   Filenames: ${uploadResponse.data.filenames.join(', ')}`);
+      console.log(`   Uploaded: ${uploadResponse.payload.uploadedCount} files`);
+      console.log(`   Total size: ${uploadResponse.payload.totalSize} bytes`);
+      console.log(`   Filenames: ${uploadResponse.payload.filenames.join(', ')}`);
     }
     console.log();
 

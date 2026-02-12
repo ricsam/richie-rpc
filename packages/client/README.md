@@ -113,7 +113,7 @@ const response = await client.uploadDocuments({
 });
 
 if (response.status === 201) {
-  console.log(`Uploaded ${response.data.uploadedCount} files`);
+  console.log(`Uploaded ${response.payload.uploadedCount} files`);
 }
 ```
 
@@ -160,9 +160,7 @@ useEffect(() => {
       abortSignal: controller.signal,
     })
     .then((response) => {
-      if (response.status === 200) {
-        setData(response.data);
-      }
+      setData(response.payload);
     })
     .catch((error) => {
       if (error.name !== 'AbortError') {
@@ -188,7 +186,7 @@ try {
     abortSignal: controller.signal,
   });
   clearTimeout(timeoutId);
-  console.log(response.data);
+  console.log(response.payload);
 } catch (error) {
   if (error.name === 'AbortError') {
     console.log('Request timed out');
@@ -425,6 +423,7 @@ function ChatRoom({ roomId }: { roomId: string }) {
 - ✅ WebSocket client with typed messages
 - ✅ Request validation before sending
 - ✅ Response validation after receiving
+- ✅ Typed error responses (`ErrorResponse` thrown for `errorResponses` statuses)
 - ✅ Detailed error information
 - ✅ Support for all HTTP methods
 - ✅ Custom headers per request
@@ -447,18 +446,58 @@ interface ClientConfig {
 
 ## Response Format
 
-Responses include both the status code and data:
+Responses include both the status code and payload:
 
 ```typescript
 const response = await client.getUser({ params: { id: '123' } });
 
-console.log(response.status); // 200, 404, etc.
-console.log(response.data); // Typed response body
+console.log(response.status); // 200
+console.log(response.payload); // Typed response body
 ```
+
+Status codes defined in `errorResponses` are **thrown** as `ErrorResponse` instead of being returned. This means the response type only contains success statuses, eliminating the need for status discrimination on successful responses.
 
 ## Error Handling
 
 The client throws typed errors for different scenarios:
+
+### ErrorResponse
+
+Thrown when the server returns a status code defined in `errorResponses`. The `payload` contains the parsed response body matching the schema from the contract.
+
+```typescript
+import { isErrorResponse } from '@richie-rpc/client';
+import { contract } from './contract';
+
+try {
+  await client.getUser({ params: { id: '999' } });
+} catch (error) {
+  // With endpoint — fully typed status and payload
+  if (isErrorResponse(error, contract.getUser)) {
+    console.log(error.status);  // 404
+    console.log(error.payload); // { error: string } — typed from the contract
+  }
+
+  // Without endpoint — basic check (payload is unknown)
+  if (isErrorResponse(error)) {
+    console.log(error.status);  // number
+    console.log(error.payload); // unknown
+  }
+}
+```
+
+The second argument is optional and only used for TypeScript type narrowing — the runtime check is always `error instanceof ErrorResponse`.
+
+#### TypedErrorResponse
+
+For use as a standalone type (e.g. in function signatures), `TypedErrorResponse` narrows `ErrorResponse` to the specific statuses and payloads from the contract:
+
+```typescript
+import type { TypedErrorResponse } from '@richie-rpc/client';
+
+type GetUserError = TypedErrorResponse<typeof contract.getUser>;
+// => ErrorResponse & { status: 404; payload: { error: string } }
+```
 
 ### ClientValidationError
 
@@ -479,15 +518,15 @@ try {
 
 ### HTTPError
 
-Thrown for unexpected HTTP status codes:
+Thrown for unexpected HTTP status codes (not defined in `responses` or `errorResponses`):
 
 ```typescript
 try {
-  await client.getUser({ params: { id: '999' } });
+  await client.getUser({ params: { id: '123' } });
 } catch (error) {
   if (error instanceof HTTPError) {
-    console.log(error.status); // 404
-    console.log(error.statusText); // 'Not Found'
+    console.log(error.status); // e.g. 500
+    console.log(error.statusText); // 'Internal Server Error'
     console.log(error.body); // Response body
   }
 }
@@ -508,12 +547,12 @@ await client.createUser({
   body: { name: 'John' },
 });
 
-// ✅ Type-safe: response data
+// ✅ Type-safe: response payload
 const user = await client.getUser({ params: { id: '123' } });
-console.log(user.data.name); // string
+console.log(user.payload.name); // string
 
 // ❌ Type error: invalid property
-console.log(user.data.invalid);
+console.log(user.payload.invalid);
 ```
 
 ## Request Options

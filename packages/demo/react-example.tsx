@@ -5,7 +5,7 @@
  * and streaming/WebSocket features with TanStack Router navigation.
  */
 
-import { createClient } from '@richie-rpc/client';
+import { createClient, ErrorResponse } from '@richie-rpc/client';
 import { createWebSocketClient } from '@richie-rpc/client/websocket';
 import { createTanstackQueryApi } from '@richie-rpc/react-query';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
@@ -17,7 +17,17 @@ import {
   Outlet,
   RouterProvider,
 } from '@tanstack/react-router';
-import { type ChangeEvent, type FormEvent, Suspense, useEffect, useRef, useState } from 'react';
+import {
+  type ChangeEvent,
+  Component,
+  type ErrorInfo,
+  type FormEvent,
+  type ReactNode,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { createRoot } from 'react-dom/client';
 import { usersContract } from './contract';
 import { streamingContract } from './streaming-contract';
@@ -73,12 +83,12 @@ function UserList() {
     return <div className="error">Error: {error.message}</div>;
   }
 
-  const users = data?.data.users;
+  const users = data?.payload.users;
   if (!users) return null;
 
   return (
     <div className="user-list">
-      <h2>Users ({data?.data.total})</h2>
+      <h2>Users ({data?.payload.total})</h2>
       <button type="button" onClick={() => refetch()}>
         Refresh
       </button>
@@ -100,11 +110,11 @@ function UserListSuspense() {
     queryData: { query: { limit: '10', offset: '0' } },
   });
 
-  const users = data.data.users;
+  const users = data.payload.users;
 
   return (
     <div className="user-list">
-      <h2>Users (Suspense) - {data.data.total} total</h2>
+      <h2>Users (Suspense) - {data.payload.total} total</h2>
       <ul>
         {users.map((user: { id: string; name: string; email: string }) => (
           <li key={user.id}>
@@ -125,11 +135,7 @@ function UserDetail({ userId }: { userId: string }) {
   if (isLoading) return <div>Loading user...</div>;
   if (error) return <div>Error: {error.message}</div>;
 
-  if (data?.status === 404) {
-    return <div>User not found</div>;
-  }
-
-  const user = data?.data;
+  const user = data?.payload;
   if (!user) return null;
 
   return (
@@ -148,7 +154,7 @@ function CreateUserForm() {
   const [age, setAge] = useState('');
 
   const createMutation = api.createUser.useMutation({
-    onSuccess: (data: { status: number; data: unknown }) => {
+    onSuccess: (data: { status: number; payload: unknown }) => {
       console.log('User created:', data);
       queryClient.invalidateQueries({ queryKey: ['listUsers'] });
       setName('');
@@ -221,7 +227,7 @@ function FileUploadForm() {
   const [category, setCategory] = useState('documents');
 
   const uploadMutation = api.uploadDocuments.useMutation({
-    onSuccess: (data: { status: number; data: { uploadedCount: number; totalSize: number } }) => {
+    onSuccess: (data: { status: number; payload: { uploadedCount: number; totalSize: number } }) => {
       console.log('Upload successful:', data);
       setFiles([]);
     },
@@ -289,8 +295,8 @@ function FileUploadForm() {
       {uploadMutation.error && <div className="error">Error: {uploadMutation.error.message}</div>}
       {uploadMutation.data && (
         <div className="success">
-          Uploaded {uploadMutation.data.data.uploadedCount} files (
-          {(uploadMutation.data.data.totalSize / 1024).toFixed(2)} KB total)
+          Uploaded {uploadMutation.data.payload.uploadedCount} files (
+          {(uploadMutation.data.payload.totalSize / 1024).toFixed(2)} KB total)
         </div>
       )}
     </form>
@@ -314,8 +320,196 @@ function Dashboard() {
   return (
     <div className="dashboard">
       <h2>Dashboard</h2>
-      <p>Total users: {usersQuery.data?.data.total}</p>
-      <p>Teapot status: {teapotQuery.data?.data.message}</p>
+      <p>Total users: {usersQuery.data?.payload.total}</p>
+      <p>Teapot status: {teapotQuery.data?.payload.message}</p>
+    </div>
+  );
+}
+
+// ===========================================
+// Error Handling Demos
+// ===========================================
+
+/**
+ * Error boundary that understands ErrorResponse.
+ * In a real app, this would be a reusable component wrapping your routes.
+ */
+class ApiErrorBoundary extends Component<
+  { children: ReactNode; fallback?: (error: Error, reset: () => void) => ReactNode },
+  { error: Error | null }
+> {
+  override state: { error: Error | null } = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  override componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('ApiErrorBoundary caught:', error, info);
+  }
+
+  override render() {
+    if (this.state.error) {
+      if (this.props.fallback) {
+        return this.props.fallback(this.state.error, () => this.setState({ error: null }));
+      }
+      return (
+        <div className="error-boundary">
+          <p>Something went wrong: {this.state.error.message}</p>
+          <button type="button" onClick={() => this.setState({ error: null })}>
+            Try again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/**
+ * Demo: useSuspenseQuery with error boundary
+ *
+ * With errorResponses, data is ALWAYS the success type — no discrimination needed.
+ * Errors (404, etc.) are thrown and caught by the error boundary.
+ */
+function UserDetailSuspense({ userId }: { userId: string }) {
+  // data is always { status: 200, payload: User } — never 404
+  // If the user doesn't exist, ErrorResponse is thrown and caught by the boundary
+  const { data } = api.getUser.useSuspenseQuery({
+    queryKey: ['getUser', 'suspense', userId],
+    queryData: { params: { id: userId } },
+  });
+
+  // No status check needed! data.payload is always the User type
+  return (
+    <div className="user-detail">
+      <h3>{data.payload.name}</h3>
+      <p>Email: {data.payload.email}</p>
+      {data.payload.age !== undefined && <p>Age: {data.payload.age}</p>}
+    </div>
+  );
+}
+
+/**
+ * Demo: useQuery with typed error handling
+ *
+ * With errorResponses, the error field can be an ErrorResponse with
+ * a typed payload — no more discriminating on data.status.
+ */
+function UserDetailWithErrorHandling({ userId }: { userId: string }) {
+  const { data, isLoading, error } = api.getUser.useQuery({
+    queryKey: ['getUser', 'error-demo', userId],
+    queryData: { params: { id: userId } },
+    retry: false,
+  });
+
+  if (isLoading) return <div className="loading">Loading user...</div>;
+
+  // Error responses (404, etc.) land here — not on data
+  if (error) {
+    if (api.getUser.isErrorResponse(error)) {
+      // error.payload is fully typed from the contract's errorResponses
+      // error.status is narrowed to 404 (the only error status for getUser)
+      return (
+        <div className="error-response">
+          <h4>Error {error.status}</h4>
+          <p>{error.payload.message || error.payload.error}</p>
+        </div>
+      );
+    }
+    // Network errors, etc.
+    return <div className="error">Network error: {error.message}</div>;
+  }
+
+  // data is always the success type — no status discrimination needed
+  if (!data) return null;
+  return (
+    <div className="user-detail">
+      <h3>{data.payload.name}</h3>
+      <p>Email: {data.payload.email}</p>
+      {data.payload.age !== undefined && <p>Age: {data.payload.age}</p>}
+    </div>
+  );
+}
+
+/**
+ * Wrapper that demonstrates both patterns side by side
+ */
+function ErrorHandlingDemo() {
+  const [userId, setUserId] = useState('1');
+
+  return (
+    <div className="error-handling-demo">
+      <h2>Error Handling Demo</h2>
+      <p>
+        Error status codes (404, 400, etc.) defined in <code>errorResponses</code> are thrown as{' '}
+        <code>ErrorResponse</code> instead of returned as data. Try an existing ID (1, 2) vs a
+        non-existent one.
+      </p>
+
+      <div style={{ marginBottom: '1rem' }}>
+        <label>
+          User ID:{' '}
+          <input
+            type="text"
+            value={userId}
+            onChange={(e) => setUserId(e.currentTarget.value)}
+            style={{ width: '80px', marginRight: '0.5rem' }}
+          />
+        </label>
+        <button type="button" onClick={() => setUserId('1')}>
+          Existing (1)
+        </button>{' '}
+        <button type="button" onClick={() => setUserId('non-existent')}>
+          Non-existent
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div>
+          <h3>useQuery</h3>
+          <p style={{ fontSize: '0.85rem', color: '#666' }}>
+            Errors land on the <code>error</code> field. Check with <code>isErrorResponse()</code>.
+          </p>
+          <UserDetailWithErrorHandling userId={userId} />
+        </div>
+
+        <div>
+          <h3>useSuspenseQuery + ErrorBoundary</h3>
+          <p style={{ fontSize: '0.85rem', color: '#666' }}>
+            Data is always the success type. Errors are caught by the boundary.
+          </p>
+          <ApiErrorBoundary
+            key={userId}
+            fallback={(error, reset) => {
+              if (error instanceof ErrorResponse) {
+                const payload = error.payload as { error: string; message?: string };
+                return (
+                  <div className="error-response">
+                    <h4>Error {error.status}</h4>
+                    <p>{payload.message || payload.error}</p>
+                    <button type="button" onClick={reset}>
+                      Retry
+                    </button>
+                  </div>
+                );
+              }
+              return (
+                <div className="error">
+                  <p>{error.message}</p>
+                  <button type="button" onClick={reset}>
+                    Retry
+                  </button>
+                </div>
+              );
+            }}
+          >
+            <Suspense fallback={<div className="loading">Loading...</div>}>
+              <UserDetailSuspense userId={userId} />
+            </Suspense>
+          </ApiErrorBoundary>
+        </div>
+      </div>
     </div>
   );
 }
@@ -360,6 +554,10 @@ function UsersDemo() {
 
       <section>
         <Dashboard />
+      </section>
+
+      <section>
+        <ErrorHandlingDemo />
       </section>
     </div>
   );
@@ -937,13 +1135,13 @@ function DownloadDemo() {
           ...prev,
           status: 'success',
           progress: 100,
-          file: result.data,
+          file: result.payload,
         }));
       } else {
         setDownloadState((prev) => ({
           ...prev,
           status: 'error',
-          error: result.data.message || result.data.error,
+          error: result.payload.message || result.payload.error,
         }));
       }
     } catch (err) {

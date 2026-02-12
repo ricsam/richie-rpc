@@ -49,6 +49,8 @@ export const dictionaryContract = defineContract({
     body: CreateDictionaryEntrySchema,
     responses: {
       [Status.Created]: DictionaryEntrySchema,
+    },
+    errorResponses: {
       [Status.BadRequest]: ErrorSchema,
     },
   },
@@ -63,6 +65,8 @@ export const dictionaryContract = defineContract({
     }),
     responses: {
       [Status.NoContent]: z.object({}).strict(),
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
     },
   },

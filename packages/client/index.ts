@@ -46,9 +46,35 @@ export type EndpointRequestOptions<T extends EndpointDefinition> = {
 export type EndpointResponse<T extends StandardEndpointDefinition> = {
   [Status in keyof T['responses']]: {
     status: Status;
-    data: T['responses'][Status] extends z.ZodTypeAny ? z.infer<T['responses'][Status]> : never;
+    payload: T['responses'][Status] extends z.ZodTypeAny ? z.infer<T['responses'][Status]> : never;
   };
 }[keyof T['responses']];
+
+// Error response type for a standard endpoint
+export type EndpointErrorResponse<T extends StandardEndpointDefinition> =
+  T['errorResponses'] extends Record<number, z.ZodTypeAny>
+    ? {
+        [Status in keyof T['errorResponses']]: {
+          status: Status;
+          payload: T['errorResponses'][Status] extends z.ZodTypeAny
+            ? z.infer<T['errorResponses'][Status]>
+            : never;
+        };
+      }[keyof T['errorResponses']]
+    : never;
+
+// Typed ErrorResponse — narrows status and payload based on the contract's errorResponses
+export type TypedErrorResponse<T extends StandardEndpointDefinition> =
+  T['errorResponses'] extends Record<number, z.ZodTypeAny>
+    ? {
+        [S in keyof T['errorResponses']]: ErrorResponse & {
+          status: S;
+          payload: T['errorResponses'][S] extends z.ZodTypeAny
+            ? z.infer<T['errorResponses'][S]>
+            : never;
+        };
+      }[keyof T['errorResponses']]
+    : never;
 
 // Client method type for a standard endpoint
 export type ClientMethod<T extends StandardEndpointDefinition> = (
@@ -131,12 +157,12 @@ export type DownloadRequestOptions<T extends DownloadEndpointDefinition> = {
  * Success (200) returns File, errors return typed error response
  */
 export type DownloadResponse<T extends DownloadEndpointDefinition> =
-  | { status: 200; data: File }
+  | { status: 200; payload: File }
   | (T['errorResponses'] extends Record<number, z.ZodTypeAny>
       ? {
           [S in keyof T['errorResponses']]: {
             status: S;
-            data: T['errorResponses'][S] extends z.ZodTypeAny
+            payload: T['errorResponses'][S] extends z.ZodTypeAny
               ? z.infer<T['errorResponses'][S]>
               : never;
           };
@@ -187,6 +213,32 @@ export class HTTPError extends Error {
   }
 }
 
+// Error response (thrown for errorResponses status codes)
+export class ErrorResponse extends Error {
+  constructor(
+    public status: number,
+    public payload: unknown,
+  ) {
+    super(`Error Response ${status}`);
+    this.name = 'ErrorResponse';
+  }
+}
+
+/**
+ * Type guard for ErrorResponse with optional endpoint for typed narrowing.
+ *
+ * Without endpoint: narrows to `ErrorResponse` (status: number, payload: unknown)
+ * With endpoint: narrows to `TypedErrorResponse<T>` (fully typed status and payload)
+ */
+export function isErrorResponse<T extends StandardEndpointDefinition>(
+  error: unknown,
+  endpoint: T,
+): error is TypedErrorResponse<T>;
+export function isErrorResponse(error: unknown): error is ErrorResponse;
+export function isErrorResponse(error: unknown, _endpoint?: StandardEndpointDefinition): error is ErrorResponse {
+  return error instanceof ErrorResponse;
+}
+
 /**
  * Validate request data before sending
  */
@@ -235,7 +287,8 @@ function parseResponse<T extends StandardEndpointDefinition>(
   status: number,
   data: unknown,
 ): unknown {
-  const responseSchema = endpoint.responses[status];
+  const responseSchema = endpoint.responses[status]
+    ?? endpoint.errorResponses?.[status];
   if (responseSchema) {
     const result = responseSchema.safeParse(data);
     if (!result.success) {
@@ -404,7 +457,7 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
 
     return {
       status: 200,
-      data: file,
+      payload: file,
     } as DownloadResponse<T>;
   }
 
@@ -431,7 +484,7 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
 
   return {
     status: response.status,
-    data: parsedData,
+    payload: parsedData,
   } as DownloadResponse<T>;
 }
 
@@ -506,6 +559,21 @@ function makeRequestWithXHR<T extends StandardEndpointDefinition>(
         data = xhr.responseText || {};
       }
 
+      // Check if this is a defined error response — throw it
+      if (endpoint.errorResponses && xhr.status in endpoint.errorResponses) {
+        let parsedData = data;
+        if (config.parseResponse !== false) {
+          try {
+            parsedData = parseResponse(endpoint, xhr.status, data);
+          } catch (err) {
+            reject(err);
+            return;
+          }
+        }
+        reject(new ErrorResponse(xhr.status, parsedData));
+        return;
+      }
+
       // Check for HTTP errors
       if (xhr.status >= 400 && !(xhr.status in endpoint.responses)) {
         reject(new HTTPError(xhr.status, xhr.statusText, data));
@@ -525,7 +593,7 @@ function makeRequestWithXHR<T extends StandardEndpointDefinition>(
 
       resolve({
         status: xhr.status,
-        data: parsedData,
+        payload: parsedData,
       } as EndpointResponse<T>);
     };
 
@@ -637,6 +705,13 @@ async function makeRequest<T extends StandardEndpointDefinition>(
     }
   }
 
+  // Check if this is a defined error response — throw it
+  if (endpoint.errorResponses && response.status in endpoint.errorResponses) {
+    const parsedData =
+      config.parseResponse !== false ? parseResponse(endpoint, response.status, data) : data;
+    throw new ErrorResponse(response.status, parsedData);
+  }
+
   // Check for HTTP errors
   if (!response.ok && !(response.status in endpoint.responses)) {
     throw new HTTPError(response.status, response.statusText, data);
@@ -648,7 +723,7 @@ async function makeRequest<T extends StandardEndpointDefinition>(
 
   return {
     status: response.status,
-    data: parsedData,
+    payload: parsedData,
   } as EndpointResponse<T>;
 }
 

@@ -22,6 +22,7 @@ const router = createRouter(contract, {
     const user = await db.getUser(params.id);
 
     if (!user) {
+      // Statuses from errorResponses are also valid return types
       return { status: Status.NotFound, body: { error: 'User not found' } };
     }
 
@@ -127,11 +128,13 @@ Each handler must return a response object with:
 
 ```typescript
 {
-  status: number,              // HTTP status code (must match contract)
+  status: number,              // HTTP status code (must match contract responses or errorResponses)
   body: any,                   // Response body (must match schema)
   headers?: Record<string, string>  // Optional custom headers
 }
 ```
+
+Handlers can return statuses from both `responses` and `errorResponses`. The server validates the response body against the appropriate schema. On the client side, statuses from `errorResponses` will be thrown as `ErrorResponse` instead of being returned as data.
 
 ### Using Status Codes
 

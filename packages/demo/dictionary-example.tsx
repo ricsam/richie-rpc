@@ -52,7 +52,7 @@ function DictionaryApp() {
     queryKey: ['getDictionaryEntries', deferredSearch],
     queryData: { query: { search: deferredSearch || undefined } },
   });
-  const entries = response.data.data.entries;
+  const entries = response.data.payload.entries;
 
   const createEntry = api.createDictionaryEntry.useMutation({
     onSuccess: () => {

@@ -23,6 +23,8 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       [Status.OK]: z.object({ id: z.string(), name: z.string() }),
+    },
+    errorResponses: {
       [Status.NotFound]: z.object({ error: z.string() }),
     },
   },
@@ -32,6 +34,9 @@ const contract = defineContract({
     body: z.object({ name: z.string(), email: z.string().email() }),
     responses: {
       [Status.Created]: z.object({ id: z.string(), name: z.string(), email: z.string() }),
+    },
+    errorResponses: {
+      [Status.BadRequest]: z.object({ error: z.string() }),
     },
   },
 });
@@ -48,7 +53,8 @@ Each endpoint can have:
 - `headers` (optional): Zod schema for request headers
 - `body` (optional): Zod schema for request body
 - `contentType` (optional): Request content type (`'application/json'` or `'multipart/form-data'`)
-- `responses` (required): Object mapping status codes to Zod schemas
+- `responses` (required): Object mapping success status codes to Zod schemas
+- `errorResponses` (optional): Object mapping error status codes to Zod schemas. Error responses are thrown as `ErrorResponse` by the client instead of being returned as data, enabling clean `useSuspenseQuery` patterns where `data` is always the success type.
 
 ### Streaming Endpoint
 
@@ -258,6 +264,8 @@ const contract = defineContract({
     params: z.object({ id: z.string() }),
     responses: {
       [Status.OK]: UserSchema,
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
     },
   },
@@ -311,6 +319,8 @@ The package exports several utility types for extracting types from endpoint def
 - `ExtractBody<T>`: Extract request body type
 - `ExtractResponses<T>`: Extract all response types
 - `ExtractResponse<T, Status>`: Extract specific response type by status code
+- `ExtractErrorResponses<T>`: Extract all error response types
+- `ExtractErrorResponse<T, Status>`: Extract specific error response type by status code
 
 ## Links
 

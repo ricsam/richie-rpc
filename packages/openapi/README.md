@@ -104,7 +104,7 @@ Bun.serve({
 - ✅ Automatic Zod to JSON Schema conversion using Zod v4's built-in `z.toJSONSchema()`
 - ✅ No external JSON Schema conversion dependencies
 - ✅ Path parameters, query parameters, request bodies
-- ✅ Multiple response types per endpoint
+- ✅ Multiple response types per endpoint (including `errorResponses`)
 - ✅ BasePath support for prefixing all paths
 - ✅ Server and info metadata support
 - ✅ Scalar API documentation UI integration
@@ -153,7 +153,7 @@ The generated spec includes:
 - **Paths**: All endpoints with their operations
 - **Parameters**: Path and query parameters with schemas
 - **Request Bodies**: JSON schemas for request bodies
-- **Responses**: Status codes mapped to response schemas
+- **Responses**: Status codes mapped to response schemas (both `responses` and `errorResponses` are included)
 - **Schemas**: Automatically generated from Zod schemas
 
 ## Example Output

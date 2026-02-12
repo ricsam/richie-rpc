@@ -46,7 +46,7 @@ function UserList() {
 
   return (
     <div>
-      {data.data.users.map((user) => (
+      {data.payload.users.map((user) => (
         <div key={user.id}>{user.name}</div>
       ))}
       <button onClick={() => refetch()}>Refresh</button>
@@ -68,7 +68,7 @@ function UserListSuspense() {
 
   return (
     <div>
-      {data.data.users.map((user) => (
+      {data.payload.users.map((user) => (
         <div key={user.id}>{user.name}</div>
       ))}
     </div>
@@ -165,7 +165,7 @@ const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = api.listUsers.u
   initialPageParam: 0,
   getNextPageParam: (lastPage, allPages) => {
     const nextOffset = allPages.length * 10;
-    return lastPage.data.users.length === 10 ? nextOffset : undefined;
+    return lastPage.payload.users.length === 10 ? nextOffset : undefined;
   },
 });
 ```
@@ -282,7 +282,7 @@ const typedClient = createTypedQueryClient(queryClient, client, contract);
 typedClient.listUsers.getQueryData(['users']);
 typedClient.listUsers.setQueryData(['users'], (old) => ({
   ...old,
-  data: { ...old.data, users: [...old.data.users, newUser] },
+  payload: { ...old.payload, users: [...old.payload.users, newUser] },
 }));
 
 // Prefetching
@@ -303,40 +303,98 @@ await typedClient.listUsers.prefetchQuery({
 
 ## Error Handling
 
-The package includes error handling utilities:
+When an endpoint defines `errorResponses` in the contract, error status codes are **thrown** as `ErrorResponse` by the client. In TanStack Query, these land on the `error` field (for `useQuery`) or are caught by error boundaries (for `useSuspenseQuery`).
+
+### Per-Endpoint `isErrorResponse()` Type Guard
+
+Each endpoint exposes an `isErrorResponse()` method that narrows the error to a `TypedErrorResponse` with fully typed `status` and `payload`:
 
 ```tsx
-import { isFetchError, isUnknownErrorResponse } from '@richie-rpc/react-query';
+function UserProfile({ userId }: { userId: string }) {
+  const { data, error, isLoading } = api.getUser.useQuery({
+    queryKey: ['user', userId],
+    queryData: { params: { id: userId } },
+  });
 
-const { error, contractEndpoint } = api.getUser.useQuery({
-  queryKey: ['user', id],
-  queryData: { params: { id } },
-});
-
-if (error) {
-  if (isFetchError(error)) {
-    console.log('Network error:', error.message);
-  } else if (isUnknownErrorResponse(error, contractEndpoint)) {
-    console.log('Unknown status:', error.status);
+  if (error) {
+    if (api.getUser.isErrorResponse(error)) {
+      // error.status and error.payload are fully typed from the contract's errorResponses
+      return <div>Error {error.status}: {error.payload.error}</div>;
+    }
+    return <div>Network error: {error.message}</div>;
   }
+
+  if (isLoading || !data) return <div>Loading...</div>;
+
+  // data.payload is always the success type — no status discrimination needed
+  return <div>{data.payload.name}</div>;
 }
 ```
 
-### `isFetchError(error)`
+### Suspense + Error Boundary Pattern
 
-Returns `true` if the error is a network/fetch error (not a response).
+With `useSuspenseQuery`, error responses are thrown and caught by error boundaries, so `data` is always the success type:
 
-### `isUnknownErrorResponse(error, endpoint)`
+```tsx
+import { ErrorResponse } from '@richie-rpc/client';
 
-Returns `true` if the error is a response with a status code not defined in the contract.
+class ApiErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: (error: Error) => React.ReactNode },
+  { error: Error | null }
+> {
+  override state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  override render() {
+    if (this.state.error) return this.props.fallback(this.state.error);
+    return this.props.children;
+  }
+}
 
-### `isNotKnownResponseError(error, endpoint)`
+function UserDetail({ userId }: { userId: string }) {
+  const { data } = api.getUser.useSuspenseQuery({
+    queryKey: ['user', userId],
+    queryData: { params: { id: userId } },
+  });
 
-Returns `true` if the error is either a fetch error or an unknown response error.
+  // No status check needed! data.payload is always the success type
+  return <h3>{data.payload.name}</h3>;
+}
 
-### `exhaustiveGuard(value)`
+// Usage
+<ApiErrorBoundary fallback={(error) => {
+  if (error instanceof ErrorResponse && error.status === 404) {
+    return <div>User not found</div>;
+  }
+  return <div>Something went wrong</div>;
+}}>
+  <Suspense fallback={<div>Loading...</div>}>
+    <UserDetail userId="123" />
+  </Suspense>
+</ApiErrorBoundary>
+```
 
-For compile-time exhaustiveness checking in switch statements.
+### `HookError<T>`
+
+The error type for hooks is `HookError<T>`. When the endpoint has `errorResponses`, it is `ErrorResponse | Error`. Otherwise, it is just `Error`.
+
+### Standalone `isErrorResponse(error)`
+
+A standalone type guard is also available:
+
+```tsx
+import { isErrorResponse } from '@richie-rpc/react-query';
+
+if (isErrorResponse(error)) {
+  console.log(error.status, error.payload);
+}
+```
+
+### Other Utilities
+
+- `isFetchError(error)` — Returns `true` if the error is a network/fetch error
+- `isUnknownErrorResponse(error, endpoint)` — Returns `true` if the error has a status code not defined in the contract
+- `isNotKnownResponseError(error, endpoint)` — Returns `true` if the error is either a fetch error or an unknown response error
+- `exhaustiveGuard(value)` — For compile-time exhaustiveness checking in switch statements
 
 ## Advanced Usage
 
@@ -385,7 +443,7 @@ function UpdateUserForm({ userId }: { userId: string }) {
 
       typedClient.getUser.setQueryData(['user', userId], (old) => ({
         ...old,
-        data: { ...old.data, ...variables.body },
+        payload: { ...old.payload, ...variables.body },
       }));
 
       return { previousUser };
@@ -416,6 +474,7 @@ import type {
   TsrStreamQueryOptions,
   TsrResponse,
   TsrError,
+  HookError,
   TypedQueryClient,
   TanstackQueryApi,
 } from '@richie-rpc/react-query';

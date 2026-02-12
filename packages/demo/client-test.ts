@@ -1,4 +1,4 @@
-import { createClient } from '@richie-rpc/client';
+import { createClient, ErrorResponse } from '@richie-rpc/client';
 import { usersContract } from './contract';
 
 // Create typesafe client
@@ -14,18 +14,14 @@ async function runTests() {
     // Test 1: List users
     console.log('1️⃣ Testing listUsers...');
     const listResponse = await client.listUsers({ query: {} });
-    console.log(`✅ Found ${listResponse.data.users.length} users`);
-    console.log(`   Total: ${listResponse.data.total}`);
+    console.log(`✅ Found ${listResponse.payload.users.length} users`);
+    console.log(`   Total: ${listResponse.payload.total}`);
 
     // Test 2: Get a specific user
     console.log('\n2️⃣ Testing getUser...');
     const getUserResponse = await client.getUser({ params: { id: '1' } });
-    if (getUserResponse.status === 200) {
-      console.log(`✅ Got user: ${getUserResponse.data.name}`);
-      console.log(`   Email: ${getUserResponse.data.email}`);
-    } else {
-      throw new Error('Expected 200 status');
-    }
+    console.log(`✅ Got user: ${getUserResponse.payload.name}`);
+    console.log(`   Email: ${getUserResponse.payload.email}`);
 
     // Test 3: Create a new user
     console.log('\n3️⃣ Testing createUser...');
@@ -39,9 +35,9 @@ async function runTests() {
     if (createResponse.status !== 201) {
       throw new Error('Expected 201 status');
     }
-    console.log(`✅ Created user with ID: ${createResponse.data.id}`);
-    console.log(`   Name: ${createResponse.data.name}`);
-    const newUserId = createResponse.data.id;
+    console.log(`✅ Created user with ID: ${createResponse.payload.id}`);
+    console.log(`   Name: ${createResponse.payload.name}`);
+    const newUserId = createResponse.payload.id;
 
     // Test 4: Update the user
     console.log('\n4️⃣ Testing updateUser...');
@@ -54,30 +50,30 @@ async function runTests() {
     if (updateResponse.status !== 200) {
       throw new Error('Expected 200 status');
     }
-    console.log(`✅ Updated user age to: ${updateResponse.data.age}`);
+    console.log(`✅ Updated user age to: ${updateResponse.payload.age}`);
 
     // Test 5: Get the updated user
     console.log('\n5️⃣ Testing getUser (updated)...');
     const getUpdatedResponse = await client.getUser({ params: { id: newUserId } });
-    if (getUpdatedResponse.status === 200) {
-      console.log(`✅ Confirmed age: ${getUpdatedResponse.data.age}`);
-    } else {
-      throw new Error('Expected 200 status');
-    }
+    console.log(`✅ Confirmed age: ${getUpdatedResponse.payload.age}`);
 
     // Test 6: Delete the user
     console.log('\n6️⃣ Testing deleteUser...');
     await client.deleteUser({ params: { id: newUserId } });
     console.log('✅ Deleted user successfully');
 
-    // Test 7: Try to get deleted user (should 404)
+    // Test 7: Try to get deleted user (should throw ErrorResponse with 404)
     console.log('\n7️⃣ Testing getUser (deleted, should 404)...');
-    const deletedResponse = await client.getUser({ params: { id: newUserId } });
-    if (deletedResponse.status === 404) {
-      console.log('✅ Correctly returned 404 for deleted user');
-    } else {
-      console.log('❌ Expected status 404 but got', deletedResponse.status);
-      throw new Error('Expected 404 status');
+    try {
+      await client.getUser({ params: { id: newUserId } });
+      console.log('❌ Should have thrown ErrorResponse');
+      throw new Error('Expected ErrorResponse');
+    } catch (error: unknown) {
+      if (error instanceof ErrorResponse && error.status === 404) {
+        console.log('✅ Correctly threw ErrorResponse with 404');
+      } else {
+        throw error;
+      }
     }
 
     // Test 8: Test validation error
@@ -136,9 +132,9 @@ async function runTests() {
     });
 
     if (uploadResponse.status === 201) {
-      console.log(`✅ Uploaded ${uploadResponse.data.uploadedCount} files`);
-      console.log(`   Total size: ${uploadResponse.data.totalSize} bytes`);
-      console.log(`   Filenames: ${uploadResponse.data.filenames.join(', ')}`);
+      console.log(`✅ Uploaded ${uploadResponse.payload.uploadedCount} files`);
+      console.log(`   Total size: ${uploadResponse.payload.totalSize} bytes`);
+      console.log(`   Filenames: ${uploadResponse.payload.filenames.join(', ')}`);
     } else {
       throw new Error('Expected 201 status');
     }

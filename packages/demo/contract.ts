@@ -72,6 +72,8 @@ export const usersContract = defineContract({
     }),
     responses: {
       [Status.OK]: UserSchema,
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
     },
   },
@@ -84,6 +86,8 @@ export const usersContract = defineContract({
     body: CreateUserSchema,
     responses: {
       [Status.Created]: UserSchema,
+    },
+    errorResponses: {
       [Status.BadRequest]: ErrorSchema,
     },
   },
@@ -99,6 +103,8 @@ export const usersContract = defineContract({
     body: UpdateUserSchema,
     responses: {
       [Status.OK]: UserSchema,
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
       [Status.BadRequest]: ErrorSchema,
     },
@@ -114,6 +120,8 @@ export const usersContract = defineContract({
     }),
     responses: {
       [Status.NoContent]: z.object({}).strict(),
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
     },
   },
@@ -187,6 +195,8 @@ export const usersContract = defineContract({
         requestedPath: z.string(),
         segments: z.array(z.string()),
       }),
+    },
+    errorResponses: {
       [Status.NotFound]: ErrorSchema,
     },
   },

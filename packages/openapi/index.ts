@@ -223,11 +223,16 @@ function generateOperation(
   const queryParams = generateQueryParameters(endpoint.query, jsonSchemaParams);
   const parameters = [...pathParams, ...queryParams];
 
+  const allResponses = { ...endpoint.responses };
+  if (endpoint.errorResponses) {
+    Object.assign(allResponses, endpoint.errorResponses);
+  }
+
   const operation: any = {
     operationId,
     parameters: parameters.length > 0 ? parameters : undefined,
     requestBody: generateRequestBody(endpoint, jsonSchemaParams),
-    responses: generateResponses(endpoint.responses, jsonSchemaParams),
+    responses: generateResponses(allResponses, jsonSchemaParams),
   };
 
   // Remove undefined fields

@@ -7,7 +7,9 @@ import type {
   EndpointResponse,
   SSEClientMethod,
   StreamingClientMethod,
+  TypedErrorResponse,
 } from '@richie-rpc/client';
+import { ErrorResponse, isErrorResponse } from '@richie-rpc/client';
 import type {
   Contract,
   DownloadEndpointDefinition,
@@ -16,6 +18,7 @@ import type {
   StandardEndpointDefinition,
   StreamingEndpointDefinition,
 } from '@richie-rpc/core';
+import type { z } from 'zod';
 import {
   type InfiniteData,
   type QueryClient,
@@ -46,6 +49,14 @@ import {
 type QueryMethods = 'GET' | 'HEAD';
 type MutationMethods = 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
 
+/**
+ * Error type for hooks - includes ErrorResponse when errorResponses is defined
+ */
+export type HookError<T extends StandardEndpointDefinition> =
+  T['errorResponses'] extends Record<number, z.ZodTypeAny>
+    ? ErrorResponse | Error
+    : Error;
+
 // ============================================
 // Query Options Types (ts-rest style)
 // ============================================
@@ -54,7 +65,7 @@ type MutationMethods = 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS';
  * Unified query options - combines queryKey, queryData, and TanStack Query options
  */
 export type TsrQueryOptions<T extends StandardEndpointDefinition> = Omit<
-  UseQueryOptions<EndpointResponse<T>, Error>,
+  UseQueryOptions<EndpointResponse<T>, HookError<T>>,
   'queryKey' | 'queryFn'
 > & {
   queryKey: QueryKey;
@@ -65,7 +76,7 @@ export type TsrQueryOptions<T extends StandardEndpointDefinition> = Omit<
  * Suspense query options
  */
 export type TsrSuspenseQueryOptions<T extends StandardEndpointDefinition> = Omit<
-  UseSuspenseQueryOptions<EndpointResponse<T>, Error>,
+  UseSuspenseQueryOptions<EndpointResponse<T>, HookError<T>>,
   'queryKey' | 'queryFn'
 > & {
   queryKey: QueryKey;
@@ -79,7 +90,7 @@ export type TsrInfiniteQueryOptions<
   T extends StandardEndpointDefinition,
   TPageParam = unknown,
 > = Omit<
-  UseInfiniteQueryOptions<EndpointResponse<T>, Error, unknown, QueryKey, TPageParam>,
+  UseInfiniteQueryOptions<EndpointResponse<T>, HookError<T>, unknown, QueryKey, TPageParam>,
   'queryKey' | 'queryFn'
 > & {
   queryKey: QueryKey;
@@ -93,7 +104,7 @@ export type TsrSuspenseInfiniteQueryOptions<
   T extends StandardEndpointDefinition,
   TPageParam = unknown,
 > = Omit<
-  UseSuspenseInfiniteQueryOptions<EndpointResponse<T>, Error, unknown, QueryKey, TPageParam>,
+  UseSuspenseInfiniteQueryOptions<EndpointResponse<T>, HookError<T>, unknown, QueryKey, TPageParam>,
   'queryKey' | 'queryFn'
 > & {
   queryKey: QueryKey;
@@ -104,7 +115,7 @@ export type TsrSuspenseInfiniteQueryOptions<
  * Mutation options - same as TanStack Query but typed
  */
 export type TsrMutationOptions<T extends StandardEndpointDefinition> = Omit<
-  UseMutationOptions<EndpointResponse<T>, Error, EndpointRequestOptions<T>>,
+  UseMutationOptions<EndpointResponse<T>, HookError<T>, EndpointRequestOptions<T>>,
   'mutationFn'
 >;
 
@@ -132,12 +143,7 @@ export type TsrResponse<T extends StandardEndpointDefinition> = EndpointResponse
 /**
  * Error response type - either fetch error or typed response error
  */
-export type TsrError =
-  | Error
-  | {
-      status: number;
-      data: unknown;
-    };
+export type TsrError = Error | ErrorResponse;
 
 /**
  * Check if an error is a fetch/network error (Error instance, not a response)
@@ -197,6 +203,9 @@ export type TypedQueryEndpointClient<T extends StandardEndpointDefinition> = {
   ensureQueryData: (options: TsrQueryOptions<T>) => Promise<EndpointResponse<T>>;
 };
 
+// Re-export isErrorResponse from client
+export { isErrorResponse };
+
 /**
  * Typed query client methods for a single mutation endpoint
  * Mutations don't have query-specific cache methods
@@ -223,30 +232,32 @@ export type TypedQueryClient<T extends Contract> = QueryClient & {
  */
 export type QueryEndpointApi<T extends StandardEndpointDefinition> = {
   /** Standard query hook */
-  useQuery: (options: TsrQueryOptions<T>) => UseQueryResult<EndpointResponse<T>, Error> & {
+  useQuery: (options: TsrQueryOptions<T>) => UseQueryResult<EndpointResponse<T>, HookError<T>> & {
     contractEndpoint: T;
   };
   /** Suspense query hook */
   useSuspenseQuery: (options: TsrSuspenseQueryOptions<T>) => UseSuspenseQueryResult<
     EndpointResponse<T>,
-    Error
+    HookError<T>
   > & {
     contractEndpoint: T;
   };
   /** Infinite query hook */
   useInfiniteQuery: <TPageParam = unknown>(
     options: TsrInfiniteQueryOptions<T, TPageParam>,
-  ) => UseInfiniteQueryResult<InfiniteData<EndpointResponse<T>, TPageParam>, Error> & {
+  ) => UseInfiniteQueryResult<InfiniteData<EndpointResponse<T>, TPageParam>, HookError<T>> & {
     contractEndpoint: T;
   };
   /** Suspense infinite query hook */
   useSuspenseInfiniteQuery: <TPageParam = unknown>(
     options: TsrSuspenseInfiniteQueryOptions<T, TPageParam>,
-  ) => UseSuspenseInfiniteQueryResult<InfiniteData<EndpointResponse<T>, TPageParam>, Error> & {
+  ) => UseSuspenseInfiniteQueryResult<InfiniteData<EndpointResponse<T>, TPageParam>, HookError<T>> & {
     contractEndpoint: T;
   };
   /** Direct fetch without React Query */
   query: (options: EndpointRequestOptions<T>) => Promise<EndpointResponse<T>>;
+  /** Type guard that narrows an error to a typed ErrorResponse for this endpoint */
+  isErrorResponse: (error: unknown) => error is TypedErrorResponse<T>;
 };
 
 /**
@@ -256,13 +267,15 @@ export type MutationEndpointApi<T extends StandardEndpointDefinition> = {
   /** Mutation hook */
   useMutation: (options?: TsrMutationOptions<T>) => UseMutationResult<
     EndpointResponse<T>,
-    Error,
+    HookError<T>,
     EndpointRequestOptions<T>
   > & {
     contractEndpoint: T;
   };
   /** Direct mutate without React Query */
   mutate: (options: EndpointRequestOptions<T>) => Promise<EndpointResponse<T>>;
+  /** Type guard that narrows an error to a typed ErrorResponse for this endpoint */
+  isErrorResponse: (error: unknown) => error is TypedErrorResponse<T>;
 };
 
 /**
@@ -661,6 +674,8 @@ export function createTanstackQueryApi<T extends Contract>(
         },
         query: (options: EndpointRequestOptions<StandardEndpointDefinition>) =>
           clientMethod(options),
+        isErrorResponse: (error: unknown): error is ErrorResponse =>
+          isErrorResponse(error),
       } as QueryEndpointApi<StandardEndpointDefinition>;
     } else {
       // Mutation endpoint
@@ -678,6 +693,8 @@ export function createTanstackQueryApi<T extends Contract>(
         },
         mutate: (options: EndpointRequestOptions<StandardEndpointDefinition>) =>
           clientMethod(options),
+        isErrorResponse: (error: unknown): error is ErrorResponse =>
+          isErrorResponse(error),
       } as MutationEndpointApi<StandardEndpointDefinition>;
     }
   }

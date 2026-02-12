@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from 'node:child_process';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { createClient } from '@richie-rpc/client';
+import { createClient, ErrorResponse } from '@richie-rpc/client';
 import { usersContract } from '../contract';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -37,8 +37,8 @@ test.describe('BasePath Support', () => {
 
     const response = await client.listUsers({});
     expect(response.status).toBe(200);
-    expect(response.data.users.length).toBeGreaterThanOrEqual(2);
-    expect(response.data.total).toBeGreaterThanOrEqual(2);
+    expect(response.payload.users.length).toBeGreaterThanOrEqual(2);
+    expect(response.payload.total).toBeGreaterThanOrEqual(2);
   });
 
   test('client can get a single user with basePath', async () => {
@@ -49,8 +49,8 @@ test.describe('BasePath Support', () => {
     const response = await client.getUser({ params: { id: '1' } });
     expect(response.status).toBe(200);
     if (response.status === 200) {
-      expect(response.data.id).toBe('1');
-      expect(response.data.name).toBeTruthy();
+      expect(response.payload.id).toBe('1');
+      expect(response.payload.name).toBeTruthy();
     }
   });
 
@@ -69,8 +69,8 @@ test.describe('BasePath Support', () => {
 
     expect(response.status).toBe(201);
     if (response.status === 201) {
-      expect(response.data.name).toBe('New User');
-      expect(response.data.email).toBe('new@example.com');
+      expect(response.payload.name).toBe('New User');
+      expect(response.payload.email).toBe('new@example.com');
     }
   });
 
@@ -86,7 +86,7 @@ test.describe('BasePath Support', () => {
 
     expect(response.status).toBe(200);
     if (response.status === 200) {
-      expect(response.data.name).toBe('Updated User');
+      expect(response.payload.name).toBe('Updated User');
     }
   });
 
@@ -97,18 +97,23 @@ test.describe('BasePath Support', () => {
 
     // First, get the initial count
     const initialList = await client.listUsers({});
-    const initialCount = initialList.data.total;
+    const initialCount = initialList.payload.total;
 
     const response = await client.deleteUser({ params: { id: '1' } });
     expect(response.status).toBe(204);
 
     // Verify user is deleted - count should be reduced by 1
     const listResponse = await client.listUsers({});
-    expect(listResponse.data.total).toBe(initialCount - 1);
+    expect(listResponse.payload.total).toBe(initialCount - 1);
 
-    // Verify the specific user is gone
-    const getResponse = await client.getUser({ params: { id: '1' } });
-    expect(getResponse.status).toBe(404);
+    // Verify the specific user is gone (throws ErrorResponse for 404)
+    try {
+      await client.getUser({ params: { id: '1' } });
+      expect(true).toBe(false); // should not reach here
+    } catch (err) {
+      expect(err).toBeInstanceOf(ErrorResponse);
+      expect((err as ErrorResponse).status).toBe(404);
+    }
   });
 
   test('requests without basePath prefix return 404', async () => {
@@ -156,7 +161,7 @@ test.describe('BasePath Support', () => {
 
     const response = await client.listUsers({});
     expect(response.status).toBe(200);
-    expect(response.data.users).toBeDefined();
+    expect(response.payload.users).toBeDefined();
   });
 
   test('router handles basePath normalization', async () => {
@@ -187,13 +192,13 @@ test.describe('BasePath Support', () => {
     });
     expect(createResponse.status).toBe(201);
     if (createResponse.status !== 201) return;
-    const userId = createResponse.data.id;
+    const userId = createResponse.payload.id;
 
     // Read
     const getResponse = await client.getUser({ params: { id: userId } });
     expect(getResponse.status).toBe(200);
     if (getResponse.status === 200) {
-      expect(getResponse.data.name).toBe('John Doe');
+      expect(getResponse.payload.name).toBe('John Doe');
     }
 
     // Update
@@ -203,20 +208,25 @@ test.describe('BasePath Support', () => {
     });
     expect(updateResponse.status).toBe(200);
     if (updateResponse.status === 200) {
-      expect(updateResponse.data.age).toBe(36);
+      expect(updateResponse.payload.age).toBe(36);
     }
 
     // List
     const listResponse = await client.listUsers({});
     expect(listResponse.status).toBe(200);
-    expect(listResponse.data.total).toBeGreaterThanOrEqual(1);
+    expect(listResponse.payload.total).toBeGreaterThanOrEqual(1);
 
     // Delete
     const deleteResponse = await client.deleteUser({ params: { id: userId } });
     expect(deleteResponse.status).toBe(204);
 
-    // Verify deletion
-    const getAfterDeleteResponse = await client.getUser({ params: { id: userId } });
-    expect(getAfterDeleteResponse.status).toBe(404);
+    // Verify deletion (throws ErrorResponse for 404)
+    try {
+      await client.getUser({ params: { id: userId } });
+      expect(true).toBe(false); // should not reach here
+    } catch (err) {
+      expect(err).toBeInstanceOf(ErrorResponse);
+      expect((err as ErrorResponse).status).toBe(404);
+    }
   });
 });

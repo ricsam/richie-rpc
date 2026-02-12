@@ -36,13 +36,25 @@ export type HandlerInput<T extends StandardEndpointDefinition, C = unknown> = {
 };
 
 // Handler response type (for standard endpoints)
-export type HandlerResponse<T extends StandardEndpointDefinition> = {
-  [Status in keyof T['responses']]: {
-    status: Status;
-    body: T['responses'][Status] extends z.ZodTypeAny ? z.infer<T['responses'][Status]> : never;
-    headers?: Record<string, string>;
-  };
-}[keyof T['responses']];
+export type HandlerResponse<T extends StandardEndpointDefinition> =
+  | {
+      [Status in keyof T['responses']]: {
+        status: Status;
+        body: T['responses'][Status] extends z.ZodTypeAny ? z.infer<T['responses'][Status]> : never;
+        headers?: Record<string, string>;
+      };
+    }[keyof T['responses']]
+  | (T['errorResponses'] extends Record<number, z.ZodTypeAny>
+      ? {
+          [S in keyof T['errorResponses']]: {
+            status: S;
+            body: T['errorResponses'][S] extends z.ZodTypeAny
+              ? z.infer<T['errorResponses'][S]>
+              : never;
+            headers?: Record<string, string>;
+          };
+        }[keyof T['errorResponses']]
+      : never);
 
 // Handler function type (for standard endpoints)
 export type Handler<T extends StandardEndpointDefinition, C = unknown> = (
@@ -466,7 +478,8 @@ function createResponse<T extends StandardEndpointDefinition>(
   const { status, body, headers: customHeaders } = handlerResponse;
 
   // Validate response body
-  const responseSchema = endpoint.responses[status as keyof typeof endpoint.responses];
+  const responseSchema = endpoint.responses[status as keyof typeof endpoint.responses]
+    ?? endpoint.errorResponses?.[status as number];
   if (responseSchema) {
     const result = responseSchema.safeParse(body);
     if (!result.success) {
