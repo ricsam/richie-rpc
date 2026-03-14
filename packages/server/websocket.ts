@@ -125,6 +125,8 @@ type WithData<T, D> = T &
         data?: never;
       });
 
+type RawWebSocketMessage = string | ArrayBuffer | ArrayBufferView;
+
 /**
  * WebSocket handler interface with context parameter
  */
@@ -142,7 +144,7 @@ export interface WebSocketHandler<WS extends GenericWebSocket, D = unknown> {
     args: WithData<
       {
         ws: WS;
-        rawMessage: string | Buffer<ArrayBuffer>;
+        rawMessage: RawWebSocketMessage;
         upgradeData: UpgradeData;
       },
       D
@@ -333,7 +335,7 @@ export class WebSocketRouter<
    */
   private validateMessage(
     endpoint: WebSocketContractDefinition,
-    rawMessage: string | ArrayBuffer,
+    rawMessage: RawWebSocketMessage,
   ): ExtractClientMessage<typeof endpoint> {
     // Parse message
     const messageStr =
@@ -400,10 +402,7 @@ export class WebSocketRouter<
 
         try {
           // Validate the message
-          const validatedMessage = this.validateMessage(
-            upgradeData.endpoint,
-            typeof rawMessage === 'string' ? rawMessage : rawMessage.buffer,
-          );
+          const validatedMessage = this.validateMessage(upgradeData.endpoint, rawMessage);
 
           // Call handler with validated message
           await endpointHandlers.message({
