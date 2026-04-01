@@ -46,6 +46,23 @@ const UserListSchema = z.object({
   total: z.number(),
 });
 
+const UploadDocumentsBodySchema = z.object({
+  documents: z.array(
+    z.object({
+      file: z.instanceof(File),
+      name: z.string(),
+      tags: z.array(z.string()).optional(),
+    }),
+  ),
+  category: z.string(),
+});
+
+const UploadDocumentsResponseSchema = z.object({
+  uploadedCount: z.number(),
+  totalSize: z.number(),
+  filenames: z.array(z.string()),
+});
+
 // Define the contract
 export const usersContract = defineContract({
   // List all users
@@ -59,6 +76,18 @@ export const usersContract = defineContract({
     }),
     responses: {
       [Status.OK]: UserListSchema,
+    },
+  },
+
+  authListUsers: {
+    type: 'standard',
+    method: 'GET',
+    path: '/auth/users',
+    responses: {
+      [Status.OK]: UserListSchema,
+    },
+    errorResponses: {
+      [Status.Unauthorized]: ErrorSchema,
     },
   },
 
@@ -150,22 +179,23 @@ export const usersContract = defineContract({
     method: 'POST',
     path: '/upload',
     contentType: 'multipart/form-data',
-    body: z.object({
-      documents: z.array(
-        z.object({
-          file: z.instanceof(File),
-          name: z.string(),
-          tags: z.array(z.string()).optional(),
-        }),
-      ),
-      category: z.string(),
-    }),
+    body: UploadDocumentsBodySchema,
     responses: {
-      [Status.Created]: z.object({
-        uploadedCount: z.number(),
-        totalSize: z.number(),
-        filenames: z.array(z.string()),
-      }),
+      [Status.Created]: UploadDocumentsResponseSchema,
+    },
+  },
+
+  authUploadDocuments: {
+    type: 'standard',
+    method: 'POST',
+    path: '/auth/upload',
+    contentType: 'multipart/form-data',
+    body: UploadDocumentsBodySchema,
+    responses: {
+      [Status.Created]: UploadDocumentsResponseSchema,
+    },
+    errorResponses: {
+      [Status.Unauthorized]: ErrorSchema,
     },
   },
 
@@ -178,6 +208,19 @@ export const usersContract = defineContract({
       fileId: z.string(),
     }),
     errorResponses: {
+      [Status.NotFound]: ErrorSchema,
+    },
+  },
+
+  authDownloadFile: {
+    type: 'download',
+    method: 'GET',
+    path: '/auth/files/:fileId',
+    params: z.object({
+      fileId: z.string(),
+    }),
+    errorResponses: {
+      [Status.Unauthorized]: ErrorSchema,
       [Status.NotFound]: ErrorSchema,
     },
   },

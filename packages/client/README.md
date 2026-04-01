@@ -24,6 +24,33 @@ const client = createClient(contract, {
 });
 ```
 
+### Browser Auth Hooks
+
+You can resolve auth headers per request and observe every HTTP response before the client parses it:
+
+```typescript
+const sessionTokenStore = {
+  token: getAuth(),
+}
+
+const client = createClient(contract, {
+  baseUrl: '/api',
+  headers: async () => ({
+    authorization: sessionTokenStore.token,
+  }),
+  onResponse: async (response) => {
+    const nextToken = response.headers.get('x-session-token');
+    if (nextToken) {
+      sessionTokenStore.token = nextToken;
+    }
+  },
+});
+```
+
+`headers` runs fresh for every HTTP request. `onResponse` runs for all HTTP responses, including non-2xx responses, before the client parses the body or throws typed client errors.
+
+`onResponse` is intended for response metadata such as status and headers. Avoid consuming the response body inside the hook.
+
 ### Client with basePath
 
 The `baseUrl` supports both absolute and relative URLs:
@@ -292,6 +319,8 @@ console.log('State:', conn.state); // 'connecting' | 'open' | 'closed'
 - `close()` - Close the connection
 - `state` - Current connection state
 
+SSE connections do not support `ClientConfig.headers` or `ClientConfig.onResponse` because `EventSource` does not expose request-header customization or fetch `Response` objects.
+
 ## WebSocket Client
 
 For bidirectional real-time communication, use `createWebSocketClient`:
@@ -438,9 +467,10 @@ function ChatRoom({ roomId }: { roomId: string }) {
 ```typescript
 interface ClientConfig {
   baseUrl: string; // Base URL for all requests
-  headers?: Record<string, string>; // Default headers
+  headers?: HeadersInit | (() => HeadersInit | Promise<HeadersInit>); // Default headers or async header factory
   validateRequest?: boolean; // Validate before sending (default: true)
-  validateResponse?: boolean; // Validate after receiving (default: true)
+  parseResponse?: boolean; // Parse and validate responses (default: true)
+  onResponse?: (response: Response) => void | Promise<void>; // Observe each HTTP response before parsing
 }
 ```
 
@@ -474,13 +504,13 @@ try {
 } catch (error) {
   // With endpoint — fully typed status and payload
   if (isErrorResponse(error, contract.getUser)) {
-    console.log(error.status);  // 404
+    console.log(error.status); // 404
     console.log(error.payload); // { error: string } — typed from the contract
   }
 
   // Without endpoint — basic check (payload is unknown)
   if (isErrorResponse(error)) {
-    console.log(error.status);  // number
+    console.log(error.status); // number
     console.log(error.payload); // unknown
   }
 }
@@ -580,7 +610,7 @@ You can disable validation:
 const client = createClient(contract, {
   baseUrl: 'https://api.example.com',
   validateRequest: false, // Skip request validation
-  validateResponse: false, // Skip response validation
+  parseResponse: false, // Skip response validation
 });
 ```
 

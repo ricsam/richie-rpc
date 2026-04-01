@@ -21,6 +21,37 @@ users.set('2', {
   age: 35,
 });
 
+const DEMO_SESSION_HEADER = 'x-demo-session';
+
+function createUnauthorizedResponse(scope: string) {
+  return {
+    status: Status.Unauthorized,
+    body: {
+      error: 'Unauthorized',
+      message: `Expected Authorization header "Bearer ${scope}-<number>"`,
+    },
+  } as const;
+}
+
+function getDemoSessionHeaders(
+  authorization: string | null,
+  scope: string,
+): Record<string, string> | null {
+  if (!authorization) {
+    return null;
+  }
+
+  const escapedScope = scope.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = authorization.match(new RegExp(`^Bearer ${escapedScope}-(\\d+)$`));
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return {
+    [DEMO_SESSION_HEADER]: `Bearer ${scope}-${Number.parseInt(match[1], 10) + 1}`,
+  };
+}
+
 // Create router with basePath
 const router = createRouter(
   usersContract,
@@ -38,6 +69,22 @@ const router = createRouter(
           users: paginatedUsers,
           total: allUsers.length,
         },
+      };
+    },
+
+    authListUsers: async ({ request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'standard');
+      if (!headers) {
+        return createUnauthorizedResponse('standard');
+      }
+
+      return {
+        status: Status.OK,
+        body: {
+          users: Array.from(users.values()),
+          total: users.size,
+        },
+        headers,
       };
     },
 
@@ -158,6 +205,31 @@ const router = createRouter(
       };
     },
 
+    authUploadDocuments: async ({ body, request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'upload');
+      if (!headers) {
+        return createUnauthorizedResponse('upload');
+      }
+
+      const filenames: string[] = [];
+      let totalSize = 0;
+
+      for (const doc of body.documents) {
+        filenames.push(doc.file.name);
+        totalSize += doc.file.size;
+      }
+
+      return {
+        status: Status.Created,
+        body: {
+          uploadedCount: body.documents.length,
+          totalSize,
+          filenames,
+        },
+        headers,
+      };
+    },
+
     // File download
     downloadFile: async ({ params }) => {
       const mockFiles: Record<string, { content: string; name: string; type: string }> = {
@@ -181,6 +253,38 @@ const router = createRouter(
       return {
         status: 200 as const,
         body: file,
+      };
+    },
+
+    authDownloadFile: async ({ params, request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'download');
+      if (!headers) {
+        return createUnauthorizedResponse('download');
+      }
+
+      const mockFiles: Record<string, { content: string; name: string; type: string }> = {
+        'doc-1': { content: 'Hello, World!', name: 'hello.txt', type: 'text/plain' },
+      };
+
+      const fileInfo = mockFiles[params.fileId];
+
+      if (!fileInfo) {
+        return {
+          status: Status.NotFound,
+          body: {
+            error: 'Not Found',
+            message: `File with id ${params.fileId} not found`,
+          },
+          headers,
+        };
+      }
+
+      const file = new File([fileInfo.content], fileInfo.name, { type: fileInfo.type });
+
+      return {
+        status: 200 as const,
+        body: file,
+        headers,
       };
     },
 

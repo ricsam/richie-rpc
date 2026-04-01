@@ -2,6 +2,7 @@ import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
 import { createRouter, RouteNotFoundError, Status, ValidationError } from '@richie-rpc/server';
 import type { UpgradeData } from '@richie-rpc/server/websocket';
 import { type User, usersContract } from './contract';
+import authHooksHtml from './auth-hooks.html';
 import reactDemoHtml from './index.html';
 import { streamingRouter, wsRouter } from './streaming-server';
 
@@ -52,6 +53,140 @@ users.set('2', {
   age: 35,
 });
 
+const DEMO_SESSION_HEADER = 'x-demo-session';
+
+function buildUserList(limit = 100, offset = 0) {
+  const allUsers = Array.from(users.values());
+  const paginatedUsers = allUsers.slice(offset, offset + limit);
+
+  return {
+    users: paginatedUsers,
+    total: allUsers.length,
+  };
+}
+
+function createUnauthorizedResponse(scope: string) {
+  return {
+    status: Status.Unauthorized,
+    body: {
+      error: 'Unauthorized',
+      message: `Expected Authorization header "Bearer ${scope}-<number>"`,
+    },
+  } as const;
+}
+
+function getNextDemoSessionToken(authorization: string | null, scope: string): string | null {
+  if (!authorization) {
+    return null;
+  }
+
+  const escapedScope = scope.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = authorization.match(new RegExp(`^Bearer ${escapedScope}-(\\d+)$`));
+  if (!match?.[1]) {
+    return null;
+  }
+
+  return `Bearer ${scope}-${Number.parseInt(match[1], 10) + 1}`;
+}
+
+function getDemoSessionHeaders(
+  authorization: string | null,
+  scope: string,
+): Record<string, string> | null {
+  const nextToken = getNextDemoSessionToken(authorization, scope);
+  if (!nextToken) {
+    return null;
+  }
+
+  return {
+    [DEMO_SESSION_HEADER]: nextToken,
+  };
+}
+
+type UploadBody = {
+  documents: Array<{
+    file: File;
+    name: string;
+    tags?: string[];
+  }>;
+  category: string;
+};
+
+function buildUploadResponse(body: UploadBody) {
+  const filenames: string[] = [];
+  let totalSize = 0;
+
+  for (const doc of body.documents) {
+    filenames.push(doc.file.name);
+    totalSize += doc.file.size;
+    console.log(
+      `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
+    );
+    if (doc.tags) {
+      console.log(`  Tags: ${doc.tags.join(', ')}`);
+    }
+  }
+
+  return {
+    uploadedCount: body.documents.length,
+    totalSize,
+    filenames,
+  };
+}
+
+async function buildDownloadResponse(fileId: string) {
+  if (fileId === 'test-image') {
+    const bunFile = Bun.file('./tests/fixtures/test-image.png');
+    const buffer = await bunFile.arrayBuffer();
+    return {
+      status: 200 as const,
+      body: new File([buffer], 'test-image.png', { type: bunFile.type }),
+    };
+  }
+
+  const mockFiles: Record<string, { content: string; name: string; type: string }> = {
+    'doc-1': {
+      content: 'Hello, World! This is a test document.',
+      name: 'hello.txt',
+      type: 'text/plain',
+    },
+    'doc-2': {
+      content: '{"message": "JSON content"}',
+      name: 'data.json',
+      type: 'application/json',
+    },
+  };
+
+  const fileInfo = mockFiles[fileId];
+  if (!fileInfo) {
+    return {
+      status: Status.NotFound,
+      body: {
+        error: 'Not Found',
+        message: `File with id ${fileId} not found`,
+      },
+    } as const;
+  }
+
+  return {
+    status: 200 as const,
+    body: new File([fileInfo.content], fileInfo.name, {
+      type: fileInfo.type,
+    }),
+  };
+}
+
+function withResponseHeader(response: Response, key: string, value: string): Response {
+  const headers = new Headers(response.headers);
+  headers.set(key, value);
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 // Create router with handlers and context
 const router = createRouter<typeof usersContract, AppContext>(
   usersContract,
@@ -60,15 +195,22 @@ const router = createRouter<typeof usersContract, AppContext>(
       const limit = query?.limit ? parseInt(query.limit, 10) : 100;
       const offset = query?.offset ? parseInt(query.offset, 10) : 0;
 
-      const allUsers = Array.from(users.values());
-      const paginatedUsers = allUsers.slice(offset, offset + limit);
+      return {
+        status: Status.OK,
+        body: buildUserList(limit, offset),
+      };
+    },
+
+    authListUsers: async ({ request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'standard');
+      if (!headers) {
+        return createUnauthorizedResponse('standard');
+      }
 
       return {
         status: Status.OK,
-        body: {
-          users: paginatedUsers,
-          total: allUsers.length,
-        },
+        body: buildUserList(),
+        headers,
       };
     },
 
@@ -175,77 +317,40 @@ const router = createRouter<typeof usersContract, AppContext>(
 
     // File upload with nested files
     uploadDocuments: async ({ body }) => {
-      const filenames: string[] = [];
-      let totalSize = 0;
+      return {
+        status: Status.Created,
+        body: buildUploadResponse(body as UploadBody),
+      };
+    },
 
-      for (const doc of body.documents) {
-        // doc.file is a File object, doc.name and doc.tags are typed correctly
-        filenames.push(doc.file.name);
-        totalSize += doc.file.size;
-        console.log(
-          `Received file: ${doc.file.name} (${doc.file.size} bytes) as "${doc.name}" in category "${body.category}"`,
-        );
-        if (doc.tags) {
-          console.log(`  Tags: ${doc.tags.join(', ')}`);
-        }
+    authUploadDocuments: async ({ body, request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'upload');
+      if (!headers) {
+        return createUnauthorizedResponse('upload');
       }
 
       return {
         status: Status.Created,
-        body: {
-          uploadedCount: body.documents.length,
-          totalSize,
-          filenames,
-        },
+        body: buildUploadResponse(body as UploadBody),
+        headers,
       };
     },
 
     // File download
     downloadFile: async ({ params }) => {
-      // Test case for binary file using Bun.file()
-      if (params.fileId === 'test-image') {
-        const bunFile = Bun.file('./tests/fixtures/test-image.png');
-        const buffer = await bunFile.arrayBuffer();
-        const file = new File([buffer], 'test-image.png', { type: bunFile.type });
-        return {
-          status: 200 as const,
-          body: file,
-        };
+      return buildDownloadResponse(params.fileId);
+    },
+
+    authDownloadFile: async ({ params, request }) => {
+      const headers = getDemoSessionHeaders(request.headers.get('authorization'), 'download');
+      if (!headers) {
+        return createUnauthorizedResponse('download');
       }
 
-      // Mock file storage - in real app, this would fetch from disk/S3/etc
-      const mockFiles: Record<string, { content: string; name: string; type: string }> = {
-        'doc-1': {
-          content: 'Hello, World! This is a test document.',
-          name: 'hello.txt',
-          type: 'text/plain',
-        },
-        'doc-2': {
-          content: '{"message": "JSON content"}',
-          name: 'data.json',
-          type: 'application/json',
-        },
-      };
-
-      const fileInfo = mockFiles[params.fileId];
-
-      if (!fileInfo) {
-        return {
-          status: Status.NotFound,
-          body: {
-            error: 'Not Found',
-            message: `File with id ${params.fileId} not found`,
-          },
-        };
-      }
-
-      const file = new File([fileInfo.content], fileInfo.name, {
-        type: fileInfo.type,
-      });
-
+      const response = await buildDownloadResponse(params.fileId);
       return {
-        status: 200 as const,
-        body: file,
+        ...response,
+        headers,
       };
     },
 
@@ -324,6 +429,7 @@ const redirectToLocal = (req: Request, from: RegExp, to: string) => {
 const server = Bun.serve({
   port: Number.parseInt(process.env.PORT || '3000', 10),
   routes: {
+    '/auth-hooks.html': authHooksHtml,
     '/index.html': reactDemoHtml,
     '/docs': docsHtml,
   },
@@ -369,7 +475,21 @@ const server = Bun.serve({
 
     if (url.pathname.startsWith('/streaming')) {
       try {
-        return await streamingRouter.handle(request);
+        if (url.pathname === '/streaming/auth/chat') {
+          const nextToken = getNextDemoSessionToken(
+            request.headers.get('authorization'),
+            'streaming',
+          );
+          if (!nextToken) {
+            return Response.json(createUnauthorizedResponse('streaming').body, { status: 401 });
+          }
+
+          const response = await streamingRouter.handle(request);
+          return withResponseHeader(response, DEMO_SESSION_HEADER, nextToken);
+        }
+
+        const response = await streamingRouter.handle(request);
+        return response;
       } catch (error) {
         console.error('Streaming error:', error);
         return Response.json({ error: 'Internal Server Error' }, { status: 500 });

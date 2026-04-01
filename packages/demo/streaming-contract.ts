@@ -14,6 +14,18 @@ export const streamingContract = defineContract({
     }),
   },
 
+  authAiChat: {
+    type: 'streaming',
+    method: 'POST',
+    path: '/auth/chat',
+    body: z.object({ prompt: z.string() }),
+    chunk: z.object({ text: z.string() }),
+    finalResponse: z.object({
+      totalTokens: z.number(),
+      completionTime: z.number(),
+    }),
+  },
+
   logs: {
     type: 'sse',
     method: 'GET',

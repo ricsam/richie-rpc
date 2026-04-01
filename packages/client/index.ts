@@ -23,12 +23,15 @@ import { buildUrl, interpolatePath, objectToFormData } from '@richie-rpc/core';
 export type { UploadProgressEvent, DownloadProgressEvent };
 import { z } from 'zod';
 
+type MaybePromise<T> = T | Promise<T>;
+
 // Client configuration
 export interface ClientConfig {
   baseUrl: string;
-  headers?: Record<string, string>;
+  headers?: HeadersInit | (() => MaybePromise<HeadersInit>);
   validateRequest?: boolean;
   parseResponse?: boolean;
+  onResponse?: (response: Response) => MaybePromise<void>;
 }
 
 // Request options for an endpoint
@@ -235,7 +238,10 @@ export function isErrorResponse<T extends StandardEndpointDefinition>(
   endpoint: T,
 ): error is TypedErrorResponse<T>;
 export function isErrorResponse(error: unknown): error is ErrorResponse;
-export function isErrorResponse(error: unknown, _endpoint?: StandardEndpointDefinition): error is ErrorResponse {
+export function isErrorResponse(
+  error: unknown,
+  _endpoint?: StandardEndpointDefinition,
+): error is ErrorResponse {
   return error instanceof ErrorResponse;
 }
 
@@ -287,8 +293,7 @@ function parseResponse<T extends StandardEndpointDefinition>(
   status: number,
   data: unknown,
 ): unknown {
-  const responseSchema = endpoint.responses[status]
-    ?? endpoint.errorResponses?.[status];
+  const responseSchema = endpoint.responses[status] ?? endpoint.errorResponses?.[status];
   if (responseSchema) {
     const result = responseSchema.safeParse(data);
     if (!result.success) {
@@ -315,6 +320,65 @@ function extractFilename(contentDisposition: string | null): string | null {
     return filenameMatch[1];
   }
   return null;
+}
+
+async function resolveConfigHeaders(config: ClientConfig): Promise<Headers> {
+  const resolvedHeaders =
+    typeof config.headers === 'function' ? await config.headers() : config.headers;
+  return new Headers(resolvedHeaders);
+}
+
+function mergeHeaders(headers: Headers, requestHeaders?: Record<string, unknown>): Headers {
+  if (!requestHeaders) {
+    return headers;
+  }
+
+  for (const [key, value] of Object.entries(requestHeaders)) {
+    headers.set(key, String(value));
+  }
+
+  return headers;
+}
+
+async function buildHeaders(
+  config: ClientConfig,
+  requestHeaders?: Record<string, unknown>,
+): Promise<Headers> {
+  return mergeHeaders(await resolveConfigHeaders(config), requestHeaders);
+}
+
+async function invokeResponseHook(config: ClientConfig, response: Response): Promise<void> {
+  if (config.onResponse) {
+    await config.onResponse(response);
+  }
+}
+
+function applyHeadersToXHR(xhr: XMLHttpRequest, headers: Headers): void {
+  headers.forEach((value, key) => {
+    xhr.setRequestHeader(key, value);
+  });
+}
+
+function createResponseFromXHR(xhr: XMLHttpRequest): Response {
+  const headers = new Headers();
+  const rawHeaders = xhr.getAllResponseHeaders().trim();
+
+  if (rawHeaders) {
+    for (const line of rawHeaders.split(/\r?\n/)) {
+      const separatorIndex = line.indexOf(':');
+      if (separatorIndex === -1) continue;
+
+      const key = line.slice(0, separatorIndex).trim();
+      const value = line.slice(separatorIndex + 1).trim();
+      headers.append(key, value);
+    }
+  }
+
+  return new Response(null, {
+    status: xhr.status,
+    statusText: xhr.statusText,
+    headers,
+  });
 }
 
 /**
@@ -396,12 +460,10 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
   );
 
   // Build headers
-  const headers = new Headers(config.headers);
-  if (options.headers) {
-    for (const [key, value] of Object.entries(options.headers)) {
-      headers.set(key, String(value));
-    }
-  }
+  const headers = await buildHeaders(
+    config,
+    options.headers as Record<string, unknown> | undefined,
+  );
 
   // Build request init
   const init: RequestInit = {
@@ -416,6 +478,7 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
 
   // Make request
   const response = await fetch(url, init);
+  await invokeResponseHook(config, response);
 
   // Handle success (200) - return File
   if (response.status === 200) {
@@ -491,30 +554,23 @@ async function makeDownloadRequest<T extends DownloadEndpointDefinition>(
 /**
  * Make a request using XMLHttpRequest for upload progress support
  */
-function makeRequestWithXHR<T extends StandardEndpointDefinition>(
+async function makeRequestWithXHR<T extends StandardEndpointDefinition>(
   config: ClientConfig,
   endpoint: T,
   options: EndpointRequestOptions<T>,
   url: string,
 ): Promise<EndpointResponse<T>> {
+  const headers = await buildHeaders(
+    config,
+    options.headers as Record<string, unknown> | undefined,
+  );
+
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
     xhr.open(endpoint.method, url);
 
-    // Set base headers from config
-    if (config.headers) {
-      for (const [key, value] of Object.entries(config.headers)) {
-        xhr.setRequestHeader(key, value);
-      }
-    }
-
-    // Set request-specific headers
-    if (options.headers) {
-      for (const [key, value] of Object.entries(options.headers)) {
-        xhr.setRequestHeader(key, String(value));
-      }
-    }
+    applyHeadersToXHR(xhr, headers);
 
     // Upload progress callback
     if (options.onUploadProgress) {
@@ -541,7 +597,14 @@ function makeRequestWithXHR<T extends StandardEndpointDefinition>(
       });
     }
 
-    xhr.onload = () => {
+    xhr.onload = async () => {
+      try {
+        await invokeResponseHook(config, createResponseFromXHR(xhr));
+      } catch (err) {
+        reject(err);
+        return;
+      }
+
       let data: unknown;
       const responseContentType = xhr.getResponseHeader('content-type') || '';
 
@@ -647,12 +710,10 @@ async function makeRequest<T extends StandardEndpointDefinition>(
   }
 
   // Build headers
-  const headers = new Headers(config.headers);
-  if (options.headers) {
-    for (const [key, value] of Object.entries(options.headers)) {
-      headers.set(key, String(value));
-    }
-  }
+  const headers = await buildHeaders(
+    config,
+    options.headers as Record<string, unknown> | undefined,
+  );
 
   // Build request init
   const init: RequestInit = {
@@ -680,6 +741,7 @@ async function makeRequest<T extends StandardEndpointDefinition>(
 
   // Make request
   const response = await fetch(url, init);
+  await invokeResponseHook(config, response);
 
   // Parse response
   let data: unknown;
@@ -907,12 +969,10 @@ async function makeStreamingRequest<T extends StreamingEndpointDefinition>(
   );
 
   // Build headers
-  const headers = new Headers(config.headers);
-  if (options.headers) {
-    for (const [key, value] of Object.entries(options.headers)) {
-      headers.set(key, String(value));
-    }
-  }
+  const headers = await buildHeaders(
+    config,
+    options.headers as Record<string, unknown> | undefined,
+  );
 
   // Build request init - create our own controller for abort() method
   const controller = new AbortController();
@@ -946,6 +1006,7 @@ async function makeStreamingRequest<T extends StreamingEndpointDefinition>(
 
   // Make request
   const response = await fetch(url, init);
+  await invokeResponseHook(config, response);
 
   // Check for error responses before streaming
   if (!response.ok) {
@@ -985,8 +1046,8 @@ function createSSEConnection<T extends SSEEndpointDefinition>(
     options.query as Record<string, string | number | boolean | string[]> | undefined,
   );
 
-  // EventSource doesn't support custom headers, but we can include query params
-  // Note: If auth headers are needed, consider using fetch-based SSE or passing auth in query
+  // EventSource doesn't support custom headers or fetch Response hooks.
+  // If auth headers are needed, consider using fetch-based SSE or passing auth in query.
   const eventSource = new EventSource(url);
 
   type EventHandler = (data: unknown, id?: string) => void;

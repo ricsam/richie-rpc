@@ -1,5 +1,11 @@
 # @richie-rpc/client
 
+## 2.0.1
+
+### Patch Changes
+
+- allow modifying and intercepting headers in createClient
+
 ## 2.0.0
 
 ### Major Changes

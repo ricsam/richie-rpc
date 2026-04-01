@@ -1,4 +1,4 @@
-import { createRouter } from '@richie-rpc/server';
+import { createRouter, type StreamEmitter } from '@richie-rpc/server';
 import {
   createWebSocketRouter,
   type TypedServerWebSocket,
@@ -12,39 +12,44 @@ import z from 'zod';
 // HTTP Streaming Router
 // ===========================================
 
+async function streamAiChat(
+  prompt: string,
+  stream: StreamEmitter<(typeof streamingContract)['aiChat']>,
+) {
+  const startTime = Date.now();
+  const words = prompt.split(/\s+/).filter(Boolean);
+
+  // Simulate AI streaming by sending words with delays
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (!word) continue;
+    const delay = 100 + Math.random() * 200; // 100-300ms delay
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
+    if (!stream.isOpen) {
+      return; // Client disconnected
+    }
+
+    // Add space before word (except first)
+    stream.send({ text: i === 0 ? word : ` ${word}` });
+  }
+
+  const completionTime = Date.now() - startTime;
+  const totalTokens = words.length;
+
+  stream.close({
+    totalTokens,
+    completionTime,
+  });
+}
+
 export const streamingRouter = createRouter(
   streamingContract,
   {
-    aiChat: async ({ body, stream }) => {
-      const startTime = Date.now();
-      const words = body.prompt.split(/\s+/).filter(Boolean);
+    aiChat: async ({ body, stream }) => streamAiChat(body.prompt, stream),
 
-      // Simulate AI streaming by sending words with delays
-      for (let i = 0; i < words.length; i++) {
-        const word = words[i];
-        if (!word) continue;
-        const delay = 100 + Math.random() * 200; // 100-300ms delay
-
-        await new Promise((resolve) => setTimeout(resolve, delay));
-
-        if (!stream.isOpen) {
-          return; // Client disconnected
-        }
-
-        // Add space before word (except first)
-        stream.send({ text: i === 0 ? word : ` ${word}` });
-      }
-
-      // Calculate stats
-      const completionTime = Date.now() - startTime;
-      const totalTokens = words.length;
-
-      // Close with final response
-      stream.close({
-        totalTokens,
-        completionTime,
-      });
-    },
+    authAiChat: async ({ body, stream }) => streamAiChat(body.prompt, stream),
 
     logs: ({ query, emitter, signal }) => {
       const filter = query.level || 'all';
