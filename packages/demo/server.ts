@@ -1,6 +1,6 @@
 import { createDocsResponse, generateOpenAPISpec } from '@richie-rpc/openapi';
 import { createRouter, RouteNotFoundError, Status, ValidationError } from '@richie-rpc/server';
-import type { UpgradeData } from '@richie-rpc/server/websocket';
+import type { UpgradeData } from '@richie-rpc/server';
 import { type User, usersContract } from './contract';
 import authHooksHtml from './auth-hooks.html';
 import reactDemoHtml from './index.html';

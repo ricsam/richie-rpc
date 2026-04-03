@@ -4,8 +4,7 @@
   "type": "module",
   "main": "index.ts",
   "exports": {
-    ".": "./index.ts",
-    "./websocket": "./websocket.ts"
+    ".": "./index.ts"
   },
   "peerDependencies": {
     "@richie-rpc/core": "workspace:*",

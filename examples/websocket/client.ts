@@ -5,7 +5,7 @@
  * for bidirectional real-time communication.
  */
 
-import { createWebSocketClient } from '@richie-rpc/client/websocket';
+import { createWebSocketClient } from '@richie-rpc/client';
 import { chatContract } from './contract';
 
 const wsClient = createWebSocketClient(chatContract, {

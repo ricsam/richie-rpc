@@ -624,7 +624,7 @@ message(ws, rawMessage) {
 
 ```typescript
 import { createRouter } from '@richie-rpc/server';
-import { createWebSocketRouter } from '@richie-rpc/server/websocket';
+import { createWebSocketRouter } from '@richie-rpc/server';
 
 const httpRouter = createRouter(apiContract, handlers);
 const wsRouter = createWebSocketRouter(wsContract, wsHandlers);

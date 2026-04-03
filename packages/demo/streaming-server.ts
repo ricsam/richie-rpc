@@ -3,7 +3,7 @@ import {
   createWebSocketRouter,
   type TypedServerWebSocket,
   type UpgradeData,
-} from '@richie-rpc/server/websocket';
+} from '@richie-rpc/server';
 import { streamingContract } from './streaming-contract';
 import { chatContract } from './websocket-contract';
 import z from 'zod';

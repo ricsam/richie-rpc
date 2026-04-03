@@ -6,7 +6,7 @@
  */
 
 import { createClient, ErrorResponse } from '@richie-rpc/client';
-import { createWebSocketClient } from '@richie-rpc/client/websocket';
+import { createWebSocketClient } from '@richie-rpc/client';
 import { createTanstackQueryApi } from '@richie-rpc/react-query';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
